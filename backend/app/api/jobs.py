@@ -78,23 +78,6 @@ class JobManager:
         conn.close()
         return job_id
     
-    def create_job(self, total_images: int) -> str:
-        """Create a new job and return job ID."""
-        job_id = str(uuid.uuid4())
-        self.jobs[job_id] = {
-            "job_id": job_id,
-            "status": JobStatus.PROCESSING,
-            "total_images": total_images,
-            "processed_count": 0,
-            "failed_count": 0,
-            "failed_images": [],
-            "error_messages": [],
-            "processed_files": [],
-            "created_at": datetime.now(),
-            "completed_at": None
-        }
-        return job_id
-    
     def get_job(self, job_id: str) -> Optional[dict]:
         """Get job by ID."""
         conn = sqlite3.connect(self.db_path)

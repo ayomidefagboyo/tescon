@@ -1,7 +1,7 @@
 /** Compression settings component */
 import React from "react";
 import { Sliders, Info } from "lucide-react";
-import { colors, spacing, typography, borderRadius, transitions } from "../styles/design-system";
+import { colors, spacing, typography, borderRadius } from "../styles/design-system";
 
 interface CompressionSettingsProps {
   quality: number;
@@ -55,7 +55,7 @@ export const CompressionSettings: React.FC<CompressionSettingsProps> = ({
       borderRadius: borderRadius.sm,
       backgroundColor: colors.background.main,
       cursor: 'pointer',
-      transition: `all ${transitions.fast}`,
+      transition: 'all 150ms ease-in-out',
       textAlign: 'left' as const,
     } as React.CSSProperties,
     
