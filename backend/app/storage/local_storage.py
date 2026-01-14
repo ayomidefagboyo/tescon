@@ -120,8 +120,21 @@ class LocalStorage:
         else:
             zip_path = self.processed_dir / output_filename
         
+        # Sort file paths: by part number (folder), then by filename
+        def sort_key(file_path: str) -> tuple:
+            """Sort key: (part_number, filename) for proper ordering."""
+            path_parts = Path(file_path).parts
+            if len(path_parts) >= 2:
+                # Has part_number folder: (part_number, filename)
+                return (path_parts[-2], path_parts[-1])
+            else:
+                # No folder: (empty, filename)
+                return ("", Path(file_path).name)
+        
+        sorted_file_paths = sorted(file_paths, key=sort_key)
+        
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in file_paths:
+            for file_path in sorted_file_paths:
                 full_path = self.processed_dir / file_path
                 if full_path.exists():
                     if preserve_structure:

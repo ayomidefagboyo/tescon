@@ -344,6 +344,57 @@ function App() {
       color: colors.success,
       marginBottom: spacing.md,
     },
+    
+    processingOverlay: {
+      position: 'fixed' as const,
+      inset: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.45)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 999,
+      padding: spacing.lg,
+    },
+    
+    overlayCard: {
+      width: 'min(520px, 100%)',
+      backgroundColor: colors.background.main,
+      borderRadius: borderRadius.lg,
+      padding: spacing.xl,
+      boxShadow: shadows.lg,
+      border: `1px solid ${colors.neutral[200]}`,
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: spacing.md,
+    },
+    
+    overlayHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    
+    overlayTitle: {
+      fontSize: typography.fontSize.lg,
+      fontWeight: typography.fontWeight.semibold,
+      color: colors.text.primary,
+    },
+    
+    overlayText: {
+      fontSize: typography.fontSize.sm,
+      color: colors.text.secondary,
+      marginTop: 2,
+    },
+    
+    overlaySpinner: {
+      width: '42px',
+      height: '42px',
+      borderRadius: '999px',
+      border: `4px solid ${colors.primary.light}`,
+      borderTopColor: colors.primary.main,
+      animation: 'spin 1s linear infinite',
+      flexShrink: 0,
+    } as React.CSSProperties,
   };
 
   return (
@@ -385,18 +436,16 @@ function App() {
             compact={files.length > 0}
           />
 
-          {processing && files.length === 1 && !files[0].name.toLowerCase().endsWith(".zip") && (
-            <div className="fade-in">
-              <ProgressBar progress={progress} label="Processing image..." />
-            </div>
-          )}
-
           {processedBlob && (
             <div style={styles.completionCard} className="fade-in">
               <h3 style={styles.completionTitle}>Processing Complete!</h3>
               <DownloadButton
                 blob={processedBlob}
-                filename={`processed_${files[0]?.name || "image"}.${format.toLowerCase()}`}
+                filename={(() => {
+                  const originalName = files[0]?.name || "image";
+                  const nameWithoutExt = originalName.replace(/\.[^/.]+$/, "");
+                  return `${nameWithoutExt}.${format.toLowerCase()}`;
+                })()}
                 label="Download Processed Image"
               />
             </div>
@@ -525,6 +574,29 @@ function App() {
           </div>
         )}
       </div>
+
+      {processing && (
+        <div style={styles.processingOverlay} role="status" aria-live="polite">
+          <div style={styles.overlayCard} className="fade-in">
+            <div style={styles.overlayHeader}>
+              <div style={styles.overlaySpinner} />
+              <div>
+                <div style={styles.overlayTitle}>Processing your images</div>
+                <div style={styles.overlayText}>
+                  We are removing backgrounds and applying your settings. This may take a moment.
+                </div>
+              </div>
+            </div>
+            <ProgressBar progress={progress} label="Uploading & processing" />
+          </div>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

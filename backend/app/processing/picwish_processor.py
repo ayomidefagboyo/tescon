@@ -9,11 +9,9 @@ from app.processing.image_utils import composite_white_background, convert_forma
 from app.utils.image_compressor import compress_image
 
 # PicWish API configuration
-# Note: Verify the exact endpoint in PicWish API documentation
-# Common endpoints:
-# - Background removal: https://api.picwish.com/v1/remove-background
-# - Or: https://techhk.aoscdn.com/api/tasks/visual/removebg
-PICWISH_API_URL = os.getenv("PICWISH_API_URL", "https://api.picwish.com/v1/remove-background")
+# Based on official documentation: https://picwish.com/background-removal-api-doc
+# Synchronous endpoint - returns result immediately
+PICWISH_API_URL = os.getenv("PICWISH_API_URL", "https://techhk.aoscdn.com/api/tasks/visual/segmentation")
 PICWISH_API_KEY = os.getenv("PICWISH_API_KEY", "")
 
 
@@ -59,25 +57,57 @@ def process_image(
     last_error = None
     for attempt in range(max_retries):
         try:
-            # Call PicWish API
-            # Try different field names based on API version
-            files = {"image": ("image.jpg", image_bytes, "image/jpeg")}
-            # Some APIs use "image_file" instead of "image"
-            # files = {"image_file": ("image.jpg", image_bytes, "image/jpeg")}
+            # Call PicWish API (synchronous mode)
+            # Documentation: https://picwish.com/background-removal-api-doc
+            files = {"image_file": ("image.jpg", image_bytes, "image/jpeg")}
+            form_data = {"sync": "1"}  # Synchronous mode - returns result immediately
             
-            headers = {"X-API-Key": PICWISH_API_KEY}
-            # Alternative header format: "X-API-KEY" or "Authorization: Bearer {key}"
+            headers = {"X-API-KEY": PICWISH_API_KEY}
             
             response = requests.post(
                 PICWISH_API_URL,
                 files=files,
+                data=form_data,
                 headers=headers,
                 timeout=60  # 60 second timeout
             )
             
             if response.status_code == 200:
-                # Get processed image from response
-                output_bytes = response.content
+                # PicWish API returns JSON with status and data
+                try:
+                    response_json = response.json()
+                    
+                    # Check API response status
+                    if response_json.get("status") != 200:
+                        error_msg = response_json.get("message", "Unknown error")
+                        raise Exception(f"PicWish API error: {error_msg}")
+                    
+                    # Get image URL from response
+                    response_data = response_json.get("data", {})
+                    image_url = response_data.get("image")
+                    
+                    if not image_url:
+                        # Check if image is returned directly in response
+                        if "image" in response_json:
+                            image_url = response_json["image"]
+                        else:
+                            raise Exception("No image URL in PicWish response")
+                    
+                    # Download the processed image from URL
+                    # Note: URL is valid for 1 hour per PicWish docs
+                    img_response = requests.get(image_url, timeout=60)
+                    if img_response.status_code != 200:
+                        raise Exception(f"Failed to download processed image: {img_response.status_code}")
+                    
+                    output_bytes = img_response.content
+                    
+                except ValueError:
+                    # If response is not JSON, it might be direct image (fallback)
+                    content_type = response.headers.get("content-type", "")
+                    if "image" in content_type.lower():
+                        output_bytes = response.content
+                    else:
+                        raise Exception(f"Unexpected PicWish response format: {response.text[:200]}")
                 
                 # Load processed image
                 processed_image = Image.open(BytesIO(output_bytes))
