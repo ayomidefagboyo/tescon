@@ -14,6 +14,7 @@ from app.processing.batch_manager import BatchProcessor
 from app.storage.local_storage import LocalStorage
 from app.api.jobs import job_manager
 from app.logging import log_image_processing, log_gpu_metrics
+from app.utils.filename_parser import validate_batch_filenames
 
 router = APIRouter()
 
@@ -92,7 +93,9 @@ async def process_single_image(
 async def process_bulk_images(
     files: List[UploadFile] = File(...),
     format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
-    white_background: bool = Query(True)
+    white_background: bool = Query(True),
+    compression_quality: int = Query(85, ge=70, le=100),
+    max_dimension: int = Query(2048, ge=800, le=4096)
 ):
     """
     Process multiple images asynchronously.
@@ -121,18 +124,30 @@ async def process_bulk_images(
     if not image_files:
         raise HTTPException(status_code=400, detail="No valid image files found")
     
+    # Validate filenames before processing
+    filenames = [f.filename for f in image_files if f.filename]
+    validation_results = validate_batch_filenames(filenames)
+    
     # Create job
     job_id = job_manager.create_job(len(image_files))
     
-    # Start async processing
+    # Start async processing with compression settings
     asyncio.create_task(
-        process_bulk_job(job_id, image_files, format, white_background)
+        process_bulk_job(
+            job_id, 
+            image_files, 
+            format, 
+            white_background,
+            compression_quality,
+            max_dimension
+        )
     )
     
     return JobResponse(
         job_id=job_id,
         status=JobStatus.PROCESSING,
-        message=f"Processing {len(image_files)} images"
+        message=f"Processing {len(image_files)} images",
+        validation_results=validation_results
     )
 
 
@@ -173,7 +188,9 @@ async def process_bulk_job(
     job_id: str,
     files: List,
     output_format: str,
-    white_background: bool
+    white_background: bool,
+    compression_quality: int = 85,
+    max_dimension: int = 2048
 ):
     """Process bulk images in background with batching support."""
     api_available = check_api_available()
@@ -215,12 +232,14 @@ async def process_bulk_job(
                 filename = getattr(file, 'filename', 'unknown')
                 job_manager.add_failed_image(job_id, filename, f"Failed to read file: {str(e)}")
         
-        # Process all images in batches
+        # Process all images in batches with compression
         await batch_processor.process_in_batches(
             job_id,
             image_data_list,
             output_format,
-            white_background
+            white_background,
+            compression_quality,
+            max_dimension
         )
         
     except Exception as e:

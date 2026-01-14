@@ -1,27 +1,61 @@
 # Tescon - Internal Image Background Removal Tool
 
-An internal tool for automatically removing backgrounds from spare-part images and standardizing them with white backgrounds.
+An internal tool for automatically processing spare-part images for SharePoint catalog upload. Removes backgrounds, standardizes to white backgrounds, validates filenames, and organizes by part number.
 
 ## Features
 
-- **Single Image Processing**: Upload and process one image at a time with immediate download
-- **Bulk Processing**: Upload multiple images or a ZIP file for async batch processing
-- **Large Volume Support**: Handles 50,000+ images with intelligent batching (500 images per batch)
-- **Concurrent Processing**: Configurable concurrent API requests (default: 10) for faster throughput
+### Core Processing
 - **Background Removal**: Uses PicWish API for high-quality background removal
 - **White Background**: Automatically composites processed images onto white backgrounds
+- **Image Compression**: User-controlled compression with quality presets
 - **Multiple Formats**: Output as PNG or JPEG
-- **Retry Failed Images**: One-click retry for failed images from completed jobs
+
+### SharePoint Integration
+- **Filename Validation**: Enforces `PartNumber_ViewNumber_Location.jpg` format
+- **On-the-Spot Renaming**: Fix invalid filenames before processing
+- **Auto-Folder Organization**: Creates folders by part number automatically
+- **Export Structure**: `/PartNumber/PartNumber_view1_Location.jpg`
+- **Pre-Export Validation**: Checks for missing views and corrupted images
+
+### Bulk Processing
+- **Large Volume Support**: Handles 50,000+ images with intelligent batching (500 per batch)
+- **Concurrent Processing**: Configurable concurrent API requests (default: 10)
 - **Progress Tracking**: Real-time progress updates with detailed job status
-- **Failure Logging**: Comprehensive logging of failed images with error messages
-- **API-Based**: Cloud-based processing, no local GPU required
+- **Retry Failed Images**: One-click retry for failed images
+- **Resumable Jobs**: Pause and resume batch processing
+
+### User Experience
+- **Filename Validation Summary**: Shows valid/invalid counts, unique parts
+- **Visual Guides**: Built-in naming convention help
+- **Error Handling**: Clear error messages for non-technical users
+- **No Scrolling**: All controls visible in viewport
+
+## Naming Convention
+
+All images must follow this format:
+
+```
+PartNumber_ViewNumber_Location.ext
+```
+
+### Example
+```
+58802935_1_EG1060007.jpg
+74452282_2_EG1060007.jpg
+```
+
+Where:
+- **PartNumber**: Part/item number (used for folder organization)
+- **ViewNumber**: Image angle (1, 2, 3...)
+- **Location**: Warehouse/bin reference code
 
 ## Architecture
 
 - **Backend**: FastAPI (Python) with PicWish API integration
 - **Frontend**: React + TypeScript with Vite
-- **Storage**: Local filesystem (extensible to S3/NAS)
+- **Storage**: Local filesystem with part-number folder organization
 - **Processing**: PicWish API (cloud-based background removal)
+- **Database**: SQLite for job persistence
 
 ## Quick Start
 
@@ -33,6 +67,9 @@ An internal tool for automatically removing backgrounds from spare-part images a
 ### Running with Docker Compose
 
 ```bash
+# Set your API key in environment
+export PICWISH_API_KEY=your_api_key_here
+
 # Build and start services
 docker-compose up --build
 
@@ -68,11 +105,22 @@ npm run dev
 
 ## API Endpoints
 
+### Processing
 - `POST /api/process/single` - Process single image synchronously
 - `POST /api/process/bulk` - Process multiple images asynchronously (with batching)
+  - Parameters: `compression_quality`, `max_dimension`
+
+### Validation
+- `POST /api/validate/filenames` - Validate batch of filenames
+- `POST /api/validate/parse` - Parse single filename
+- `GET /api/jobs/{job_id}/validate-export` - Validate job before export
+
+### Jobs
 - `GET /api/jobs/{job_id}` - Get job status with progress and failed images
-- `GET /api/jobs/{job_id}/download` - Download processed images ZIP
+- `GET /api/jobs/{job_id}/download` - Download processed images ZIP (organized by part number)
 - `POST /api/jobs/{job_id}/retry` - Retry failed images from a completed job
+
+### Health
 - `GET /health` - Health check
 
 ## Configuration
@@ -86,6 +134,60 @@ Environment variables (backend):
 - `MAX_FILE_SIZE`: Maximum file size in MB (default: `100`)
 - `BATCH_SIZE`: Images per batch for large volumes (default: `500`)
 - `MAX_CONCURRENT`: Maximum concurrent API requests (default: `10`)
+- `DEFAULT_COMPRESSION_QUALITY`: Default compression quality (default: `85`)
+- `DEFAULT_MAX_DIMENSION`: Default max dimension (default: `2048`)
+
+## Workflow
+
+### 1. Upload Images
+- Drag & drop or select multiple images
+- System validates filenames automatically
+- Shows summary: total files, valid/invalid, unique parts
+
+### 2. Fix Invalid Names (if any)
+- Click "Rename" on any invalid file
+- Enter: Part Number, View Number, Location
+- Or skip invalid files
+
+### 3. Configure Processing
+- Choose output format (PNG/JPEG)
+- Enable white background
+- Select compression preset:
+  - **High Quality**: 95% quality, 4096px
+  - **Balanced**: 85% quality, 2048px (recommended)
+  - **Web Optimized**: 80% quality, 1600px
+  - **Compact**: 75% quality, 1200px
+
+### 4. Process
+- Click "Process X files"
+- Monitor progress in real-time
+- See batch-level updates
+
+### 5. Download
+- Download ZIP with SharePoint-ready folder structure
+- Structure: `/PartNumber/PartNumber_view1_Location.jpg`
+- Upload folders directly to SharePoint
+
+### 6. Handle Failures (if any)
+- View failed images and errors
+- Click "Retry Failed" to reprocess
+- Or download successful results anyway
+
+## Output Structure
+
+```
+processed_[job_id].zip
+├── 58802935/
+│   ├── 58802935_1_EG1060007.jpg
+│   ├── 58802935_2_EG1060007.jpg
+│   └── 58802935_3_EG1060007.jpg
+├── 74452282/
+│   ├── 74452282_1_EG1060007.jpg
+│   └── 74452282_2_EG1060007.jpg
+└── ...
+```
+
+Each part has its own folder, ready for SharePoint upload.
 
 ## Deployment
 
@@ -106,18 +208,13 @@ For internal deployment:
    - In Docker Compose: Add to `environment` section
    - Or export: `export PICWISH_API_KEY=your_key_here`
 
-## Week 2 Enhancements (Completed)
+## Success Metrics
 
-- ✅ Structured error logging with image metadata
-- ✅ Retry logic for failed images (with exponential backoff)
-- ✅ Persistent job storage (SQLite)
-- ✅ API rate limit handling
-- ✅ Batch processing for large volumes (50,000+ images)
-- ✅ Concurrent processing with configurable limits
-- ✅ Retry failed images endpoint and UI
-- ✅ Comprehensive failure tracking and logging
+- ✅ ≥ 95% images processed without manual rework
+- ✅ Zero manual folder sorting
+- ✅ Consistent naming across all parts
+- ✅ Processing bottleneck only at photography stage
 
 ## License
 
-Internal use only.
-
+Internal use only - TESCON Engineering Solutions & Consulting Services Ltd.

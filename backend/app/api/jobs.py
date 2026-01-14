@@ -183,6 +183,31 @@ class JobManager:
         """, (cutoff_iso,))
         conn.commit()
         conn.close()
+    
+    def pause_job(self, job_id: str):
+        """Pause a running job."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE jobs 
+            SET status = 'paused'
+            WHERE job_id = ? AND status = 'processing'
+        """, (job_id,))
+        conn.commit()
+        conn.close()
+    
+    def resume_job(self, job_id: str):
+        """Resume a paused job."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE jobs 
+            SET status = 'processing'
+            WHERE job_id = ? AND status = 'paused'
+        """, (job_id,))
+        conn.commit()
+        conn.close()
+        return True
 
 
 # Global job manager instance

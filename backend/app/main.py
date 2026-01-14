@@ -28,6 +28,10 @@ app.include_router(retry_router, prefix="/api")
 from app.api.validation import router as validation_router
 app.include_router(validation_router, prefix="/api")
 
+# Include export routes
+from app.api.export import router as export_router
+app.include_router(export_router, prefix="/api")
+
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():

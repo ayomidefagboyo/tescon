@@ -1,6 +1,6 @@
 /** API client for backend communication */
 import axios, { AxiosProgressEvent } from "axios";
-import { JobResponse, JobStatusResponse } from "../types";
+import { JobResponse, JobStatusResponse, FilenameValidationResponse, ExportValidationResponse, CompressionSettings } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -13,6 +13,19 @@ export interface UploadProgress {
   loaded: number;
   total: number;
   percentage: number;
+}
+
+/**
+ * Validate filenames before upload
+ */
+export async function validateFilenames(files: File[]): Promise<FilenameValidationResponse> {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await api.post<FilenameValidationResponse>("/validate/filenames", formData);
+  return response.data;
 }
 
 /**
@@ -53,7 +66,9 @@ export async function processSingleImage(
 export async function processBulkImages(
   files: File[],
   format: "PNG" | "JPEG" | "JPG" = "PNG",
-  whiteBackground: boolean = true
+  whiteBackground: boolean = true,
+  compressionQuality: number = 85,
+  maxDimension: number = 2048
 ): Promise<JobResponse> {
   const formData = new FormData();
   
@@ -68,7 +83,7 @@ export async function processBulkImages(
   }
 
   const response = await api.post<JobResponse>(
-    `/process/bulk?format=${format}&white_background=${whiteBackground}`,
+    `/process/bulk?format=${format}&white_background=${whiteBackground}&compression_quality=${compressionQuality}&max_dimension=${maxDimension}`,
     formData
   );
 
@@ -108,6 +123,14 @@ export async function retryFailedImages(
 }
 
 /**
+ * Validate export before download
+ */
+export async function validateExport(jobId: string): Promise<ExportValidationResponse> {
+  const response = await api.get<ExportValidationResponse>(`/jobs/${jobId}/validate-export`);
+  return response.data;
+}
+
+/**
  * Health check
  */
 export async function healthCheck(): Promise<{ status: string; gpu_available: boolean; model_loaded: boolean }> {
@@ -115,4 +138,3 @@ export async function healthCheck(): Promise<{ status: string; gpu_available: bo
   const response = await axios.get("http://localhost:8001/health");
   return response.data;
 }
-
