@@ -30,6 +30,8 @@ build/
 # Environment
 .env
 .env.local
+backend/.env
+frontend/.env
 
 # Storage
 uploads/

@@ -2,7 +2,7 @@
 import React from "react";
 import { FilenameValidationResponse } from "../types";
 import { Package, CheckCircle2, AlertCircle, FileText } from "lucide-react";
-import { colors, spacing, typography, borderRadius, shadows } from "../styles/design-system";
+import { colors, spacing, typography, borderRadius } from "../styles/design-system";
 
 interface ValidationSummaryProps {
   validation: FilenameValidationResponse;

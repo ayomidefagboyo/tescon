@@ -19,8 +19,8 @@ def parse_filename(filename: str) -> ParsedFilename:
     """
     Parse and validate filename according to TESCON naming convention.
     
-    Expected format: PartNumber_ViewNumber_Location.ext
-    Example: 58802935_1_EG1060007.jpg
+    Expected format: PartNumber_ViewNumber_Description.ext
+    Example: 58802935_1_BEARING.jpg or 74452282_2_FAN TYPE.jpg
     
     Args:
         filename: Filename to parse (with or without extension)
@@ -31,11 +31,11 @@ def parse_filename(filename: str) -> ParsedFilename:
     # Remove extension
     name_without_ext = filename.rsplit('.', 1)[0] if '.' in filename else filename
     
-    # Pattern: PartNumber_ViewNumber_Location
+    # Pattern: PartNumber_ViewNumber_Description
     # PartNumber: alphanumeric (typically numeric)
     # ViewNumber: numeric (1, 2, 3...)
-    # Location: alphanumeric (e.g., EG1060007)
-    pattern = r'^([A-Za-z0-9]+)_(\d+)_([A-Za-z0-9]+)$'
+    # Description: alphanumeric with spaces allowed (e.g., BEARING, FAN TYPE)
+    pattern = r'^([A-Za-z0-9]+)_(\d+)_([A-Za-z0-9 ]+)$'
     
     match = re.match(pattern, name_without_ext)
     
@@ -65,27 +65,26 @@ def parse_filename(filename: str) -> ParsedFilename:
 
 def _get_error_message(filename: str) -> str:
     """Generate helpful error message for invalid filename."""
-    parts = filename.split('_')
+    # Split only on first 2 underscores to allow spaces in description
+    parts = filename.split('_', 2)
     
     if len(parts) < 3:
-        return f"Missing components. Expected format: PartNumber_ViewNumber_Location (found {len(parts)} parts)"
-    elif len(parts) > 3:
-        return f"Too many underscores. Expected format: PartNumber_ViewNumber_Location (found {len(parts)} parts)"
+        return f"Missing components. Expected format: PartNumber_ViewNumber_Description (found {len(parts)} parts)"
     else:
         # Check individual components
-        part_num, view_num, location = parts
+        part_num, view_num, description = parts
         
         if not view_num.isdigit():
             return f"ViewNumber must be numeric (got '{view_num}')"
         elif not part_num:
             return "PartNumber cannot be empty"
-        elif not location:
-            return "Location cannot be empty"
+        elif not description.strip():
+            return "Description cannot be empty"
         else:
-            return "Invalid format. Expected: PartNumber_ViewNumber_Location"
+            return "Invalid format. Expected: PartNumber_ViewNumber_Description"
 
 
-def suggest_filename(filename: str, part_number: str = "", view_number: str = "1", location: str = "") -> str:
+def suggest_filename(filename: str, part_number: str = "", view_number: str = "1", description: str = "") -> str:
     """
     Suggest a valid filename based on user input.
     
@@ -93,7 +92,7 @@ def suggest_filename(filename: str, part_number: str = "", view_number: str = "1
         filename: Original filename
         part_number: Suggested part number
         view_number: Suggested view number
-        location: Suggested location
+        description: Suggested description (e.g., BEARING, FAN TYPE)
         
     Returns:
         Suggested valid filename
@@ -102,7 +101,7 @@ def suggest_filename(filename: str, part_number: str = "", view_number: str = "1
     ext = filename.rsplit('.', 1)[1] if '.' in filename else 'jpg'
     
     # Build suggested filename
-    suggested = f"{part_number}_{view_number}_{location}.{ext}"
+    suggested = f"{part_number}_{view_number}_{description}.{ext}"
     
     return suggested
 

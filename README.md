@@ -35,19 +35,20 @@ An internal tool for automatically processing spare-part images for SharePoint c
 All images must follow this format:
 
 ```
-PartNumber_ViewNumber_Location.ext
+PartNumber_ViewNumber_Description.ext
 ```
 
 ### Example
 ```
-58802935_1_EG1060007.jpg
-74452282_2_EG1060007.jpg
+58802935_1_BEARING.jpg
+74452282_2_FAN TYPE.jpg
+12345678_3_PUMP ASSEMBLY.jpg
 ```
 
 Where:
 - **PartNumber**: Part/item number (used for folder organization)
 - **ViewNumber**: Image angle (1, 2, 3...)
-- **Location**: Warehouse/bin reference code
+- **Description**: Part type/description (spaces allowed, e.g., BEARING, FAN TYPE)
 
 ## Architecture
 

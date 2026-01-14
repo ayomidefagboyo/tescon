@@ -15,7 +15,7 @@ class ParsedFilenameInfo(BaseModel):
     """Parsed filename information."""
     part_number: str
     view_number: str
-    location: str
+    location: str  # Now used as description (e.g., BEARING, FAN TYPE)
     original_filename: str
     is_valid: bool
     error_message: Optional[str] = None
@@ -36,7 +36,7 @@ class RenameRequest(BaseModel):
     original_filename: str
     part_number: str
     view_number: str
-    location: str
+    location: str  # Now description field
 
 
 class CompressionSettings(BaseModel):

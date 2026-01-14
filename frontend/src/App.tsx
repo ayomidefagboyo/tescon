@@ -40,21 +40,23 @@ function App() {
     setFiles(selectedFiles);
     setProcessedBlob(null);
     setJobId(null);
+    setValidation(null);
     
-    // Validate filenames
+    // Validate filenames (run async, don't block UI)
     if (selectedFiles.length > 0) {
-      try {
-        const validationResult = await validateFilenames(selectedFiles);
-        setValidation(validationResult);
-      } catch (error) {
-        console.error("Validation error:", error);
-      }
-    } else {
-      setValidation(null);
+      setTimeout(async () => {
+        try {
+          const validationResult = await validateFilenames(selectedFiles);
+          setValidation(validationResult);
+        } catch (error) {
+          console.error("Validation error:", error);
+          // Validation is optional - app works without it
+        }
+      }, 100);
     }
   };
 
-  const handleRename = (oldName: string, newName: string) => {
+  const handleRename = async (oldName: string, newName: string) => {
     // Update file in the list
     const updatedFiles = files.map(file => {
       if (file.name === oldName) {
@@ -68,13 +70,13 @@ function App() {
     setFiles(updatedFiles);
     
     // Re-validate
-    handleFilesSelected(updatedFiles);
+    await handleFilesSelected(updatedFiles);
   };
 
-  const handleSkipInvalid = (filename: string) => {
+  const handleSkipInvalid = async (filename: string) => {
     const filteredFiles = files.filter(f => f.name !== filename);
     setFiles(filteredFiles);
-    handleFilesSelected(filteredFiles);
+    await handleFilesSelected(filteredFiles);
   };
 
   const handleProcess = async () => {
@@ -429,12 +431,13 @@ function App() {
             {showNamingHelp && (
               <div style={styles.helpPanel}>
                 <strong>Required Format:</strong><br />
-                PartNumber_ViewNumber_Location.jpg<br /><br />
-                <strong>Example:</strong><br />
-                58802935_1_EG1060007.jpg<br /><br />
+                PartNumber_ViewNumber_Description.jpg<br /><br />
+                <strong>Examples:</strong><br />
+                58802935_1_BEARING.jpg<br />
+                74452282_2_FAN TYPE.jpg<br /><br />
                 • PartNumber: Item/part number<br />
                 • ViewNumber: 1, 2, 3... (angle)<br />
-                • Location: Warehouse code
+                • Description: Part type (spaces OK)
               </div>
             )}
 

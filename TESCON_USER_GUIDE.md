@@ -13,23 +13,24 @@ This guide explains how to use the TESCON image processing tool to prepare spare
 ### Required Format
 
 ```
-PartNumber_ViewNumber_Location.jpg
+PartNumber_ViewNumber_Description.jpg
 ```
 
 ### Examples
 
 ✅ **Correct:**
 ```
-58802935_1_EG1060007.jpg
-58802935_2_EG1060007.jpg
-74452282_1_EG1060007.jpg
+58802935_1_BEARING.jpg
+58802935_2_BEARING.jpg
+74452282_1_FAN TYPE.jpg
+12345678_3_PUMP ASSEMBLY.jpg
 ```
 
 ❌ **Incorrect:**
 ```
 photo1.jpg              (missing all components)
-58802935_EG1060007.jpg  (missing view number)
-58802935-1-EG1060007.jpg (using dashes instead of underscores)
+58802935_BEARING.jpg    (missing view number)
+58802935-1-BEARING.jpg  (using dashes instead of underscores)
 ```
 
 ### What Each Part Means
@@ -40,7 +41,9 @@ photo1.jpg              (missing all components)
   - View 2: Side
   - View 3: Back
   - View 4: Top/Detail
-- **Location**: Warehouse bin code (e.g., `EG1060007`)
+- **Description**: Part type/description (e.g., `BEARING`, `FAN TYPE`, `PUMP ASSEMBLY`)
+  - Can include spaces
+  - Describe what the part is
 
 ---
 

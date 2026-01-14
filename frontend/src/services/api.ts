@@ -1,6 +1,6 @@
 /** API client for backend communication */
 import axios, { AxiosProgressEvent } from "axios";
-import { JobResponse, JobStatusResponse, FilenameValidationResponse, ExportValidationResponse, CompressionSettings } from "../types";
+import { JobResponse, JobStatusResponse, FilenameValidationResponse, ExportValidationResponse } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
