@@ -45,12 +45,10 @@ function App() {
       alignItems: 'center',
       marginBottom: mobileSpacing.lg,
       flexShrink: 0,
-      gap: mobileSpacing.md,
       textAlign: 'center' as const,
       '@media (min-width: 768px)': {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        textAlign: 'left',
+        alignItems: 'center',
+        textAlign: 'center',
       },
     },
 
@@ -133,9 +131,9 @@ function App() {
     <div style={styles.container} data-responsive-container>
       <div style={styles.header}>
         <div style={styles.logoAndTitle} data-logo-title>
-          <img 
-            src="/logo.png" 
-            alt="TESCON Logo" 
+          <img
+            src="/logo.png"
+            alt="TESCON Logo"
             style={styles.logo}
             data-logo
             onError={(e) => {
@@ -147,17 +145,6 @@ function App() {
             <p style={styles.subtitle}>Spare-part catalog processing</p>
           </div>
         </div>
-
-        {health && (
-          <div style={styles.healthBadge} data-health-badge>
-            {health.model_loaded ? (
-              <CheckCircle2 style={{ ...styles.healthIcon, color: colors.success }} />
-            ) : (
-              <XCircle style={{ ...styles.healthIcon, color: colors.error }} />
-            )}
-            <span>{health.model_loaded ? 'Ready' : 'Offline'}</span>
-          </div>
-        )}
       </div>
 
       <StepByStepWorkflow
@@ -168,6 +155,17 @@ function App() {
           // Error is handled within the component
         }}
       />
+
+      {health && (
+        <div style={{...styles.healthBadge, marginTop: mobileSpacing.lg, alignSelf: 'center'}} data-health-badge>
+          {health.model_loaded ? (
+            <CheckCircle2 style={{ ...styles.healthIcon, color: colors.success }} />
+          ) : (
+            <XCircle style={{ ...styles.healthIcon, color: colors.error }} />
+          )}
+          <span>{health.model_loaded ? 'Ready' : 'Offline'}</span>
+        </div>
+      )}
     </div>
   );
 }
