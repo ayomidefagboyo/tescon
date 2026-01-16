@@ -378,6 +378,15 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
       {currentStep === "complete" && renderCompleteStep()}
 
       <style>{`
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          overflow-x: hidden;
+          max-width: 100vw;
+        }
+
         .step-workflow {
           max-width: 100%;
           margin: 0;
@@ -572,17 +581,21 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 12px;
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+          box-sizing: border-box;
         }
 
         @media (min-width: 480px) {
           .files-grid {
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
           }
         }
 
         @media (min-width: 768px) {
           .files-grid {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 16px;
           }
         }
