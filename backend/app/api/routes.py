@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
-from app.models import JobResponse, JobStatusResponse, JobStatus, PartInfo, ProcessPartResponse
+from app.models import PartInfo, ProcessPartResponse, JobResponse, JobStatus, JobStatusResponse
 from app.processing.picwish_processor import process_image, check_api_available
 from app.processing.image_utils import validate_image
 from app.processing.batch_manager import BatchProcessor

@@ -68,6 +68,8 @@ class JobStatusResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+    model_config = {"protected_namespaces": ()}
+
     status: str
     gpu_available: bool
     model_loaded: bool
@@ -81,3 +83,23 @@ class ExportValidationResponse(BaseModel):
     missing_views: List[Dict[str, Any]]
     corrupted_images: List[str]
     warnings: List[str]
+
+
+class PartInfo(BaseModel):
+    """Part information from Google Sheets."""
+    part_number: str
+    description: str
+    location: str
+    item_note: str
+
+
+class ProcessPartResponse(BaseModel):
+    """Response for part processing."""
+    success: bool
+    part_number: str
+    description: str
+    location: str
+    item_note: Optional[str] = None
+    files_saved: int
+    saved_paths: List[Dict[str, str]]
+    message: str
