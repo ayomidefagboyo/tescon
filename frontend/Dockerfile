@@ -25,7 +25,8 @@ FROM nginx:alpine
 # Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration (optional - uses default for SPA)
+# Copy nginx configuration
+# Use environment variable for backend URL, fallback to backend:8000 for docker-compose
 RUN echo 'server { \
     listen 80; \
     server_name _; \
@@ -35,9 +36,23 @@ RUN echo 'server { \
         try_files $uri $uri/ /index.html; \
     } \
     location /api { \
-        proxy_pass http://backend:8000; \
+        set $backend_url http://backend:8000; \
+        if ($http_x_backend_url) { \
+            set $backend_url $http_x_backend_url; \
+        } \
+        proxy_pass $backend_url; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+    location /health { \
+        set $backend_url http://backend:8000; \
+        if ($http_x_backend_url) { \
+            set $backend_url $http_x_backend_url; \
+        } \
+        proxy_pass $backend_url; \
+        proxy_set_header Host $host; \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
