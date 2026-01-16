@@ -1,5 +1,5 @@
 /** Step-by-step workflow component for streamlined part processing */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { UploadZone } from "./UploadZone";
 import { getPartInfo, processPartImages, PartInfo, ProcessPartResponse } from "../services/api";
 import { FileWithPreview } from "../types";
@@ -345,7 +345,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
               <div className="saved-files">
                 <h4>Saved Files:</h4>
                 <ul>
-                  {response.saved_paths.map((file, index) => (
+                  {response.saved_paths.map((file: { filename: string; url: string }, index: number) => (
                     <li key={index}>
                       <a href={file.url} target="_blank" rel="noopener noreferrer">
                         {file.filename}

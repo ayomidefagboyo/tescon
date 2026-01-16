@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { ProcessPartResponse } from "./types";
 import { healthCheck } from "./services/api";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { colors, spacing, typography, borderRadius, shadows, transitions } from "./styles/design-system";
+import { colors, spacing, typography, borderRadius, shadows } from "./styles/design-system";
 import { StepByStepWorkflow } from "./components/StepByStepWorkflow";
 
 function App() {
@@ -120,10 +120,10 @@ function App() {
       </div>
 
       <StepByStepWorkflow
-        onSuccess={(response: ProcessPartResponse) => {
+        onSuccess={(_response: ProcessPartResponse) => {
           // Success is handled within the component
         }}
-        onError={(error: string) => {
+        onError={(_error: string) => {
           // Error is handled within the component
         }}
       />

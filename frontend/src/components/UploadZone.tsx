@@ -9,6 +9,8 @@ interface UploadZoneProps {
   acceptedTypes?: string[];
   maxFiles?: number;
   compact?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
 }
 
 export const UploadZone: React.FC<UploadZoneProps> = ({
@@ -16,6 +18,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   acceptedTypes = [".jpg", ".jpeg", ".png", ".webp", ".zip"],
   maxFiles,
   compact = false,
+  multiple: _multiple = true,
+  disabled: _disabled = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
