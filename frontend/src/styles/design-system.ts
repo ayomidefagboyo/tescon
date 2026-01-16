@@ -113,3 +113,45 @@ export const breakpoints = {
   desktop: '1440px',
 };
 
+// Mobile-first responsive utilities
+export const responsive = {
+  mobile: (styles: any) => styles,
+  tablet: (styles: any) => ({
+    [`@media (min-width: ${breakpoints.mobile})`]: styles
+  }),
+  desktop: (styles: any) => ({
+    [`@media (min-width: ${breakpoints.tablet})`]: styles
+  }),
+};
+
+// Mobile-optimized spacing
+export const mobileSpacing = {
+  xs: '4px',
+  sm: '8px',
+  md: '12px',
+  lg: '16px',
+  xl: '20px',
+  '2xl': '24px',
+  '3xl': '32px',
+};
+
+// Mobile typography
+export const mobileTypography = {
+  fontSize: {
+    xs: '11px',
+    sm: '13px',
+    base: '15px',
+    lg: '17px',
+    xl: '19px',
+    '2xl': '22px',
+    '3xl': '28px',
+  },
+};
+
+// Touch-friendly sizing
+export const touchTargets = {
+  small: '44px',
+  medium: '48px',
+  large: '56px',
+};
+

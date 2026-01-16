@@ -2,7 +2,7 @@
 import React, { useCallback, useState } from "react";
 import { FileWithPreview } from "../types";
 import { CloudUpload, X, FileImage } from "lucide-react";
-import { colors, spacing, typography, borderRadius, shadows, transitions } from "../styles/design-system";
+import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "../styles/design-system";
 
 interface UploadZoneProps {
   onFilesSelected: (files: FileWithPreview[]) => void;
@@ -95,17 +95,22 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     dropZone: {
       border: `2px solid ${isDragging ? colors.primary.main : colors.neutral[300]}`,
       borderRadius: borderRadius.lg,
-      padding: compact ? `${spacing.md} ${spacing.md}` : `${spacing.lg} ${spacing.xl}`,
+      padding: compact ? `${mobileSpacing.md}` : `${mobileSpacing.lg} ${mobileSpacing.md}`,
       textAlign: 'center' as const,
       backgroundColor: isDragging ? `${colors.primary.light}08` : colors.background.main,
       cursor: 'pointer',
       transition: `all ${transitions.base}`,
       boxShadow: isDragging ? `0 0 0 4px ${colors.primary.light}20` : 'none',
-      height: compact ? 'auto' : 'auto',
-      maxHeight: compact ? '140px' : '280px',
+      minHeight: touchTargets.large,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      width: '100%',
+      boxSizing: 'border-box' as const,
+      '@media (min-width: 768px)': {
+        padding: compact ? `${spacing.md} ${spacing.md}` : `${spacing.lg} ${spacing.xl}`,
+        maxHeight: compact ? '140px' : '280px',
+      },
     },
     
     iconContainer: {
@@ -118,20 +123,20 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     },
     
     mainText: {
-      fontSize: compact ? typography.fontSize.base : typography.fontSize.lg,
+      fontSize: compact ? mobileTypography.fontSize.base : mobileTypography.fontSize.lg,
       fontWeight: typography.fontWeight.semibold,
       color: colors.text.primary,
-      marginBottom: spacing.xs,
+      marginBottom: mobileSpacing.xs,
     },
-    
+
     secondaryText: {
-      fontSize: typography.fontSize.sm,
+      fontSize: mobileTypography.fontSize.sm,
       color: colors.text.secondary,
-      marginBottom: spacing.xs,
+      marginBottom: mobileSpacing.xs,
     },
-    
+
     supportedText: {
-      fontSize: typography.fontSize.xs,
+      fontSize: mobileTypography.fontSize.xs,
       color: colors.text.tertiary,
     },
     
@@ -153,13 +158,21 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     
     filesGrid: {
       display: 'grid',
-      gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
-      gap: spacing.sm,
+      gridTemplateColumns: '1fr',
+      gap: mobileSpacing.sm,
       overflowY: 'auto' as const,
-      paddingRight: spacing.xs,
+      paddingRight: mobileSpacing.xs,
       flex: 1,
       minHeight: 0,
       alignContent: 'flex-start',
+      '@media (min-width: 480px)': {
+        gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
+      },
+      '@media (min-width: 768px)': {
+        gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: spacing.sm,
+        paddingRight: spacing.xs,
+      },
     },
     
     fileCard: {

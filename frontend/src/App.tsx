@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { ProcessPartResponse } from "./types";
 import { healthCheck } from "./services/api";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { colors, spacing, typography, borderRadius, shadows } from "./styles/design-system";
+import { colors, spacing, typography, borderRadius, shadows, mobileSpacing, mobileTypography, touchTargets } from "./styles/design-system";
 import { StepByStepWorkflow } from "./components/StepByStepWorkflow";
 
 function App() {
@@ -22,32 +22,55 @@ function App() {
 
   const styles = {
     container: {
-      height: '100vh',
+      minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column' as const,
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: `${spacing.xl} ${spacing.xl}`,
+      width: '100%',
+      maxWidth: 'none',
+      margin: '0',
+      padding: `${mobileSpacing.lg} ${mobileSpacing.md}`,
       fontFamily: typography.fontFamily.base,
+      boxSizing: 'border-box' as const,
+      overflow: 'hidden',
+      '@media (min-width: 768px)': {
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: `${spacing.xl} ${spacing.xl}`,
+      },
     } as React.CSSProperties,
 
     header: {
       display: 'flex',
-      justifyContent: 'space-between',
+      flexDirection: 'column' as const,
       alignItems: 'center',
-      marginBottom: spacing.lg,
+      marginBottom: mobileSpacing.lg,
       flexShrink: 0,
+      gap: mobileSpacing.md,
+      textAlign: 'center' as const,
+      '@media (min-width: 768px)': {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        textAlign: 'left',
+      },
     },
 
     logoAndTitle: {
       display: 'flex',
+      flexDirection: 'column' as const,
       alignItems: 'center',
-      gap: spacing.md,
+      gap: mobileSpacing.sm,
+      '@media (min-width: 768px)': {
+        flexDirection: 'row',
+        gap: spacing.md,
+      },
     },
 
     logo: {
-      height: '48px',
+      height: '32px',
       width: 'auto',
+      '@media (min-width: 768px)': {
+        height: '48px',
+      },
     },
 
     titleGroup: {
@@ -56,35 +79,53 @@ function App() {
     },
 
     title: {
-      fontSize: typography.fontSize['2xl'],
+      fontSize: mobileTypography.fontSize.xl,
       fontWeight: typography.fontWeight.bold,
       color: colors.text.primary,
       letterSpacing: '-0.02em',
       lineHeight: 1.2,
+      margin: 0,
+      '@media (min-width: 768px)': {
+        fontSize: typography.fontSize['2xl'],
+      },
     },
 
     subtitle: {
-      fontSize: typography.fontSize.sm,
+      fontSize: mobileTypography.fontSize.sm,
       color: colors.text.secondary,
       fontWeight: typography.fontWeight.normal,
+      margin: 0,
+      '@media (min-width: 768px)': {
+        fontSize: typography.fontSize.sm,
+      },
     },
 
     healthBadge: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: spacing.xs,
-      padding: `${spacing.xs} ${spacing.sm}`,
+      gap: mobileSpacing.xs,
+      padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
       backgroundColor: colors.background.main,
       border: `1px solid ${colors.neutral[200]}`,
       borderRadius: borderRadius.md,
-      fontSize: typography.fontSize.xs,
+      fontSize: mobileTypography.fontSize.xs,
       color: colors.text.secondary,
       boxShadow: shadows.sm,
+      minHeight: touchTargets.small,
+      '@media (min-width: 768px)': {
+        gap: spacing.xs,
+        padding: `${spacing.xs} ${spacing.sm}`,
+        fontSize: typography.fontSize.xs,
+      },
     },
 
     healthIcon: {
-      width: '14px',
-      height: '14px',
+      width: '16px',
+      height: '16px',
+      '@media (min-width: 768px)': {
+        width: '14px',
+        height: '14px',
+      },
     },
   };
 

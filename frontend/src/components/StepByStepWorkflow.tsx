@@ -379,16 +379,35 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
 
       <style>{`
         .step-workflow {
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
+          max-width: 100%;
+          margin: 0;
+          padding: 12px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        @media (min-width: 768px) {
+          .step-workflow {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+          }
         }
 
         .step-indicator {
           display: flex;
-          justify-content: center;
-          margin-bottom: 40px;
-          padding: 0 20px;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          padding: 0 8px;
+          overflow-x: auto;
+        }
+
+        @media (min-width: 768px) {
+          .step-indicator {
+            justify-content: center;
+            margin-bottom: 40px;
+            padding: 0 20px;
+          }
         }
 
         .step {
@@ -396,19 +415,42 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           flex-direction: column;
           align-items: center;
           flex: 1;
-          max-width: 120px;
+          min-width: 60px;
+          max-width: 80px;
           position: relative;
+        }
+
+        @media (min-width: 768px) {
+          .step {
+            max-width: 120px;
+            min-width: 100px;
+          }
         }
 
         .step:not(:last-child)::after {
           content: '';
           position: absolute;
-          top: 16px;
-          left: calc(100% - 20px);
-          width: calc(100% - 40px);
+          top: 14px;
+          left: calc(100% - 10px);
+          width: calc(100% - 20px);
           height: 2px;
           background: #e0e0e0;
           z-index: -1;
+          display: none;
+        }
+
+        @media (min-width: 480px) {
+          .step:not(:last-child)::after {
+            display: block;
+          }
+        }
+
+        @media (min-width: 768px) {
+          .step:not(:last-child)::after {
+            top: 16px;
+            left: calc(100% - 20px);
+            width: calc(100% - 40px);
+          }
         }
 
         .step.completed:not(:last-child)::after {
@@ -416,15 +458,23 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         }
 
         .step-icon {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           background: #e0e0e0;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           transition: all 0.3s ease;
+        }
+
+        @media (min-width: 768px) {
+          .step-icon {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 8px;
+          }
         }
 
         .step.active .step-icon {
@@ -438,10 +488,17 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         }
 
         .step-label {
-          font-size: 12px;
+          font-size: 10px;
           text-align: center;
           color: #666;
           font-weight: 500;
+          line-height: 1.2;
+        }
+
+        @media (min-width: 768px) {
+          .step-label {
+            font-size: 12px;
+          }
         }
 
         .step.active .step-label {
@@ -452,36 +509,82 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         .step-content {
           background: white;
           border-radius: 8px;
-          padding: 30px;
+          padding: 16px;
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          margin-bottom: 16px;
+        }
+
+        @media (min-width: 768px) {
+          .step-content {
+            padding: 30px;
+          }
         }
 
         .step-content h2 {
           margin: 0 0 8px 0;
           color: #333;
-          font-size: 24px;
+          font-size: 20px;
+        }
+
+        @media (min-width: 768px) {
+          .step-content h2 {
+            font-size: 24px;
+          }
         }
 
         .step-content > p {
-          margin: 0 0 24px 0;
+          margin: 0 0 16px 0;
           color: #666;
-          font-size: 16px;
+          font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+          .step-content > p {
+            margin-bottom: 24px;
+            font-size: 16px;
+          }
         }
 
         .files-preview {
-          margin: 20px 0;
+          margin: 16px 0;
+        }
+
+        @media (min-width: 768px) {
+          .files-preview {
+            margin: 20px 0;
+          }
         }
 
         .files-preview h4 {
-          margin-bottom: 16px;
-          font-size: 16px;
+          margin-bottom: 12px;
+          font-size: 14px;
           color: #333;
+        }
+
+        @media (min-width: 768px) {
+          .files-preview h4 {
+            margin-bottom: 16px;
+            font-size: 16px;
+          }
         }
 
         .files-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+
+        @media (min-width: 480px) {
+          .files-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          }
+        }
+
+        @media (min-width: 768px) {
+          .files-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+          }
         }
 
         .file-preview {
@@ -505,13 +608,26 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           right: 0;
           background: rgba(0,0,0,0.7);
           color: white;
-          padding: 4px 8px;
-          font-size: 12px;
+          padding: 4px 6px;
+          font-size: 10px;
           text-align: center;
         }
 
+        @media (min-width: 768px) {
+          .file-label {
+            padding: 4px 8px;
+            font-size: 12px;
+          }
+        }
+
         .part-number-input {
-          margin-bottom: 24px;
+          margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+          .part-number-input {
+            margin-bottom: 24px;
+          }
         }
 
         .part-number-input label {
@@ -519,14 +635,22 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           margin-bottom: 8px;
           font-weight: 500;
           color: #333;
+          font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+          .part-number-input label {
+            font-size: 16px;
+          }
         }
 
         .part-number-input input {
           width: 100%;
-          padding: 12px 16px;
+          padding: 14px 16px;
           border: 2px solid #e0e0e0;
           border-radius: 8px;
           font-size: 16px;
+          box-sizing: border-box;
           transition: border-color 0.3s ease;
         }
 
@@ -538,20 +662,46 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         .part-info-card {
           background: #f8f9fa;
           border-radius: 8px;
-          padding: 24px;
-          margin-bottom: 24px;
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+          .part-info-card {
+            padding: 24px;
+            margin-bottom: 24px;
+          }
         }
 
         .part-info-card h3 {
-          margin: 0 0 16px 0;
+          margin: 0 0 12px 0;
           color: #333;
-          font-size: 18px;
+          font-size: 16px;
+        }
+
+        @media (min-width: 768px) {
+          .part-info-card h3 {
+            margin-bottom: 16px;
+            font-size: 18px;
+          }
         }
 
         .info-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: 1fr;
           gap: 12px;
+        }
+
+        @media (min-width: 480px) {
+          .info-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (min-width: 768px) {
+          .info-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          }
         }
 
         .info-item {
@@ -691,24 +841,45 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
 
         .step-actions {
           display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          margin-top: 32px;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        @media (min-width: 480px) {
+          .step-actions {
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 32px;
+          }
         }
 
         .step-actions button {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px 24px;
+          padding: 16px 20px;
           border-radius: 8px;
           font-size: 16px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.3s ease;
           border: none;
-          min-width: 140px;
+          min-height: 48px;
           justify-content: center;
+          flex: 1;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        @media (min-width: 480px) {
+          .step-actions button {
+            padding: 12px 24px;
+            min-width: 140px;
+            width: auto;
+            flex: none;
+          }
         }
 
         .btn-primary {
