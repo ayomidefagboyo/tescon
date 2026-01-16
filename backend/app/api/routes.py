@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
-from app.models import JobResponse, JobStatusResponse, JobStatus
+from app.models import JobResponse, JobStatusResponse, JobStatus, PartInfo, ProcessPartResponse
 from app.processing.picwish_processor import process_image, check_api_available
 from app.processing.image_utils import validate_image
 from app.processing.batch_manager import BatchProcessor
@@ -287,4 +287,216 @@ async def download_job_results(job_id: str):
         media_type="application/zip",
         filename=zip_filename
     )
+
+
+@router.get("/parts/{part_number}", response_model=PartInfo)
+async def get_part_info(part_number: str):
+    """
+    Get part information from Google Sheets.
+    
+    Used for autocomplete/search in frontend.
+    """
+    from app.services.google_sheets import get_sheets_service
+    
+    sheets_service = get_sheets_service()
+    if not sheets_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Google Sheets service not configured. Check GOOGLE_CLOUD_SETUP.md"
+        )
+    
+    part_info = sheets_service.get_part_info(part_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Part number '{part_number}' not found in Google Sheet"
+        )
+    
+    return PartInfo(**part_info)
+
+
+@router.get("/parts/search")
+async def search_parts(
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum results")
+):
+    """
+    Search parts by part number (for autocomplete).
+    
+    Returns matching parts from Google Sheets.
+    """
+    from app.services.google_sheets import get_sheets_service
+    
+    sheets_service = get_sheets_service()
+    if not sheets_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Google Sheets service not configured. Check GOOGLE_CLOUD_SETUP.md"
+        )
+    
+    results = sheets_service.search_parts(q, limit=limit)
+    return [PartInfo(**part) for part in results]
+
+
+@router.post("/process/part", response_model=ProcessPartResponse)
+async def process_part_images(
+    files: List[UploadFile] = File(...),
+    part_number: str = Query(..., min_length=1),
+    view_numbers: Optional[str] = Query(None, description="Comma-separated view numbers (e.g., '1,2,3')"),
+    format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
+    white_background: bool = Query(True),
+    compression_quality: int = Query(85, ge=70, le=100),
+    max_dimension: int = Query(2048, ge=800, le=4096),
+    add_label: bool = Query(True),
+    label_position: str = Query("bottom-left", regex="^(bottom-left|bottom-right|top-left|top-right|bottom-center)$")
+):
+    """
+    Process images for a part using simplified workflow.
+    
+    Flow:
+    1. Lookup part in Google Sheets
+    2. Check for duplicates in Google Drive
+    3. Process images with text overlay
+    4. Save to Google Drive
+    
+    Supports variable number of images (1-10).
+    """
+    from app.services.google_sheets import get_sheets_service
+    from app.services.google_drive_storage import get_drive_storage
+    
+    # Validate image count
+    if not files or len(files) == 0:
+        raise HTTPException(status_code=400, detail="No images provided")
+    
+    if len(files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
+    
+    # Get part info from Google Sheets
+    sheets_service = get_sheets_service()
+    if not sheets_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Google Sheets service not configured. Check GOOGLE_CLOUD_SETUP.md"
+        )
+    
+    part_info = sheets_service.get_part_info(part_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Part number '{part_number}' not found in Google Sheet"
+        )
+    
+    description = part_info.get("description", "")
+    location = part_info.get("location", "")
+    item_note = part_info.get("item_note", "")
+    
+    # Parse view numbers or auto-assign
+    if view_numbers:
+        try:
+            view_nums = [int(v.strip()) for v in view_numbers.split(",")]
+            if len(view_nums) != len(files):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Number of view numbers ({len(view_nums)}) must match number of images ({len(files)})"
+                )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid view_numbers format. Use comma-separated integers.")
+    else:
+        # Auto-assign view numbers starting from 1
+        view_nums = list(range(1, len(files) + 1))
+    
+    # Check for duplicates in Google Drive
+    drive_storage = get_drive_storage()
+    if not drive_storage:
+        raise HTTPException(
+            status_code=503,
+            detail="Google Drive service not configured. Check GOOGLE_CLOUD_SETUP.md"
+        )
+    
+    duplicates = drive_storage.check_duplicates(part_number, view_nums)
+    duplicate_views = [v for v, exists in duplicates.items() if exists]
+    
+    if duplicate_views:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Images already exist for views: {duplicate_views}. Please use different view numbers or delete existing images."
+        )
+    
+    # Process images
+    processed_files = []
+    
+    try:
+        for idx, file in enumerate(files):
+            # Read file
+            file_bytes = await file.read()
+            
+            # Validate image
+            is_valid, error_msg = validate_image(file_bytes)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid image {idx+1}: {error_msg}")
+            
+            # Process image with text overlay
+            view_num = view_nums[idx]
+            output_format = "PNG" if format.upper() == "PNG" else "JPEG"
+            
+            processed_buffer = process_image(
+                file_bytes,
+                output_format=output_format,
+                white_background=white_background,
+                compression_quality=compression_quality,
+                max_dimension=max_dimension,
+                description=description if add_label else None,
+                add_label=add_label,
+                label_position=label_position
+            )
+            
+            # Generate filename: PartNumber_ViewNumber_Description.jpg
+            # Sanitize description for filename
+            safe_description = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in description)
+            safe_description = safe_description.replace(' ', '_')[:50]  # Limit length
+            
+            ext = ".jpg" if output_format.upper() in ["JPEG", "JPG"] else ".png"
+            filename = f"{part_number}_{view_num}_{safe_description}{ext}"
+            
+            # Get processed bytes
+            processed_bytes = processed_buffer.read()
+            
+            processed_files.append((filename, processed_bytes))
+        
+        # Save to local storage and Google Drive
+        saved_files = []
+        local_paths = []
+
+        # Save locally first
+        for filename, processed_bytes in processed_files:
+            local_path = storage.save_processed_file(processed_bytes, filename, part_number)
+            if local_path:
+                local_paths.append(local_path)
+                saved_files.append({"filename": filename, "url": f"/api/download/{filename}"})
+
+        # Upload to Google Drive
+        from app.services.google_drive import get_drive_service
+        drive_service = get_drive_service()
+        if drive_service.is_available() and local_paths:
+            success = drive_service.upload_part_images(part_number, local_paths)
+            if success:
+                print(f"✓ Successfully uploaded {len(local_paths)} images to Google Drive for part {part_number}")
+            else:
+                print(f"⚠ Warning: Failed to upload some images to Google Drive for part {part_number}")
+        
+        return ProcessPartResponse(
+            success=True,
+            part_number=part_number,
+            description=description,
+            location=location,
+            item_note=item_note if item_note else None,
+            files_saved=len(saved_files),
+            saved_paths=[{"filename": f["filename"], "url": f["url"]} for f in saved_files],
+            message=f"Successfully processed and saved {len(saved_files)} images for part {part_number}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
