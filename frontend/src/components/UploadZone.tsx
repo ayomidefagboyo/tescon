@@ -115,20 +115,20 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     
     filesGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: mobileSpacing.md,
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: mobileSpacing.xs,
       width: '100%',
       maxWidth: '100%',
       boxSizing: 'border-box' as const,
       paddingBottom: mobileSpacing.xs,
       '@media (min-width: 480px)': {
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: spacing.md,
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: spacing.xs,
         paddingBottom: spacing.xs,
       },
       '@media (min-width: 768px)': {
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: spacing.md,
+        gap: spacing.sm,
         paddingBottom: spacing.xs,
       },
     },
