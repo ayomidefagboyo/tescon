@@ -328,7 +328,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       fontSize: mobileTypography.fontSize.sm,
       fontWeight: typography.fontWeight.medium,
       transition: `all ${transitions.base}`,
-      minHeight: touchTargets.default,
+      minHeight: touchTargets.large,
       '@media (min-width: 768px)': {
         padding: `${spacing.sm} ${spacing.lg}`,
         fontSize: typography.fontSize.sm,
@@ -381,7 +381,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             onClick={() => document.getElementById('camera-input')?.click()}
             type="button"
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.primary.dark;
+              e.currentTarget.style.backgroundColor = colors.primary.hover;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = colors.primary.main;

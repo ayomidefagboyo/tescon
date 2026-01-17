@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, FileText, Upload, Search } from "lucide-react";
+import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, Search } from "lucide-react";
 
 interface ProgressStats {
   total_parts: number;
@@ -10,15 +10,6 @@ interface ProgressStats {
   remaining_count: number;
   progress_percentage: number;
   success_rate: number;
-}
-
-interface PartStatus {
-  part_number: string;
-  status: 'completed' | 'failed' | 'pending';
-  image_count?: number;
-  error_reason?: string;
-  completed_at?: string;
-  failed_at?: string;
 }
 
 interface TrackerData {
@@ -68,7 +59,6 @@ export const PartsTrackingDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchTrackerData();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(fetchTrackerData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -87,11 +77,7 @@ export const PartsTrackingDashboard: React.FC = () => {
       padding: mobileSpacing.lg,
       maxWidth: '1200px',
       margin: '0 auto',
-      '@media (min-width: 768px)': {
-        padding: spacing.xl,
-      },
     },
-
     header: {
       display: 'flex',
       alignItems: 'center',
@@ -99,13 +85,7 @@ export const PartsTrackingDashboard: React.FC = () => {
       marginBottom: mobileSpacing.lg,
       flexDirection: 'column' as const,
       gap: mobileSpacing.md,
-      '@media (min-width: 768px)': {
-        flexDirection: 'row' as const,
-        gap: spacing.md,
-        marginBottom: spacing.xl,
-      },
     },
-
     title: {
       fontSize: mobileTypography.fontSize.xl,
       fontWeight: typography.fontWeight.bold,
@@ -113,12 +93,7 @@ export const PartsTrackingDashboard: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       gap: mobileSpacing.sm,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.xxl,
-        gap: spacing.sm,
-      },
     },
-
     refreshButton: {
       display: 'flex',
       alignItems: 'center',
@@ -132,39 +107,20 @@ export const PartsTrackingDashboard: React.FC = () => {
       fontSize: mobileTypography.fontSize.sm,
       fontWeight: typography.fontWeight.medium,
       transition: `all ${transitions.base}`,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.sm,
-        padding: `${spacing.sm} ${spacing.lg}`,
-        gap: spacing.xs,
-      },
     } as React.CSSProperties,
-
     statsGrid: {
       display: 'grid',
-      gridTemplateColumns: '1fr',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
       gap: mobileSpacing.md,
       marginBottom: mobileSpacing.lg,
-      '@media (min-width: 640px)': {
-        gridTemplateColumns: 'repeat(2, 1fr)',
-      },
-      '@media (min-width: 1024px)': {
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: spacing.lg,
-        marginBottom: spacing.xl,
-      },
     },
-
     statCard: {
       backgroundColor: colors.background.main,
       padding: mobileSpacing.lg,
       borderRadius: borderRadius.lg,
       boxShadow: shadows.sm,
       border: `1px solid ${colors.neutral[200]}`,
-      '@media (min-width: 768px)': {
-        padding: spacing.lg,
-      },
     },
-
     statIcon: {
       width: '48px',
       height: '48px',
@@ -173,30 +129,17 @@ export const PartsTrackingDashboard: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: mobileSpacing.md,
-      '@media (min-width: 768px)': {
-        marginBottom: spacing.md,
-      },
     },
-
     statValue: {
       fontSize: mobileTypography.fontSize.xl,
       fontWeight: typography.fontWeight.bold,
       color: colors.text.primary,
       marginBottom: mobileSpacing.xs,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.xxl,
-        marginBottom: spacing.xs,
-      },
     },
-
     statLabel: {
       fontSize: mobileTypography.fontSize.sm,
       color: colors.text.secondary,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.sm,
-      },
     },
-
     progressBar: {
       width: '100%',
       height: '8px',
@@ -204,28 +147,19 @@ export const PartsTrackingDashboard: React.FC = () => {
       borderRadius: borderRadius.full,
       overflow: 'hidden',
       marginTop: mobileSpacing.sm,
-      '@media (min-width: 768px)': {
-        marginTop: spacing.sm,
-      },
     },
-
     progressFill: {
       height: '100%',
       backgroundColor: colors.success,
       borderRadius: borderRadius.full,
       transition: `width ${transitions.base}`,
     },
-
     tabsContainer: {
       display: 'flex',
       borderBottom: `2px solid ${colors.neutral[200]}`,
       marginBottom: mobileSpacing.lg,
       overflowX: 'auto' as const,
-      '@media (min-width: 768px)': {
-        marginBottom: spacing.xl,
-      },
     },
-
     tab: {
       padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
       borderBottom: '2px solid transparent',
@@ -235,25 +169,15 @@ export const PartsTrackingDashboard: React.FC = () => {
       color: colors.text.secondary,
       transition: `all ${transitions.base}`,
       whiteSpace: 'nowrap' as const,
-      '@media (min-width: 768px)': {
-        padding: `${spacing.sm} ${spacing.lg}`,
-        fontSize: typography.fontSize.sm,
-      },
     } as React.CSSProperties,
-
     activeTab: {
       color: colors.primary.main,
       borderBottomColor: colors.primary.main,
     },
-
     searchContainer: {
       marginBottom: mobileSpacing.lg,
       position: 'relative' as const,
-      '@media (min-width: 768px)': {
-        marginBottom: spacing.lg,
-      },
     },
-
     searchInput: {
       width: '100%',
       padding: `${mobileSpacing.sm} ${mobileSpacing.md} ${mobileSpacing.sm} 40px`,
@@ -263,81 +187,47 @@ export const PartsTrackingDashboard: React.FC = () => {
       color: colors.text.primary,
       backgroundColor: colors.background.main,
       transition: `border-color ${transitions.base}`,
-      '@media (min-width: 768px)': {
-        padding: `${spacing.sm} ${spacing.lg} ${spacing.sm} 48px`,
-        fontSize: typography.fontSize.sm,
-      },
     } as React.CSSProperties,
-
     searchIcon: {
       position: 'absolute' as const,
       left: mobileSpacing.sm,
       top: '50%',
       transform: 'translateY(-50%)',
       color: colors.text.tertiary,
-      '@media (min-width: 768px)': {
-        left: spacing.sm,
-      },
     },
-
     partsList: {
       display: 'grid',
       gap: mobileSpacing.md,
-      '@media (min-width: 768px)': {
-        gap: spacing.md,
-      },
     },
-
     partCard: {
       backgroundColor: colors.background.main,
       padding: mobileSpacing.md,
       borderRadius: borderRadius.md,
       boxShadow: shadows.sm,
       border: `1px solid ${colors.neutral[200]}`,
-      '@media (min-width: 768px)': {
-        padding: spacing.lg,
-      },
     },
-
     partHeader: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginBottom: mobileSpacing.sm,
-      '@media (min-width: 768px)': {
-        marginBottom: spacing.sm,
-      },
     },
-
     partNumber: {
       fontSize: mobileTypography.fontSize.base,
       fontWeight: typography.fontWeight.semibold,
       color: colors.text.primary,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.lg,
-      },
     },
-
     statusBadge: {
       padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
       borderRadius: borderRadius.full,
       fontSize: mobileTypography.fontSize.xs,
       fontWeight: typography.fontWeight.medium,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.xs,
-        padding: `${spacing.xs} ${spacing.sm}`,
-      },
     },
-
     partDetails: {
       fontSize: mobileTypography.fontSize.sm,
       color: colors.text.secondary,
       lineHeight: 1.5,
-      '@media (min-width: 768px)': {
-        fontSize: typography.fontSize.sm,
-      },
     },
-
     resetButton: {
       padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
       backgroundColor: 'transparent',
@@ -349,10 +239,6 @@ export const PartsTrackingDashboard: React.FC = () => {
       fontWeight: typography.fontWeight.medium,
       transition: `all ${transitions.base}`,
       marginTop: mobileSpacing.sm,
-      '@media (min-width: 768px)': {
-        marginTop: spacing.sm,
-        fontSize: typography.fontSize.xs,
-      },
     } as React.CSSProperties,
   };
 
@@ -392,7 +278,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   };
 
   const filterParts = (parts: string[], query: string) => {
-    if (!query) return parts.slice(0, 50); // Limit to 50 for performance
+    if (!query) return parts.slice(0, 50);
     return parts.filter(part => part.toLowerCase().includes(query.toLowerCase())).slice(0, 50);
   };
 
@@ -529,7 +415,7 @@ export const PartsTrackingDashboard: React.FC = () => {
           disabled={refreshing}
           onMouseEnter={(e) => {
             if (!refreshing) {
-              e.currentTarget.style.backgroundColor = colors.primary.dark;
+              e.currentTarget.style.backgroundColor = colors.primary.hover;
             }
           }}
           onMouseLeave={(e) => {
@@ -548,29 +434,18 @@ export const PartsTrackingDashboard: React.FC = () => {
           borderRadius: borderRadius.md,
           marginBottom: mobileSpacing.lg,
           textAlign: 'center',
-          '@media (min-width: 768px)': {
-            padding: spacing.lg,
-            marginBottom: spacing.xl,
-          },
         }}>
           <div style={{
             fontSize: mobileTypography.fontSize.lg,
             fontWeight: typography.fontWeight.semibold,
             color: colors.text.primary,
             marginBottom: mobileSpacing.xs,
-            '@media (min-width: 768px)': {
-              fontSize: typography.fontSize.xl,
-              marginBottom: spacing.xs,
-            },
           }}>
             {progress.progress_percentage.toFixed(1)}% Complete
           </div>
           <div style={{
             fontSize: mobileTypography.fontSize.sm,
             color: colors.text.secondary,
-            '@media (min-width: 768px)': {
-              fontSize: typography.fontSize.sm,
-            },
           }}>
             Success Rate: {progress.success_rate.toFixed(1)}%
           </div>
