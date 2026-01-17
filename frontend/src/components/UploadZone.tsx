@@ -194,11 +194,14 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     },
     
     filesSection: {
-      flex: 1,
-      minHeight: 0,
+      marginTop: mobileSpacing.md,
       display: 'flex',
       flexDirection: 'column' as const,
-      overflow: 'hidden',
+      width: '100%',
+      maxHeight: 'none',
+      '@media (min-width: 768px)': {
+        marginTop: spacing.md,
+      },
     },
     
     filesTitle: {
@@ -212,23 +215,20 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     filesGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: mobileSpacing.sm,
-      overflowY: 'auto' as const,
-      overflowX: 'hidden' as const,
-      paddingRight: mobileSpacing.xs,
-      flex: 1,
-      minHeight: 0,
-      alignContent: 'flex-start',
+      gap: mobileSpacing.md,
       width: '100%',
       maxWidth: '100%',
       boxSizing: 'border-box' as const,
+      paddingBottom: mobileSpacing.xs,
       '@media (min-width: 480px)': {
-        gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: spacing.md,
+        paddingBottom: spacing.xs,
       },
       '@media (min-width: 768px)': {
-        gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-        gap: spacing.sm,
-        paddingRight: spacing.xs,
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: spacing.md,
+        paddingBottom: spacing.xs,
       },
     },
     
@@ -261,15 +261,17 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     
     removeButton: {
       position: 'absolute' as const,
-      top: '4px',
-      right: '4px',
+      top: '6px',
+      right: '6px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: '28px',
-      height: '28px',
+      width: '26px',
+      height: '26px',
+      minWidth: '26px',
+      minHeight: '26px',
       padding: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backgroundColor: 'rgba(220, 53, 69, 0.85)',
       border: 'none',
       borderRadius: borderRadius.full,
       cursor: 'pointer',
@@ -277,9 +279,15 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       color: colors.text.inverse,
       flexShrink: 0,
       zIndex: 10,
+      boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+      touchAction: 'manipulation',
       '@media (min-width: 768px)': {
-        width: '32px',
-        height: '32px',
+        width: '28px',
+        height: '28px',
+        minWidth: '28px',
+        minHeight: '28px',
+        top: '8px',
+        right: '8px',
       },
     } as React.CSSProperties,
 
@@ -447,14 +455,16 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                   }}
                   style={styles.removeButton}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.9)';
+                    e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 1)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+                    e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.85)';
+                    e.currentTarget.style.transform = 'scale(1)';
                   }}
                   aria-label="Remove file"
                 >
-                  <X size={16} />
+                  <X size={14} strokeWidth={2.5} />
                 </button>
               </div>
             ))}

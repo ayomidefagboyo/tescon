@@ -171,6 +171,16 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
     );
   };
 
+  const handleRemoveFile = (index: number) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    // Cleanup preview URL
+    if (files[index].preview) {
+      URL.revokeObjectURL(files[index].preview);
+    }
+    setFiles(newFiles);
+    setError(null);
+  };
+
   const renderUploadStep = () => (
     <div className="step-content">
       <h2>Step 1: Upload Part Photos</h2>
@@ -181,23 +191,8 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         multiple={true}
         maxFiles={4}
         disabled={processing}
+        compact={files.length > 0}
       />
-
-      {files.length > 0 && (
-        <div className="files-preview">
-          <h4>Selected Photos ({files.length}/4):</h4>
-          <div className="files-grid">
-            {files.map((file, index) => (
-              <div key={index} className="file-preview">
-                {file.preview && (
-                  <img src={file.preview} alt={`Photo ${index + 1}`} />
-                )}
-                <span className="file-label">View {index + 1}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {error && <div className="error-message">{error}</div>}
 
@@ -528,15 +523,16 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           display: flex;
           flex-direction: column;
           min-height: 0;
-          max-height: calc(100vh - 200px);
+          flex: 1;
           overflow-y: auto;
           overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
         }
 
         @media (min-width: 768px) {
           .step-content {
             padding: 30px;
-            max-height: none;
+            flex: none;
             overflow-y: visible;
           }
         }
@@ -566,85 +562,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           }
         }
 
-        .files-preview {
-          margin: 16px 0;
-          flex-shrink: 0;
-        }
-
-        @media (min-width: 768px) {
-          .files-preview {
-            margin: 20px 0;
-          }
-        }
-
-        .files-preview h4 {
-          margin-bottom: 12px;
-          font-size: 14px;
-          color: #333;
-        }
-
-        @media (min-width: 768px) {
-          .files-preview h4 {
-            margin-bottom: 16px;
-            font-size: 16px;
-          }
-        }
-
-        .files-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          width: 100%;
-          max-width: 100%;
-          overflow: hidden;
-          box-sizing: border-box;
-        }
-
-        @media (min-width: 480px) {
-          .files-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        @media (min-width: 768px) {
-          .files-grid {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-          }
-        }
-
-        .file-preview {
-          position: relative;
-          border-radius: 8px;
-          overflow: hidden;
-          background: #f8f9fa;
-          aspect-ratio: 1;
-        }
-
-        .file-preview img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .file-label {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: rgba(0,0,0,0.7);
-          color: white;
-          padding: 4px 6px;
-          font-size: 10px;
-          text-align: center;
-        }
-
-        @media (min-width: 768px) {
-          .file-label {
-            padding: 4px 8px;
-            font-size: 12px;
-          }
-        }
 
         .part-number-input {
           margin-bottom: 20px;
@@ -881,6 +798,8 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           padding-left: 16px;
           padding-right: 16px;
           padding-bottom: 16px;
+          z-index: 10;
+          box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         }
 
         @media (min-width: 480px) {
@@ -896,6 +815,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
             padding-left: 0;
             padding-right: 0;
             padding-bottom: 0;
+            box-shadow: none;
           }
         }
 
