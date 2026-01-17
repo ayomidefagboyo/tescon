@@ -362,7 +362,7 @@ async def process_part_images(
     Supports variable number of images (1-10).
     """
     from app.services.google_drive_storage import get_drive_storage
-    
+
     # Validate image count
     if not files or len(files) == 0:
         raise HTTPException(status_code=400, detail="No images provided")
@@ -465,26 +465,26 @@ async def process_part_images(
             
             processed_files.append((filename, processed_bytes))
         
-        # Save to local storage and Google Drive
-        saved_files = []
-        local_paths = []
+        # Save directly to Google Drive (no local storage)
+        drive_storage = get_drive_storage()
+        if not drive_storage:
+            raise HTTPException(
+                status_code=503,
+                detail="Google Drive service not configured. Check GOOGLE_CLOUD_SETUP.md"
+            )
 
-        # Save locally first
-        for filename, processed_bytes in processed_files:
-            local_path = storage.save_processed_file(processed_bytes, filename, part_number)
-            if local_path:
-                local_paths.append(local_path)
-                saved_files.append({"filename": filename, "url": f"/api/download/{filename}"})
-
-        # Upload to Google Drive
-        from app.services.google_drive import get_drive_service
-        drive_service = get_drive_service()
-        if drive_service.is_available() and local_paths:
-            success = drive_service.upload_part_images(part_number, local_paths)
-            if success:
-                print(f"✓ Successfully uploaded {len(local_paths)} images to Google Drive for part {part_number}")
-            else:
-                print(f"⚠ Warning: Failed to upload some images to Google Drive for part {part_number}")
+        # Upload all files to Google Drive
+        try:
+            saved_files = drive_storage.save_part_images(
+                part_number=part_number,
+                image_files=processed_files,
+                description=description
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to upload images to Google Drive: {str(e)}"
+            )
 
         # Mark part as processed in tracker
         tracker = get_parts_tracker()
@@ -497,11 +497,11 @@ async def process_part_images(
             location=location,
             item_note=item_note if item_note else None,
             files_saved=len(saved_files),
-            saved_paths=[{"filename": f["filename"], "url": f["url"]} for f in saved_files],
+            saved_paths=[{"filename": f.get("filename", ""), "url": f.get("url", "")} for f in saved_files],
             message=f"Successfully processed and saved {len(saved_files)} images for part {part_number}"
         )
         
-    except HTTPException:
+    except HTTPException as e:
         # Mark as failed in tracker for non-404 errors
         if "not found" not in str(e).lower():
             tracker = get_parts_tracker()

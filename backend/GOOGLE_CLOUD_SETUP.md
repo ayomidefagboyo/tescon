@@ -104,7 +104,7 @@ GOOGLE_SHEETS_TAB_NAME=Sheet1  # Or the name of your tab
 GOOGLE_CREDENTIALS_PATH=google-credentials.json
 
 # Google Drive Configuration
-GOOGLE_DRIVE_FOLDER_ID=your_folder_id_here
+GOOGLE_DRIVE_FOLDER_ID=1oFy8XefGQJW7rX4SApgmm-Q56tn1v3_D
 
 # Optional: Column name overrides (if your sheet uses different column names)
 # GOOGLE_SHEETS_PART_NUMBER_COL=Part Number
