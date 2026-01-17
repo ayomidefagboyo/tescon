@@ -15,6 +15,8 @@ from app.storage.local_storage import LocalStorage
 from app.api.jobs import job_manager
 from app.logging import log_image_processing, log_gpu_metrics
 from app.utils.filename_parser import validate_batch_filenames
+from app.services.excel_service import get_excel_parts_service
+from app.services.parts_tracker import get_parts_tracker
 
 router = APIRouter()
 
@@ -371,20 +373,34 @@ async def process_part_images(
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
     
-    # Get part info from Google Sheets
-    sheets_service = get_sheets_service()
-    if not sheets_service:
-        raise HTTPException(
-            status_code=503,
-            detail="Google Sheets service not configured. Check GOOGLE_CLOUD_SETUP.md"
-        )
-    
-    part_info = sheets_service.get_part_info(part_number)
-    if not part_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Part number '{part_number}' not found in Google Sheet"
-        )
+    # Try Excel service first, fallback to Google Sheets
+    excel_service = get_excel_parts_service()
+    part_info = None
+
+    if excel_service.unique_parts is not None:
+        # Use Excel catalog
+        part_info = excel_service.get_part_info(part_number)
+        if not part_info:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Part number '{part_number}' not found in Excel catalog"
+            )
+    else:
+        # Fallback to Google Sheets
+        from app.services.google_sheets import get_sheets_service
+        sheets_service = get_sheets_service()
+        if not sheets_service:
+            raise HTTPException(
+                status_code=503,
+                detail="No Excel file loaded and Google Sheets not configured. Upload Excel file or check GOOGLE_CLOUD_SETUP.md"
+            )
+
+        part_info = sheets_service.get_part_info(part_number)
+        if not part_info:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Part number '{part_number}' not found in Google Sheet"
+            )
     
     description = part_info.get("description", "")
     location = part_info.get("location", "")
@@ -485,7 +501,11 @@ async def process_part_images(
                 print(f"✓ Successfully uploaded {len(local_paths)} images to Google Drive for part {part_number}")
             else:
                 print(f"⚠ Warning: Failed to upload some images to Google Drive for part {part_number}")
-        
+
+        # Mark part as processed in tracker
+        tracker = get_parts_tracker()
+        tracker.mark_part_processed(part_number, len(saved_files))
+
         return ProcessPartResponse(
             success=True,
             part_number=part_number,
@@ -498,7 +518,189 @@ async def process_part_images(
         )
         
     except HTTPException:
+        # Mark as failed in tracker for non-404 errors
+        if "not found" not in str(e).lower():
+            tracker = get_parts_tracker()
+            tracker.mark_part_failed(part_number, str(e))
         raise
     except Exception as e:
+        # Mark part as failed in tracker
+        tracker = get_parts_tracker()
+        tracker.mark_part_failed(part_number, str(e))
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+
+@router.post("/excel/upload")
+async def upload_excel_file(file: UploadFile = File(...)):
+    """
+    Upload and process Excel parts catalog file.
+
+    Replaces Google Sheets functionality with local Excel file processing.
+    """
+    if not file.filename or not file.filename.lower().endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are allowed")
+
+    try:
+        # Save uploaded file temporarily
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_path = temp_file.name
+
+        # Load into Excel service
+        excel_service = get_excel_parts_service()
+        success = excel_service.load_excel_file(temp_path, sheet_name="Data")
+
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to process Excel file")
+
+        # Update parts tracker with total count
+        tracker = get_parts_tracker()
+        stats = excel_service.get_stats()
+        tracker.set_total_parts(stats['total_parts'])
+
+        # Clean up temp file
+        os.unlink(temp_path)
+
+        return {
+            "success": True,
+            "message": f"Excel file processed successfully",
+            "stats": stats
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process Excel file: {str(e)}")
+
+
+@router.get("/excel/parts/search")
+async def search_excel_parts(
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum results")
+):
+    """Search parts from Excel catalog."""
+    excel_service = get_excel_parts_service()
+    if excel_service.unique_parts is None:
+        raise HTTPException(status_code=503, detail="No Excel file loaded. Upload an Excel file first.")
+
+    results = excel_service.search_parts(q, limit=limit)
+    return results
+
+
+@router.get("/excel/parts/{part_number}")
+async def get_excel_part_info(part_number: str):
+    """Get part information from Excel catalog."""
+    excel_service = get_excel_parts_service()
+    if excel_service.unique_parts is None:
+        raise HTTPException(status_code=503, detail="No Excel file loaded. Upload an Excel file first.")
+
+    part_info = excel_service.get_part_info(part_number)
+    if not part_info:
+        raise HTTPException(status_code=404, detail=f"Part number '{part_number}' not found in Excel catalog")
+
+    return part_info
+
+
+@router.get("/tracker/progress")
+async def get_tracking_progress():
+    """Get overall progress statistics for parts processing."""
+    tracker = get_parts_tracker()
+    stats = tracker.get_progress_stats()
+
+    return {
+        "progress": stats,
+        "last_updated": tracker.tracker_file.stat().st_mtime if tracker.tracker_file.exists() else None
+    }
+
+
+@router.get("/tracker/parts/processed")
+async def get_processed_parts():
+    """Get list of successfully processed parts."""
+    tracker = get_parts_tracker()
+    processed_parts = tracker.get_processed_parts()
+
+    return {
+        "processed_parts": processed_parts,
+        "count": len(processed_parts)
+    }
+
+
+@router.get("/tracker/parts/failed")
+async def get_failed_parts():
+    """Get list of failed parts with error reasons."""
+    tracker = get_parts_tracker()
+    failed_parts = tracker.get_failed_parts()
+
+    return {
+        "failed_parts": failed_parts,
+        "count": len(failed_parts)
+    }
+
+
+@router.get("/tracker/parts/remaining")
+async def get_remaining_parts():
+    """Get list of parts that haven't been processed yet."""
+    excel_service = get_excel_parts_service()
+    tracker = get_parts_tracker()
+
+    if excel_service.unique_parts is None:
+        raise HTTPException(status_code=503, detail="No Excel file loaded. Upload an Excel file first.")
+
+    # Get all part numbers from Excel
+    all_parts = excel_service.unique_parts['Symbol Number'].astype(str).tolist()
+    remaining_parts = tracker.get_remaining_parts(all_parts)
+
+    return {
+        "remaining_parts": remaining_parts[:100],  # Limit to first 100
+        "total_remaining": len(remaining_parts)
+    }
+
+
+@router.get("/tracker/parts/{part_number}/status")
+async def get_part_status(part_number: str):
+    """Get detailed status of a specific part."""
+    tracker = get_parts_tracker()
+    status = tracker.get_part_status(part_number)
+
+    if not status:
+        # Check if part exists in Excel
+        excel_service = get_excel_parts_service()
+        if excel_service.unique_parts is not None:
+            part_info = excel_service.get_part_info(part_number)
+            if part_info:
+                return {"part_number": part_number, "status": "pending", "exists": True}
+
+        raise HTTPException(status_code=404, detail=f"Part number '{part_number}' not found")
+
+    return {"part_number": part_number, **status}
+
+
+@router.post("/tracker/parts/{part_number}/reset")
+async def reset_part_status(part_number: str):
+    """Reset status for a specific part (remove from processed/failed)."""
+    tracker = get_parts_tracker()
+    tracker.reset_part(part_number)
+
+    return {"success": True, "message": f"Reset status for part {part_number}"}
+
+
+@router.get("/tracker/report")
+async def get_tracking_report():
+    """Get detailed progress report."""
+    tracker = get_parts_tracker()
+    report_content = tracker.export_report()
+
+    return {
+        "report": report_content,
+        "stats": tracker.get_progress_stats()
+    }
+
+
+@router.post("/tracker/reset")
+async def reset_all_tracking():
+    """Reset all tracking data. Use with caution!"""
+    tracker = get_parts_tracker()
+    tracker.reset_all()
+
+    return {"success": True, "message": "All tracking data has been reset"}
 
