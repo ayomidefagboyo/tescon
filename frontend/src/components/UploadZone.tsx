@@ -77,9 +77,21 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      processFiles(e.target.files);
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        // Add to existing files instead of replacing
+        const newFiles = Array.from(files);
+        const existingFiles = selectedFiles;
+        const combinedFiles = [...existingFiles, ...newFiles];
+
+        // Apply max files limit if set
+        const finalFiles = maxFiles ? combinedFiles.slice(0, maxFiles) : combinedFiles;
+
+        // Process the combined files
+        processFilesWithoutReset(finalFiles);
+      }
     },
-    [processFiles]
+    [selectedFiles, maxFiles, processFiles]
   );
 
   const handleCameraCapture = useCallback(
@@ -345,6 +357,50 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 
   return (
     <>
+      <input
+        type="file"
+        id="file-input"
+        multiple
+        accept={acceptedTypes.join(",")}
+        onChange={handleFileInput}
+        style={{ display: "none" }}
+      />
+      <input
+        type="file"
+        id="camera-input"
+        accept="image/*"
+        capture="environment"
+        onChange={handleCameraCapture}
+        style={{ display: "none" }}
+      />
+
+      {!compact && (
+        <div style={styles.cameraSection}>
+          <button
+            style={styles.cameraButton}
+            onClick={() => document.getElementById('camera-input')?.click()}
+            type="button"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primary.dark;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primary.main;
+            }}
+          >
+            <Camera size={20} />
+            Take Photo
+          </button>
+        </div>
+      )}
+
+      {!compact && (
+        <div style={styles.divider}>
+          <div style={styles.dividerLine}></div>
+          <span>OR</span>
+          <div style={styles.dividerLine}></div>
+        </div>
+      )}
+
       <div
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
@@ -353,22 +409,6 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         style={styles.dropZone}
         data-upload-zone
       >
-        <input
-          type="file"
-          id="file-input"
-          multiple
-          accept={acceptedTypes.join(",")}
-          onChange={handleFileInput}
-          style={{ display: "none" }}
-        />
-        <input
-          type="file"
-          id="camera-input"
-          accept="image/*"
-          capture="environment"
-          onChange={handleCameraCapture}
-          style={{ display: "none" }}
-        />
         <label htmlFor="file-input" style={{ cursor: 'pointer', display: 'block' }}>
           <div style={styles.iconContainer} data-upload-icon>
             <CloudUpload
@@ -390,33 +430,6 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           )}
         </label>
       </div>
-
-      {!compact && (
-        <>
-          <div style={styles.divider}>
-            <div style={styles.dividerLine}></div>
-            <span>OR</span>
-            <div style={styles.dividerLine}></div>
-          </div>
-
-          <div style={styles.cameraSection}>
-            <button
-              style={styles.cameraButton}
-              onClick={() => document.getElementById('camera-input')?.click()}
-              type="button"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = colors.primary.dark;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = colors.primary.main;
-              }}
-            >
-              <Camera size={20} />
-              Take Photo
-            </button>
-          </div>
-        </>
-      )}
 
       {selectedFiles.length > 0 && (
         <div style={styles.filesSection}>
