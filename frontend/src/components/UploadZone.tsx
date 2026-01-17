@@ -115,19 +115,19 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     
     filesGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
+      gridTemplateColumns: 'repeat(5, 1fr)',
       gap: mobileSpacing.xs,
       width: '100%',
       maxWidth: '100%',
       boxSizing: 'border-box' as const,
       paddingBottom: mobileSpacing.xs,
       '@media (min-width: 480px)': {
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: 'repeat(5, 1fr)',
         gap: spacing.xs,
         paddingBottom: spacing.xs,
       },
       '@media (min-width: 768px)': {
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: 'repeat(6, 1fr)',
         gap: spacing.sm,
         paddingBottom: spacing.xs,
       },
@@ -323,7 +323,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                   }}
                   aria-label="Remove file"
                 >
-                  <X size={14} strokeWidth={2.5} />
+                  <X size={12} strokeWidth={2.5} />
                 </button>
               </div>
             ))}
