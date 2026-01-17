@@ -23,23 +23,26 @@ function App() {
 
 
   const styles = {
-    container: {
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      width: '100%',
-      maxWidth: 'none',
-      margin: '0',
-      padding: `${mobileSpacing.lg} ${mobileSpacing.md}`,
-      fontFamily: typography.fontFamily.base,
-      boxSizing: 'border-box' as const,
-      overflow: 'hidden',
-      '@media (min-width: 768px)': {
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: `${spacing.xl} ${spacing.xl}`,
-      },
-    } as React.CSSProperties,
+      container: {
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        width: '100%',
+        maxWidth: 'none',
+        margin: '0',
+        padding: `${mobileSpacing.lg} ${mobileSpacing.md}`,
+        fontFamily: typography.fontFamily.base,
+        boxSizing: 'border-box' as const,
+        overflow: 'hidden',
+        height: '100vh',
+        '@media (min-width: 768px)': {
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: `${spacing.xl} ${spacing.xl}`,
+          height: 'auto',
+          minHeight: '100vh',
+        },
+      } as React.CSSProperties,
 
     header: {
       display: 'flex',
@@ -200,18 +203,20 @@ function App() {
         </div>
       </div>
 
-      {currentView === 'workflow' ? (
-        <StepByStepWorkflow
-          onSuccess={(_response: ProcessPartResponse) => {
-            // Success is handled within the component
-          }}
-          onError={(_error: string) => {
-            // Error is handled within the component
-          }}
-        />
-      ) : (
-        <PartsTrackingDashboard />
-      )}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {currentView === 'workflow' ? (
+          <StepByStepWorkflow
+            onSuccess={(_response: ProcessPartResponse) => {
+              // Success is handled within the component
+            }}
+            onError={(_error: string) => {
+              // Error is handled within the component
+            }}
+          />
+        ) : (
+          <PartsTrackingDashboard />
+        )}
+      </div>
 
       {health && (
         <div style={{...styles.healthBadge, marginTop: mobileSpacing.lg, alignSelf: 'center'}} data-health-badge>

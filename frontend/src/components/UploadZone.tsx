@@ -211,7 +211,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     
     filesGrid: {
       display: 'grid',
-      gridTemplateColumns: '1fr',
+      gridTemplateColumns: 'repeat(2, 1fr)',
       gap: mobileSpacing.sm,
       overflowY: 'auto' as const,
       overflowX: 'hidden' as const,
@@ -223,81 +223,64 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       maxWidth: '100%',
       boxSizing: 'border-box' as const,
       '@media (min-width: 480px)': {
-        gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
       },
       '@media (min-width: 768px)': {
-        gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
+        gridTemplateColumns: compact ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
         gap: spacing.sm,
         paddingRight: spacing.xs,
       },
     },
     
     fileCard: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: spacing.sm,
-      padding: spacing.sm,
-      backgroundColor: colors.background.main,
-      border: `1px solid ${colors.neutral[200]}`,
+      position: 'relative' as const,
+      aspectRatio: '1',
       borderRadius: borderRadius.md,
+      overflow: 'hidden' as const,
+      backgroundColor: colors.neutral[100],
+      border: `1px solid ${colors.neutral[200]}`,
       boxShadow: shadows.sm,
       transition: `all ${transitions.base}`,
     } as React.CSSProperties,
     
     thumbnail: {
-      width: '40px',
-      height: '40px',
+      width: '100%',
+      height: '100%',
       objectFit: 'cover' as const,
-      borderRadius: borderRadius.sm,
-      backgroundColor: colors.neutral[100],
-      flexShrink: 0,
+      display: 'block',
     },
     
     thumbnailPlaceholder: {
-      width: '40px',
-      height: '40px',
+      width: '100%',
+      height: '100%',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: borderRadius.sm,
       backgroundColor: colors.neutral[100],
-      flexShrink: 0,
-    },
-    
-    fileInfo: {
-      flex: 1,
-      minWidth: 0,
-    },
-    
-    fileName: {
-      fontSize: typography.fontSize.xs,
-      fontWeight: typography.fontWeight.medium,
-      color: colors.text.primary,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap' as const,
-      marginBottom: '2px',
-    },
-    
-    fileSize: {
-      fontSize: '11px',
-      color: colors.text.secondary,
     },
     
     removeButton: {
+      position: 'absolute' as const,
+      top: '4px',
+      right: '4px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: '24px',
-      height: '24px',
+      width: '28px',
+      height: '28px',
       padding: 0,
-      backgroundColor: 'transparent',
-      border: `1px solid ${colors.neutral[300]}`,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      border: 'none',
       borderRadius: borderRadius.full,
       cursor: 'pointer',
       transition: `all ${transitions.fast}`,
-      color: colors.text.secondary,
+      color: colors.text.inverse,
       flexShrink: 0,
+      zIndex: 10,
+      '@media (min-width: 768px)': {
+        width: '32px',
+        height: '32px',
+      },
     } as React.CSSProperties,
 
     cameraSection: {
@@ -454,30 +437,24 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                   />
                 ) : (
                   <div style={styles.thumbnailPlaceholder}>
-                    <FileImage size={18} color={colors.neutral[400]} />
+                    <FileImage size={24} color={colors.neutral[400]} />
                   </div>
                 )}
-                <div style={styles.fileInfo}>
-                  <div style={styles.fileName}>{file.name}</div>
-                  <div style={styles.fileSize}>
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </div>
-                </div>
                 <button
-                  onClick={() => removeFile(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFile(index);
+                  }}
                   style={styles.removeButton}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.error;
-                    e.currentTarget.style.borderColor = colors.error;
-                    e.currentTarget.style.color = colors.text.inverse;
+                    e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.9)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.borderColor = colors.neutral[300];
-                    e.currentTarget.style.color = colors.text.secondary;
+                    e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
                   }}
+                  aria-label="Remove file"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
             ))}

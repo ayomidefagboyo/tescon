@@ -393,6 +393,10 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           padding: 12px;
           width: 100%;
           box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
         }
 
         @media (min-width: 768px) {
@@ -521,11 +525,19 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           padding: 16px;
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
           margin-bottom: 16px;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          max-height: calc(100vh - 200px);
+          overflow-y: auto;
+          overflow-x: hidden;
         }
 
         @media (min-width: 768px) {
           .step-content {
             padding: 30px;
+            max-height: none;
+            overflow-y: visible;
           }
         }
 
@@ -556,6 +568,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
 
         .files-preview {
           margin: 16px 0;
+          flex-shrink: 0;
         }
 
         @media (min-width: 768px) {
@@ -589,13 +602,13 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
 
         @media (min-width: 480px) {
           .files-grid {
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 
         @media (min-width: 768px) {
           .files-grid {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 16px;
           }
         }
@@ -857,6 +870,17 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           flex-direction: column;
           gap: 12px;
           margin-top: 20px;
+          padding-top: 16px;
+          flex-shrink: 0;
+          position: sticky;
+          bottom: 0;
+          background: white;
+          border-top: 1px solid #e0e0e0;
+          margin-left: -16px;
+          margin-right: -16px;
+          padding-left: 16px;
+          padding-right: 16px;
+          padding-bottom: 16px;
         }
 
         @media (min-width: 480px) {
@@ -865,6 +889,13 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
             justify-content: space-between;
             gap: 16px;
             margin-top: 32px;
+            position: relative;
+            border-top: none;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+            padding-bottom: 0;
           }
         }
 
