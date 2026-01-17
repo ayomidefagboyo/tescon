@@ -361,7 +361,6 @@ async def process_part_images(
     
     Supports variable number of images (1-10).
     """
-    from app.services.google_sheets import get_sheets_service
     from app.services.google_drive_storage import get_drive_storage
     
     # Validate image count

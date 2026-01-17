@@ -270,16 +270,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         </div>
       )}
 
-      <div className="processing-preview">
-        <h4>Processing Preview</h4>
-        <ul>
-          <li>✓ Background removal</li>
-          <li>✓ White background applied</li>
-          <li>✓ Description label added to image</li>
-          <li>✓ Saved with proper naming to Google Drive</li>
-          <li>✓ Files organized by part number</li>
-        </ul>
-      </div>
 
       {error && <div className="error-message">{error}</div>}
 
@@ -645,29 +635,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           font-size: 16px;
         }
 
-        .processing-preview {
-          background: #e8f5e8;
-          border-radius: 8px;
-          padding: 20px;
-          margin-bottom: 24px;
-        }
-
-        .processing-preview h4 {
-          margin: 0 0 12px 0;
-          color: #28a745;
-        }
-
-        .processing-preview ul {
-          margin: 0;
-          padding-left: 0;
-          list-style: none;
-        }
-
-        .processing-preview li {
-          margin: 8px 0;
-          color: #333;
-          font-size: 14px;
-        }
 
         .processing-animation {
           text-align: center;

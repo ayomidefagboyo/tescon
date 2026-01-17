@@ -16,7 +16,7 @@ interface UploadZoneProps {
 export const UploadZone: React.FC<UploadZoneProps> = ({
   onFilesSelected,
   acceptedTypes = [".jpg", ".jpeg", ".png", ".webp", ".zip"],
-  maxFiles,
+  maxFiles = 3,
   compact = false,
   multiple: _multiple = true,
   disabled: _disabled = false,
@@ -154,15 +154,15 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     
     removeButton: {
       position: 'absolute' as const,
-      top: '2px',
-      right: '2px',
+      top: '1px',
+      right: '1px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: '16px',
-      height: '16px',
-      minWidth: '16px',
-      minHeight: '16px',
+      width: '12px',
+      height: '12px',
+      minWidth: '12px',
+      minHeight: '12px',
       padding: 0,
       backgroundColor: 'rgba(220, 53, 69, 0.9)',
       border: 'none',
@@ -174,13 +174,16 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       zIndex: 10,
       boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
       touchAction: 'manipulation',
+      fontSize: '8px',
+      fontWeight: 'bold',
       '@media (min-width: 768px)': {
-        width: '18px',
-        height: '18px',
-        minWidth: '18px',
-        minHeight: '18px',
-        top: '3px',
-        right: '3px',
+        width: '14px',
+        height: '14px',
+        minWidth: '14px',
+        minHeight: '14px',
+        fontSize: '9px',
+        top: '2px',
+        right: '2px',
       },
     } as React.CSSProperties,
 
@@ -253,18 +256,25 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 
       <div style={styles.cameraSection}>
         <button
-          style={styles.cameraButton}
-          onClick={() => document.getElementById('camera-input')?.click()}
+          style={{
+            ...styles.cameraButton,
+            backgroundColor: selectedFiles.length >= 3 ? colors.neutral[400] : colors.primary.main,
+            cursor: selectedFiles.length >= 3 ? 'not-allowed' : 'pointer',
+          }}
+          onClick={() => selectedFiles.length < 3 && document.getElementById('camera-input')?.click()}
           type="button"
+          disabled={selectedFiles.length >= 3}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = colors.primary.hover;
+            if (selectedFiles.length < 3) {
+              e.currentTarget.style.backgroundColor = colors.primary.hover;
+            }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = colors.primary.main;
+            e.currentTarget.style.backgroundColor = selectedFiles.length >= 3 ? colors.neutral[400] : colors.primary.main;
           }}
         >
           <Camera size={24} />
-          Take Photo
+          {selectedFiles.length >= 3 ? 'Max 3 Photos' : 'Take Photo'}
         </button>
         {!compact && (
           <div style={styles.secondaryText}>
@@ -315,7 +325,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                   }}
                   aria-label="Remove file"
                 >
-                  <X size={12} strokeWidth={2.5} />
+                  ×
                 </button>
               </div>
             ))}
