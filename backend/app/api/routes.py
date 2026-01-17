@@ -294,26 +294,25 @@ async def download_job_results(job_id: str):
 @router.get("/parts/{part_number}", response_model=PartInfo)
 async def get_part_info(part_number: str):
     """
-    Get part information from Google Sheets.
-    
+    Get part information from Excel catalog.
+
     Used for autocomplete/search in frontend.
     """
-    from app.services.google_sheets import get_sheets_service
-    
-    sheets_service = get_sheets_service()
-    if not sheets_service:
+    excel_service = get_excel_parts_service()
+
+    if excel_service.unique_parts is None:
         raise HTTPException(
             status_code=503,
-            detail="Google Sheets service not configured. Check GOOGLE_CLOUD_SETUP.md"
+            detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
         )
-    
-    part_info = sheets_service.get_part_info(part_number)
+
+    part_info = excel_service.get_part_info(part_number)
     if not part_info:
         raise HTTPException(
             status_code=404,
-            detail=f"Part number '{part_number}' not found in Google Sheet"
+            detail=f"Part number '{part_number}' not found in Excel catalog"
         )
-    
+
     return PartInfo(**part_info)
 
 
@@ -324,19 +323,18 @@ async def search_parts(
 ):
     """
     Search parts by part number (for autocomplete).
-    
-    Returns matching parts from Google Sheets.
+
+    Returns matching parts from Excel catalog.
     """
-    from app.services.google_sheets import get_sheets_service
-    
-    sheets_service = get_sheets_service()
-    if not sheets_service:
+    excel_service = get_excel_parts_service()
+
+    if excel_service.unique_parts is None:
         raise HTTPException(
             status_code=503,
-            detail="Google Sheets service not configured. Check GOOGLE_CLOUD_SETUP.md"
+            detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
         )
-    
-    results = sheets_service.search_parts(q, limit=limit)
+
+    results = excel_service.search_parts(q, limit=limit)
     return [PartInfo(**part) for part in results]
 
 
@@ -373,34 +371,21 @@ async def process_part_images(
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
     
-    # Try Excel service first, fallback to Google Sheets
+    # Use Excel catalog only
     excel_service = get_excel_parts_service()
-    part_info = None
 
-    if excel_service.unique_parts is not None:
-        # Use Excel catalog
-        part_info = excel_service.get_part_info(part_number)
-        if not part_info:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Part number '{part_number}' not found in Excel catalog"
-            )
-    else:
-        # Fallback to Google Sheets
-        from app.services.google_sheets import get_sheets_service
-        sheets_service = get_sheets_service()
-        if not sheets_service:
-            raise HTTPException(
-                status_code=503,
-                detail="No Excel file loaded and Google Sheets not configured. Upload Excel file or check GOOGLE_CLOUD_SETUP.md"
-            )
+    if excel_service.unique_parts is None:
+        raise HTTPException(
+            status_code=503,
+            detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
+        )
 
-        part_info = sheets_service.get_part_info(part_number)
-        if not part_info:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Part number '{part_number}' not found in Google Sheet"
-            )
+    part_info = excel_service.get_part_info(part_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Part number '{part_number}' not found in Excel catalog"
+        )
     
     description = part_info.get("description", "")
     location = part_info.get("location", "")

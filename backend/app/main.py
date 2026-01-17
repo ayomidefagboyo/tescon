@@ -65,13 +65,36 @@ async def startup_event():
     from app.processing.picwish_processor import check_api_available
     from app.api.jobs import job_manager
     from app.storage.local_storage import LocalStorage
+    from app.services.excel_service import get_excel_parts_service
+    from app.services.parts_tracker import get_parts_tracker
     import asyncio
-    
+    from pathlib import Path
+
     if check_api_available():
         print("✓ PicWish API configured successfully")
     else:
         print("⚠ Warning: PicWish API key not configured. Set PICWISH_API_KEY environment variable.")
-    
+
+    # Load Excel file if it exists
+    excel_file_path = Path("EGTL Dump Total Dump ( sorted).xlsx")
+    if excel_file_path.exists():
+        try:
+            excel_service = get_excel_parts_service()
+            success = excel_service.load_excel_file(str(excel_file_path), sheet_name="Data")
+            if success:
+                stats = excel_service.get_stats()
+                print(f"✓ Excel catalog loaded: {stats['total_parts']} parts")
+
+                # Update parts tracker with total count
+                tracker = get_parts_tracker()
+                tracker.set_total_parts(stats['total_parts'])
+            else:
+                print("⚠ Warning: Failed to load Excel catalog file")
+        except Exception as e:
+            print(f"⚠ Warning: Error loading Excel catalog: {e}")
+    else:
+        print("⚠ Warning: Excel catalog file not found. Upload via /api/excel/upload endpoint.")
+
     # Start background cleanup tasks
     async def cleanup_task():
         """Periodic cleanup of old jobs and files."""
@@ -83,6 +106,6 @@ async def startup_event():
                 storage.cleanup_old_files()
             except Exception as e:
                 print(f"Cleanup error: {e}")
-    
+
     asyncio.create_task(cleanup_task())
 

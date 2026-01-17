@@ -114,34 +114,26 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     },
     
     filesGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(5, 1fr)',
+      display: 'flex',
+      flexWrap: 'wrap' as const,
       gap: mobileSpacing.xs,
       width: '100%',
       maxWidth: '100%',
       boxSizing: 'border-box' as const,
       paddingBottom: mobileSpacing.xs,
-      '@media (min-width: 480px)': {
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: spacing.xs,
-        paddingBottom: spacing.xs,
-      },
-      '@media (min-width: 768px)': {
-        gridTemplateColumns: 'repeat(6, 1fr)',
-        gap: spacing.sm,
-        paddingBottom: spacing.xs,
-      },
     },
     
     fileCard: {
       position: 'relative' as const,
-      aspectRatio: '1',
+      width: '60px',
+      height: '60px',
       borderRadius: borderRadius.md,
       overflow: 'hidden' as const,
       backgroundColor: colors.neutral[100],
       border: `1px solid ${colors.neutral[200]}`,
       boxShadow: shadows.sm,
       transition: `all ${transitions.base}`,
+      flexShrink: 0,
     } as React.CSSProperties,
     
     thumbnail: {
