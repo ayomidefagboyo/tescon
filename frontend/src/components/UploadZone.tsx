@@ -1,7 +1,7 @@
 /** Drag and drop upload zone component */
 import React, { useCallback, useState } from "react";
 import { FileWithPreview } from "../types";
-import { X, FileImage, Camera } from "lucide-react";
+import { FileImage, Camera } from "lucide-react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "../styles/design-system";
 
 interface UploadZoneProps {
