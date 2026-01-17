@@ -192,7 +192,26 @@ Each part has its own folder, ready for SharePoint upload.
 
 ## Deployment
 
-For internal deployment:
+### Quick Free Deployment (Recommended)
+
+**Deploy without Docker using free hosting:**
+
+1. **Backend**: Deploy to [Railway.app](https://railway.app) (free $5/month credit)
+   - Connect GitHub repo
+   - Set root directory to `backend`
+   - Add `PICWISH_API_KEY` environment variable
+   - Railway auto-detects Python and deploys
+
+2. **Frontend**: Deploy to [Vercel](https://vercel.com) (free tier)
+   - Connect GitHub repo
+   - Set root directory to `frontend`
+   - Add `VITE_API_URL` environment variable (your Railway backend URL + `/api`)
+
+**See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.**
+
+### Docker Deployment (Alternative)
+
+For internal deployment with Docker:
 
 1. Deploy on a single VM or on-prem machine
 2. Use Docker Compose for easy deployment

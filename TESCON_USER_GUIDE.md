@@ -6,7 +6,68 @@ This guide explains how to use the TESCON image processing tool to prepare spare
 
 ---
 
-## 📸 Before You Start: Image Naming
+## 🎯 Two Workflow Modes
+
+The tool offers two ways to process images:
+
+### 1. **Simple Workflow** (Recommended)
+- Upload images (1-10 at a time)
+- Enter part number
+- System automatically:
+  - Looks up part description, location, and notes from Google Sheets
+  - Adds text labels to processed images
+  - Saves to Google Drive in organized folders
+  - Checks for duplicates
+- **No manual filename formatting required!**
+
+### 2. **Manual Workflow** (Advanced)
+- Upload images with pre-formatted filenames
+- System validates and processes
+- Download ZIP file for SharePoint upload
+- **Requires proper filename format** (see below)
+
+**Switch between modes** using the toggle at the top of the page.
+
+---
+
+## 📸 Simple Workflow Guide
+
+### Step 1: Select "Simple" Mode
+- Click the **"Simple"** button at the top of the page
+
+### Step 2: Enter Part Number
+- Type the part number in the search box
+- Select from autocomplete suggestions (if available)
+- System will show part information:
+  - Description
+  - Location
+  - Item Note (if available)
+
+### Step 3: Upload Images
+- Drag & drop 1-10 images
+- Or click to browse and select
+- View numbers are auto-assigned (1, 2, 3...)
+- You can manually adjust view numbers if needed
+
+### Step 4: Process
+- Click **"Process Images"**
+- System will:
+  - Check for duplicates in Google Drive
+  - Process images with background removal
+  - Add text labels with part description
+  - Save to Google Drive in part number folders
+
+### Step 5: Access Results
+- Images are automatically saved to Google Drive
+- Organized in folders by part number
+- Filenames: `PartNumber_ViewNumber_Description.jpg`
+- Access via Google Drive link provided
+
+**Note**: If duplicates are detected, you'll see a warning. Use different view numbers or delete existing images first.
+
+---
+
+## 📸 Manual Workflow: Before You Start - Image Naming
 
 **CRITICAL**: All images must be named correctly before upload.
 
@@ -47,7 +108,7 @@ photo1.jpg              (missing all components)
 
 ---
 
-## 🚀 Processing Workflow
+## 🚀 Manual Workflow: Processing Steps
 
 ### Step 1: Upload Images
 
