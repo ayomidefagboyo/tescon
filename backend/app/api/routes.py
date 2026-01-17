@@ -447,7 +447,9 @@ async def process_part_images(
                 max_dimension=max_dimension,
                 description=description if add_label else None,
                 add_label=add_label,
-                label_position=label_position
+                label_position=label_position,
+                item_note=item_note if item_note else None,
+                use_ecommerce_layout=True  # Enable e-commerce card layout
             )
             
             # Generate filename: PartNumber_ViewNumber_Description.jpg

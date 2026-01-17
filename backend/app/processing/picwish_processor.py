@@ -32,7 +32,12 @@ def process_image(
     max_retries: int = 3,
     retry_delay: float = 1.0,
     compression_quality: int = 85,
-    max_dimension: int = None
+    max_dimension: int = None,
+    description: Optional[str] = None,
+    add_label: bool = True,
+    label_position: str = "bottom-left",
+    item_note: Optional[str] = None,
+    use_ecommerce_layout: bool = False
 ) -> BytesIO:
     """
     Process image to remove background using PicWish API.
@@ -115,6 +120,29 @@ def process_image(
                 # Composite onto white background if requested
                 if white_background:
                     processed_image = composite_white_background(processed_image)
+                
+                # Add text label or e-commerce layout
+                if use_ecommerce_layout and item_note:
+                    # Use new e-commerce card layout
+                    from app.processing.image_utils import create_ecommerce_card_layout
+                    processed_image = create_ecommerce_card_layout(
+                        processed_image,
+                        item_note=item_note,
+                        padding=20
+                    )
+                elif add_label and description:
+                    # Use original text overlay
+                    from app.processing.image_utils import add_text_label
+                    processed_image = add_text_label(
+                        processed_image,
+                        text=description,
+                        position=label_position,
+                        font_size=None,  # Auto-calculate
+                        text_color=(0, 0, 0),  # Black text
+                        background_color=(255, 255, 255, 220),  # Semi-transparent white background
+                        padding=8,
+                        margin=15
+                    )
                 
                 # Apply compression if specified
                 if compression_quality < 95 or max_dimension:

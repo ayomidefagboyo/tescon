@@ -1,5 +1,5 @@
 """Image manipulation utilities."""
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from typing import Tuple, Optional
 
@@ -53,6 +53,285 @@ def convert_format(image: Image.Image, format: str, quality: int = 95) -> BytesI
     
     buffer.seek(0)
     return buffer
+
+
+def add_text_label(
+    image: Image.Image,
+    text: str,
+    position: str = "bottom-left",
+    font_size: Optional[int] = None,
+    text_color: Tuple[int, int, int] = (0, 0, 0),
+    background_color: Optional[Tuple[int, int, int, int]] = (255, 255, 255, 220),
+    padding: int = 10,
+    margin: int = 20
+) -> Image.Image:
+    """
+    Add text label to image.
+    
+    Args:
+        image: PIL Image (RGB or RGBA)
+        text: Text to overlay
+        position: Position of text ("bottom-left", "bottom-right", "top-left", "top-right", "bottom-center")
+        font_size: Font size in pixels (auto-calculated if None)
+        text_color: RGB color tuple for text (default: black)
+        background_color: RGBA color tuple for background box (None = no background)
+        padding: Padding around text in pixels
+        margin: Margin from edges in pixels
+        
+    Returns:
+        PIL Image with text overlay
+    """
+    if not text or not text.strip():
+        return image.copy()
+    
+    # Ensure image is RGB (for drawing)
+    if image.mode == "RGBA":
+        # Create RGB copy for drawing
+        draw_image = Image.new("RGB", image.size, (255, 255, 255))
+        draw_image.paste(image, mask=image.split()[3] if image.mode == "RGBA" else None)
+    else:
+        draw_image = image.copy()
+    
+    draw = ImageDraw.Draw(draw_image)
+    
+    # Calculate font size based on image dimensions if not specified
+    if font_size is None:
+        # Font size as percentage of image height (adjustable)
+        font_size = max(16, int(min(image.width, image.height) * 0.03))
+    
+    # Try to load a nice font, fallback to default
+    try:
+        # Try to use a system font (works on most systems)
+        try:
+            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+        except:
+            try:
+                # Try Arial on Windows/Linux
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except:
+                # Fallback to default font
+                font = ImageFont.load_default()
+    except:
+        font = ImageFont.load_default()
+    
+    # Get text bounding box
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    
+    # Calculate text position
+    img_width, img_height = image.size
+    
+    if position == "bottom-left":
+        text_x = margin
+        text_y = img_height - text_height - margin - (padding * 2 if background_color else 0)
+    elif position == "bottom-right":
+        text_x = img_width - text_width - margin - (padding * 2 if background_color else 0)
+        text_y = img_height - text_height - margin - (padding * 2 if background_color else 0)
+    elif position == "top-left":
+        text_x = margin
+        text_y = margin
+    elif position == "top-right":
+        text_x = img_width - text_width - margin - (padding * 2 if background_color else 0)
+        text_y = margin
+    elif position == "bottom-center":
+        text_x = (img_width - text_width) // 2 - (padding if background_color else 0)
+        text_y = img_height - text_height - margin - (padding * 2 if background_color else 0)
+    else:
+        # Default to bottom-left
+        text_x = margin
+        text_y = img_height - text_height - margin - (padding * 2 if background_color else 0)
+    
+    # Draw background box if specified
+    if background_color:
+        box_x1 = text_x - padding
+        box_y1 = text_y - padding
+        box_x2 = text_x + text_width + padding
+        box_y2 = text_y + text_height + padding
+        
+        # Create overlay for semi-transparent background
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        overlay_draw = ImageDraw.Draw(overlay)
+        overlay_draw.rectangle(
+            [(box_x1, box_y1), (box_x2, box_y2)],
+            fill=background_color
+        )
+        
+        # Composite overlay onto image
+        draw_image = Image.alpha_composite(
+            draw_image.convert("RGBA"),
+            overlay
+        ).convert("RGB")
+        draw = ImageDraw.Draw(draw_image)
+    
+    # Draw text
+    draw.text((text_x, text_y), text, fill=text_color, font=font)
+    
+    return draw_image
+
+
+def create_ecommerce_card_layout(
+    image: Image.Image,
+    item_note: str,
+    padding: int = 20,
+    text_area_height_ratio: float = 0.15
+) -> Image.Image:
+    """
+    Create e-commerce card layout with image on top and item note below.
+
+    Args:
+        image: PIL Image (product image with white background)
+        item_note: Item note text to display below image
+        padding: Padding around text in pixels
+        text_area_height_ratio: Height of text area as ratio of image height (0.15 = 15%)
+
+    Returns:
+        PIL Image with e-commerce card layout
+    """
+    if not item_note or not item_note.strip():
+        return image.copy()
+
+    # Amazon blue color
+    AMAZON_BLUE = (33, 98, 161)  # #2162a1
+
+    # Calculate dimensions
+    img_width, img_height = image.size
+    text_area_height = max(60, int(img_height * text_area_height_ratio))
+
+    # Create new canvas with extended height for text area
+    card_height = img_height + text_area_height
+    card_image = Image.new("RGB", (img_width, card_height), (255, 255, 255))
+
+    # Paste original image on top
+    card_image.paste(image, (0, 0))
+
+    # Draw on the card
+    draw = ImageDraw.Draw(card_image)
+
+    # Calculate optimal font size based on text length and area
+    max_text_width = img_width - (padding * 2)
+    max_font_size = text_area_height - (padding * 2)
+
+    # Start with a reasonable font size and adjust based on text length
+    base_font_size = max(14, min(32, int(text_area_height * 0.4)))
+
+    # Adjust font size based on text length
+    text_length = len(item_note)
+    if text_length > 100:
+        font_size = max(12, int(base_font_size * 0.7))
+    elif text_length > 60:
+        font_size = max(14, int(base_font_size * 0.8))
+    elif text_length > 30:
+        font_size = max(16, int(base_font_size * 0.9))
+    else:
+        font_size = base_font_size
+
+    # Try to load a good font
+    font = None
+    try:
+        # Try system fonts in order of preference
+        font_paths = [
+            "/System/Library/Fonts/Helvetica.ttc",  # macOS
+            "/System/Library/Fonts/Arial.ttf",       # macOS
+            "arial.ttf",                             # Windows/Linux
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+            "/usr/share/fonts/TTF/arial.ttf"         # Linux
+        ]
+
+        for font_path in font_paths:
+            try:
+                font = ImageFont.truetype(font_path, font_size)
+                break
+            except:
+                continue
+
+        if font is None:
+            font = ImageFont.load_default()
+
+    except:
+        font = ImageFont.load_default()
+
+    # Word wrap the text to fit within the text area
+    words = item_note.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + (" " if current_line else "") + word
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        text_width = bbox[2] - bbox[0]
+
+        if text_width <= max_text_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line)
+                current_line = word
+            else:
+                # Single word is too long, add it anyway
+                lines.append(word)
+                current_line = ""
+
+    if current_line:
+        lines.append(current_line)
+
+    # If text is too long for the area, reduce font size and try again
+    while len(lines) > 3 and font_size > 10:  # Max 3 lines
+        font_size = max(10, int(font_size * 0.9))
+        try:
+            for font_path in font_paths:
+                try:
+                    font = ImageFont.truetype(font_path, font_size)
+                    break
+                except:
+                    continue
+        except:
+            pass
+
+        # Recalculate word wrap with smaller font
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            text_width = bbox[2] - bbox[0]
+
+            if text_width <= max_text_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    lines.append(word)
+                    current_line = ""
+
+        if current_line:
+            lines.append(current_line)
+
+    # Calculate total text height
+    if lines:
+        bbox = draw.textbbox((0, 0), lines[0], font=font)
+        line_height = bbox[3] - bbox[1]
+        total_text_height = len(lines) * line_height + (len(lines) - 1) * 4  # 4px line spacing
+
+        # Center text vertically in text area
+        text_start_y = img_height + (text_area_height - total_text_height) // 2
+
+        # Draw each line
+        for i, line in enumerate(lines):
+            bbox = draw.textbbox((0, 0), line, font=font)
+            line_width = bbox[2] - bbox[0]
+
+            # Center text horizontally
+            text_x = (img_width - line_width) // 2
+            text_y = text_start_y + i * (line_height + 4)
+
+            # Draw the text in Amazon blue
+            draw.text((text_x, text_y), line, fill=AMAZON_BLUE, font=font)
+
+    return card_image
 
 
 def validate_image(image_bytes: bytes, max_size_mb: int = 100) -> Tuple[bool, Optional[str]]:
