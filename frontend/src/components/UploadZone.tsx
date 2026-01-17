@@ -1,7 +1,7 @@
 /** Drag and drop upload zone component */
 import React, { useCallback, useState } from "react";
 import { FileWithPreview } from "../types";
-import { CloudUpload, X, FileImage } from "lucide-react";
+import { CloudUpload, X, FileImage, Camera } from "lucide-react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "../styles/design-system";
 
 interface UploadZoneProps {
@@ -80,6 +80,47 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       processFiles(e.target.files);
     },
     [processFiles]
+  );
+
+  const handleCameraCapture = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        // Add to existing files instead of replacing
+        const newFiles = Array.from(files);
+        const existingFiles = selectedFiles;
+        const combinedFiles = [...existingFiles, ...newFiles];
+
+        // Apply max files limit if set
+        const finalFiles = maxFiles ? combinedFiles.slice(0, maxFiles) : combinedFiles;
+
+        // Process the combined files
+        processFilesWithoutReset(finalFiles);
+      }
+    },
+    [selectedFiles, maxFiles, processFiles]
+  );
+
+  const processFilesWithoutReset = useCallback(
+    (files: File[]) => {
+      const fileArray: FileWithPreview[] = files
+        .filter((file) => {
+          const ext = "." + file.name.split(".").pop()?.toLowerCase();
+          return acceptedTypes.includes(ext) || file.name.toLowerCase().endsWith(".zip");
+        })
+        .slice(0, maxFiles || files.length)
+        .map((file) => {
+          const fileWithPreview = file as FileWithPreview;
+          if (file.type.startsWith("image/")) {
+            fileWithPreview.preview = URL.createObjectURL(file);
+          }
+          return fileWithPreview;
+        });
+
+      setSelectedFiles(fileArray);
+      onFilesSelected(fileArray);
+    },
+    [acceptedTypes, maxFiles, onFilesSelected]
   );
 
   const removeFile = useCallback(
@@ -246,6 +287,60 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       color: colors.text.secondary,
       flexShrink: 0,
     } as React.CSSProperties,
+
+    cameraSection: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: mobileSpacing.sm,
+      marginTop: mobileSpacing.md,
+      '@media (min-width: 768px)': {
+        flexDirection: 'row' as const,
+        justifyContent: 'center',
+        marginTop: spacing.md,
+        gap: spacing.md,
+      },
+    },
+
+    cameraButton: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: mobileSpacing.xs,
+      padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+      backgroundColor: colors.primary.main,
+      color: colors.text.inverse,
+      border: 'none',
+      borderRadius: borderRadius.md,
+      cursor: 'pointer',
+      fontSize: mobileTypography.fontSize.sm,
+      fontWeight: typography.fontWeight.medium,
+      transition: `all ${transitions.base}`,
+      minHeight: touchTargets.default,
+      '@media (min-width: 768px)': {
+        padding: `${spacing.sm} ${spacing.lg}`,
+        fontSize: typography.fontSize.sm,
+      },
+    } as React.CSSProperties,
+
+    divider: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: mobileSpacing.sm,
+      color: colors.text.tertiary,
+      fontSize: mobileTypography.fontSize.xs,
+      margin: `${mobileSpacing.sm} 0`,
+      '@media (min-width: 768px)': {
+        margin: `${spacing.sm} 0`,
+        fontSize: typography.fontSize.xs,
+      },
+    },
+
+    dividerLine: {
+      flex: 1,
+      height: '1px',
+      backgroundColor: colors.neutral[300],
+    },
   };
 
   return (
@@ -266,10 +361,18 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           onChange={handleFileInput}
           style={{ display: "none" }}
         />
+        <input
+          type="file"
+          id="camera-input"
+          accept="image/*"
+          capture="environment"
+          onChange={handleCameraCapture}
+          style={{ display: "none" }}
+        />
         <label htmlFor="file-input" style={{ cursor: 'pointer', display: 'block' }}>
           <div style={styles.iconContainer} data-upload-icon>
-            <CloudUpload 
-              size={compact ? 32 : 48} 
+            <CloudUpload
+              size={compact ? 32 : 48}
               color={isDragging ? colors.primary.main : colors.neutral[400]}
               strokeWidth={1.5}
             />
@@ -279,7 +382,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           </div>
           {!compact && (
             <>
-              <div style={styles.secondaryText}>or click to browse</div>
+              <div style={styles.secondaryText}>or click to browse files</div>
               <div style={styles.supportedText}>
                 JPG, PNG, WEBP, ZIP • Max {maxFiles || "unlimited"} files
               </div>
@@ -287,6 +390,33 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           )}
         </label>
       </div>
+
+      {!compact && (
+        <>
+          <div style={styles.divider}>
+            <div style={styles.dividerLine}></div>
+            <span>OR</span>
+            <div style={styles.dividerLine}></div>
+          </div>
+
+          <div style={styles.cameraSection}>
+            <button
+              style={styles.cameraButton}
+              onClick={() => document.getElementById('camera-input')?.click()}
+              type="button"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.primary.dark;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = colors.primary.main;
+              }}
+            >
+              <Camera size={20} />
+              Take Photo
+            </button>
+          </div>
+        </>
+      )}
 
       {selectedFiles.length > 0 && (
         <div style={styles.filesSection}>
