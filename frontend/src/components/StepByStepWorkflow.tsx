@@ -848,14 +848,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           .info-grid {
             grid-template-columns: 1fr;
           }
-
-          .step-actions {
-            flex-direction: column;
-          }
-
-          .step-actions button {
-            min-width: auto;
-          }
         }
       `}</style>
     </div>
