@@ -1,7 +1,7 @@
 /** Drag and drop upload zone component */
 import React, { useCallback, useState } from "react";
 import { FileWithPreview } from "../types";
-import { CloudUpload, X, FileImage, Camera } from "lucide-react";
+import { X, FileImage, Camera } from "lucide-react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "../styles/design-system";
 
 interface UploadZoneProps {
@@ -21,97 +21,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   multiple: _multiple = true,
   disabled: _disabled = false,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
-
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const processFiles = useCallback(
-    (files: FileList | null) => {
-      if (!files) return;
-
-      const fileArray: FileWithPreview[] = Array.from(files)
-        .filter((file) => {
-          const ext = "." + file.name.split(".").pop()?.toLowerCase();
-          return acceptedTypes.includes(ext) || file.name.toLowerCase().endsWith(".zip");
-        })
-        .slice(0, maxFiles || files.length)
-        .map((file) => {
-          const fileWithPreview = file as FileWithPreview;
-          if (file.type.startsWith("image/")) {
-            fileWithPreview.preview = URL.createObjectURL(file);
-          }
-          return fileWithPreview;
-        });
-
-      setSelectedFiles(fileArray);
-      onFilesSelected(fileArray);
-    },
-    [acceptedTypes, maxFiles, onFilesSelected]
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-      processFiles(e.dataTransfer.files);
-    },
-    [processFiles]
-  );
-
-  const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        // Add to existing files instead of replacing
-        const newFiles = Array.from(files);
-        const existingFiles = selectedFiles;
-        const combinedFiles = [...existingFiles, ...newFiles];
-
-        // Apply max files limit if set
-        const finalFiles = maxFiles ? combinedFiles.slice(0, maxFiles) : combinedFiles;
-
-        // Process the combined files
-        processFilesWithoutReset(finalFiles);
-      }
-    },
-    [selectedFiles, maxFiles, processFiles]
-  );
-
-  const handleCameraCapture = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        // Add to existing files instead of replacing
-        const newFiles = Array.from(files);
-        const existingFiles = selectedFiles;
-        const combinedFiles = [...existingFiles, ...newFiles];
-
-        // Apply max files limit if set
-        const finalFiles = maxFiles ? combinedFiles.slice(0, maxFiles) : combinedFiles;
-
-        // Process the combined files
-        processFilesWithoutReset(finalFiles);
-      }
-    },
-    [selectedFiles, maxFiles, processFiles]
-  );
 
   const processFilesWithoutReset = useCallback(
     (files: File[]) => {
@@ -135,6 +45,26 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     [acceptedTypes, maxFiles, onFilesSelected]
   );
 
+  const handleCameraCapture = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        // Add to existing files instead of replacing
+        const newFiles = Array.from(files);
+        const existingFiles = selectedFiles;
+        const combinedFiles = [...existingFiles, ...newFiles];
+
+        // Apply max files limit if set
+        const finalFiles = maxFiles ? combinedFiles.slice(0, maxFiles) : combinedFiles;
+
+        // Process the combined files
+        processFilesWithoutReset(finalFiles);
+      }
+    },
+    [selectedFiles, maxFiles, processFilesWithoutReset]
+  );
+
+
   const removeFile = useCallback(
     (index: number) => {
       const newFiles = selectedFiles.filter((_, i) => i !== index);
@@ -145,35 +75,6 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   );
 
   const styles = {
-    dropZone: {
-      border: `2px solid ${isDragging ? colors.primary.main : colors.neutral[300]}`,
-      borderRadius: borderRadius.lg,
-      padding: compact ? `${mobileSpacing.md}` : `${mobileSpacing.lg} ${mobileSpacing.md}`,
-      textAlign: 'center' as const,
-      backgroundColor: isDragging ? `${colors.primary.light}08` : colors.background.main,
-      cursor: 'pointer',
-      transition: `all ${transitions.base}`,
-      boxShadow: isDragging ? `0 0 0 4px ${colors.primary.light}20` : 'none',
-      minHeight: touchTargets.large,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      boxSizing: 'border-box' as const,
-      '@media (min-width: 768px)': {
-        padding: compact ? `${spacing.md} ${spacing.md}` : `${spacing.lg} ${spacing.xl}`,
-        maxHeight: compact ? '140px' : '280px',
-      },
-    },
-    
-    iconContainer: {
-      display: 'inline-flex',
-      padding: compact ? spacing.xs : spacing.sm,
-      backgroundColor: isDragging ? colors.primary.light : colors.neutral[100],
-      borderRadius: borderRadius.full,
-      marginBottom: compact ? spacing.xs : spacing.sm,
-      transition: `all ${transitions.base}`,
-    },
     
     mainText: {
       fontSize: compact ? mobileTypography.fontSize.base : mobileTypography.fontSize.lg,
@@ -350,76 +251,34 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
     <>
       <input
         type="file"
-        id="file-input"
-        multiple
-        accept={acceptedTypes.join(",")}
-        onChange={handleFileInput}
-        style={{ display: "none" }}
-      />
-      <input
-        type="file"
         id="camera-input"
         accept="image/*"
         capture="environment"
         onChange={handleCameraCapture}
         style={{ display: "none" }}
+        multiple={_multiple}
       />
 
-      {!compact && (
-        <div style={styles.cameraSection}>
-          <button
-            style={styles.cameraButton}
-            onClick={() => document.getElementById('camera-input')?.click()}
-            type="button"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.primary.hover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = colors.primary.main;
-            }}
-          >
-            <Camera size={20} />
-            Take Photo
-          </button>
-        </div>
-      )}
-
-      {!compact && (
-        <div style={styles.divider}>
-          <div style={styles.dividerLine}></div>
-          <span>OR</span>
-          <div style={styles.dividerLine}></div>
-        </div>
-      )}
-
-      <div
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        style={styles.dropZone}
-        data-upload-zone
-      >
-        <label htmlFor="file-input" style={{ cursor: 'pointer', display: 'block' }}>
-          <div style={styles.iconContainer} data-upload-icon>
-            <CloudUpload
-              size={compact ? 32 : 48}
-              color={isDragging ? colors.primary.main : colors.neutral[400]}
-              strokeWidth={1.5}
-            />
+      <div style={styles.cameraSection}>
+        <button
+          style={styles.cameraButton}
+          onClick={() => document.getElementById('camera-input')?.click()}
+          type="button"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primary.hover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primary.main;
+          }}
+        >
+          <Camera size={24} />
+          Take Photo
+        </button>
+        {!compact && (
+          <div style={styles.secondaryText}>
+            Take {maxFiles ? `${maxFiles} photos` : 'photos'} of the part
           </div>
-          <div style={styles.mainText}>
-            {isDragging ? "Drop files here" : "Drag & drop images or ZIP"}
-          </div>
-          {!compact && (
-            <>
-              <div style={styles.secondaryText}>or click to browse files</div>
-              <div style={styles.supportedText}>
-                JPG, PNG, WEBP, ZIP • Max {maxFiles || "unlimited"} files
-              </div>
-            </>
-          )}
-        </label>
+        )}
       </div>
 
       {selectedFiles.length > 0 && (

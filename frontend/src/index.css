@@ -6,7 +6,8 @@
 
 html, body, #root {
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {

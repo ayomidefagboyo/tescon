@@ -33,14 +33,11 @@ function App() {
         padding: `${mobileSpacing.lg} ${mobileSpacing.md}`,
         fontFamily: typography.fontFamily.base,
         boxSizing: 'border-box' as const,
-        overflow: 'hidden',
-        height: '100vh',
+        overflow: 'visible',
         '@media (min-width: 768px)': {
           maxWidth: '1200px',
           margin: '0 auto',
           padding: `${spacing.xl} ${spacing.xl}`,
-          height: 'auto',
-          minHeight: '100vh',
         },
       } as React.CSSProperties,
 
@@ -203,7 +200,7 @@ function App() {
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {currentView === 'workflow' ? (
           <StepByStepWorkflow
             onSuccess={(_response: ProcessPartResponse) => {
