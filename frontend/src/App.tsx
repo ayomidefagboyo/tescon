@@ -3,11 +3,13 @@ import React, { useState, useEffect } from "react";
 import { ProcessPartResponse } from "./types";
 import { healthCheck } from "./services/api";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { colors, spacing, typography, borderRadius, shadows, mobileSpacing, mobileTypography, touchTargets } from "./styles/design-system";
+import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "./styles/design-system";
 import { StepByStepWorkflow } from "./components/StepByStepWorkflow";
+import { PartsTrackingDashboard } from "./components/PartsTrackingDashboard";
 
 function App() {
   const [health, setHealth] = useState<{ gpu_available: boolean; model_loaded: boolean } | null>(null);
+  const [currentView, setCurrentView] = useState<'workflow' | 'dashboard'>('workflow');
 
   useEffect(() => {
     healthCheck()
@@ -125,6 +127,36 @@ function App() {
         height: '14px',
       },
     },
+
+    navigationTabs: {
+      display: 'flex',
+      borderBottom: `2px solid ${colors.neutral[200]}`,
+      marginBottom: mobileSpacing.lg,
+      overflowX: 'auto' as const,
+      '@media (min-width: 768px)': {
+        marginBottom: spacing.xl,
+      },
+    },
+
+    navTab: {
+      padding: `${mobileSpacing.sm} ${mobileSpacing.lg}`,
+      borderBottom: '2px solid transparent',
+      cursor: 'pointer',
+      fontSize: mobileTypography.fontSize.sm,
+      fontWeight: typography.fontWeight.medium,
+      color: colors.text.secondary,
+      transition: `all ${transitions.base}`,
+      whiteSpace: 'nowrap' as const,
+      '@media (min-width: 768px)': {
+        padding: `${spacing.sm} ${spacing.xl}`,
+        fontSize: typography.fontSize.sm,
+      },
+    } as React.CSSProperties,
+
+    activeNavTab: {
+      color: colors.primary.main,
+      borderBottomColor: colors.primary.main,
+    },
   };
 
   return (
@@ -147,14 +179,39 @@ function App() {
         </div>
       </div>
 
-      <StepByStepWorkflow
-        onSuccess={(_response: ProcessPartResponse) => {
-          // Success is handled within the component
-        }}
-        onError={(_error: string) => {
-          // Error is handled within the component
-        }}
-      />
+      <div style={styles.navigationTabs}>
+        <div
+          style={{
+            ...styles.navTab,
+            ...(currentView === 'workflow' ? styles.activeNavTab : {})
+          }}
+          onClick={() => setCurrentView('workflow')}
+        >
+          Process Parts
+        </div>
+        <div
+          style={{
+            ...styles.navTab,
+            ...(currentView === 'dashboard' ? styles.activeNavTab : {})
+          }}
+          onClick={() => setCurrentView('dashboard')}
+        >
+          Tracking Dashboard
+        </div>
+      </div>
+
+      {currentView === 'workflow' ? (
+        <StepByStepWorkflow
+          onSuccess={(_response: ProcessPartResponse) => {
+            // Success is handled within the component
+          }}
+          onError={(_error: string) => {
+            // Error is handled within the component
+          }}
+        />
+      ) : (
+        <PartsTrackingDashboard />
+      )}
 
       {health && (
         <div style={{...styles.healthBadge, marginTop: mobileSpacing.lg, alignSelf: 'center'}} data-health-badge>
