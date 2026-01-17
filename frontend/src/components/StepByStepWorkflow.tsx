@@ -766,16 +766,15 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
 
         .step-actions {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
+          justify-content: space-between;
           gap: 12px;
           margin-top: 20px;
           flex-shrink: 0;
         }
 
-        @media (min-width: 480px) {
+        @media (min-width: 768px) {
           .step-actions {
-            flex-direction: row;
-            justify-content: space-between;
             gap: 16px;
             margin-top: 32px;
           }
@@ -785,25 +784,24 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 16px 20px;
+          padding: 12px 16px;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.3s ease;
           border: none;
-          min-height: 48px;
+          min-height: 44px;
           justify-content: center;
           flex: 1;
-          width: 100%;
           box-sizing: border-box;
         }
 
-        @media (min-width: 480px) {
+        @media (min-width: 768px) {
           .step-actions button {
             padding: 12px 24px;
+            font-size: 16px;
             min-width: 140px;
-            width: auto;
             flex: none;
           }
         }
