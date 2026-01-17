@@ -171,16 +171,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
     );
   };
 
-  const handleRemoveFile = (index: number) => {
-    const newFiles = files.filter((_, i) => i !== index);
-    // Cleanup preview URL
-    if (files[index].preview) {
-      URL.revokeObjectURL(files[index].preview);
-    }
-    setFiles(newFiles);
-    setError(null);
-  };
-
   const renderUploadStep = () => (
     <div className="step-content">
       <h2>Step 1: Upload Part Photos</h2>
