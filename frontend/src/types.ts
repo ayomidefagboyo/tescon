@@ -23,6 +23,7 @@ export interface ProcessPartResponse {
     filename: string;
     url: string;
   }>;
+  download_url?: string;
   message: string;
 }
 
