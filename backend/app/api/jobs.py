@@ -83,12 +83,12 @@ class JobManager:
             cursor.execute("ALTER TABLE jobs ADD COLUMN job_type TEXT DEFAULT 'batch'")
             cursor.execute("ALTER TABLE jobs ADD COLUMN job_data TEXT")
 
-        # Store job data as JSON for process_part jobs
+        # Store job data as JSON for process_part jobs (excluding binary file_data)
         job_data = None
         if job_type == "process_part":
             job_data = json.dumps({
                 "part_number": kwargs.get("part_number"),
-                "file_data": kwargs.get("file_data"),
+                "file_count": len(kwargs.get("file_data", [])),
                 "parameters": kwargs.get("parameters")
             })
 
