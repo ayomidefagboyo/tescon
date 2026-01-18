@@ -369,13 +369,20 @@ async def process_part_images_async(
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
 
-    # Read file data into memory for job queue
-    file_data = []
+    # Save files to temporary storage for background processing
+    import tempfile
+    import uuid
+    temp_dir = tempfile.mkdtemp()
+    file_paths = []
     for file in files:
         content = await file.read()
-        file_data.append({
+        temp_filename = f"{uuid.uuid4()}_{file.filename}"
+        temp_path = os.path.join(temp_dir, temp_filename)
+        with open(temp_path, "wb") as f:
+            f.write(content)
+        file_paths.append({
             "filename": file.filename,
-            "content": content,
+            "temp_path": temp_path,
             "content_type": file.content_type
         })
 
@@ -383,7 +390,8 @@ async def process_part_images_async(
     job_id = job_manager.create_job(
         job_type="process_part",
         part_number=part_number,
-        file_data=file_data,
+        file_paths=file_paths,
+        temp_dir=temp_dir,
         parameters={
             "view_numbers": view_numbers,
             "format": format,

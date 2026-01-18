@@ -83,12 +83,13 @@ class JobManager:
             cursor.execute("ALTER TABLE jobs ADD COLUMN job_type TEXT DEFAULT 'batch'")
             cursor.execute("ALTER TABLE jobs ADD COLUMN job_data TEXT")
 
-        # Store job data as JSON for process_part jobs (excluding binary file_data)
+        # Store job data as JSON for process_part jobs
         job_data = None
         if job_type == "process_part":
             job_data = json.dumps({
                 "part_number": kwargs.get("part_number"),
-                "file_count": len(kwargs.get("file_data", [])),
+                "file_paths": kwargs.get("file_paths"),
+                "temp_dir": kwargs.get("temp_dir"),
                 "parameters": kwargs.get("parameters")
             })
 
@@ -232,7 +233,8 @@ class JobManager:
 
             job_data = json.loads(job["job_data"])
             part_number = job_data["part_number"]
-            file_data = job_data["file_data"]
+            file_paths = job_data["file_paths"]
+            temp_dir = job_data["temp_dir"]
             params = job_data["parameters"]
 
             # Import processing functions here to avoid circular imports
@@ -272,10 +274,13 @@ class JobManager:
             processed_files = []
             processed_count = 0
 
-            for idx, file_info in enumerate(file_data):
+            for idx, file_info in enumerate(file_paths):
                 try:
+                    # Read file from temporary storage
+                    with open(file_info["temp_path"], "rb") as f:
+                        file_bytes = f.read()
+
                     # Validate image
-                    file_bytes = file_info["content"]
                     is_valid, error_msg = validate_image(file_bytes)
                     if not is_valid:
                         self.add_failed_image(job_id, f"Image {idx+1}: {error_msg}")
@@ -333,11 +338,26 @@ class JobManager:
                 # Complete the job
                 self.update_job_status(job_id, JobStatus.COMPLETED, f"Successfully processed {len(saved_files)} images")
 
+                # Cleanup temporary directory
+                import shutil
+                try:
+                    shutil.rmtree(temp_dir)
+                except Exception as cleanup_error:
+                    print(f"Warning: Failed to cleanup temp directory {temp_dir}: {cleanup_error}")
+
             except Exception as e:
                 self.update_job_status(job_id, JobStatus.FAILED, f"Cloudflare R2 upload failed: {str(e)}")
 
         except Exception as e:
             self.update_job_status(job_id, JobStatus.FAILED, f"Job processing failed: {str(e)}")
+        finally:
+            # Always cleanup temp directory
+            try:
+                import shutil
+                if 'temp_dir' in locals():
+                    shutil.rmtree(temp_dir)
+            except Exception as cleanup_error:
+                print(f"Warning: Failed to cleanup temp directory in finally block: {cleanup_error}")
 
 
 # Global job manager instance
