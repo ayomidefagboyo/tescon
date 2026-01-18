@@ -81,7 +81,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
     setError(null);
 
     try {
-      // Queue for background processing
+      // Upload for background processing - user can continue immediately
       await processPartImagesAsync(
         files,
         partInfo.part_number,
@@ -94,11 +94,8 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         "bottom-left" // Label position
       );
 
-      setCurrentStep("complete");
-      setProcessing(false);
-
-      // Show immediate success message that processing is queued
-      const fakeResponse: ProcessPartResponse = {
+      // Immediate success - processing happens in background
+      const successResponse: ProcessPartResponse = {
         success: true,
         part_number: partInfo.part_number,
         description: partInfo.description,
@@ -106,12 +103,16 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         item_note: partInfo.item_note,
         files_saved: files.length,
         saved_paths: [],
-        message: `Part ${partInfo.part_number} queued for processing. You can continue with other parts.`
+        download_url: null,
+        message: `✅ ${files.length} images uploaded for ${partInfo.part_number}. Processing in background.`
       };
-      setResponse(fakeResponse);
+
+      setCurrentStep("complete");
+      setProcessing(false);
+      setResponse(successResponse);
 
       if (onSuccess) {
-        onSuccess(fakeResponse);
+        onSuccess(successResponse);
       }
     } catch (err: any) {
       setProcessing(false);
@@ -159,7 +160,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
       { key: "upload", label: "Upload Photos", icon: Upload },
       { key: "part-number", label: "Part Number", icon: Search },
       { key: "review", label: "Review", icon: Image },
-      { key: "processing", label: "Processing", icon: CheckCircle },
     ];
 
     const stepIndex = steps.findIndex(step => step.key === currentStep);
@@ -306,16 +306,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
     </div>
   );
 
-  const renderProcessingStep = () => (
-    <div className="step-content">
-      <h2>Processing Your Images...</h2>
-      <div className="processing-animation">
-        <div className="spinner"></div>
-        <p>Removing backgrounds and applying labels...</p>
-        <p className="processing-note">This may take a moment depending on image size.</p>
-      </div>
-    </div>
-  );
 
   const renderCompleteStep = () => (
     <div className="step-content">
@@ -362,7 +352,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
       {currentStep === "upload" && renderUploadStep()}
       {currentStep === "part-number" && renderPartNumberStep()}
       {currentStep === "review" && renderReviewStep()}
-      {currentStep === "processing" && renderProcessingStep()}
       {currentStep === "complete" && renderCompleteStep()}
 
       <style>{`
