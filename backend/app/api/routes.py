@@ -369,29 +369,42 @@ async def process_part_images_async(
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
 
-    # Save files to temporary storage for background processing
-    import tempfile
+    # Generate job ID first for R2 folder structure
     import uuid
-    temp_dir = tempfile.mkdtemp()
-    file_paths = []
-    for file in files:
-        content = await file.read()
-        temp_filename = f"{uuid.uuid4()}_{file.filename}"
-        temp_path = os.path.join(temp_dir, temp_filename)
-        with open(temp_path, "wb") as f:
-            f.write(content)
-        file_paths.append({
-            "filename": file.filename,
-            "temp_path": temp_path,
-            "content_type": file.content_type
-        })
+    job_id = str(uuid.uuid4())
 
-    # Create background job
-    job_id = job_manager.create_job(
+    # Upload raw images directly to R2 for reliability
+    drive_storage = get_r2_storage()
+    if not drive_storage:
+        raise HTTPException(status_code=500, detail="Storage service unavailable")
+
+    raw_file_paths = []
+    for i, file in enumerate(files):
+        content = await file.read()
+        # Store in R2 under raw/{job_id}/ folder
+        r2_key = f"raw/{job_id}/{i+1:02d}_{file.filename}"
+
+        try:
+            drive_storage.s3_client.put_object(
+                Bucket=drive_storage.bucket_name,
+                Key=r2_key,
+                Body=content,
+                ContentType=file.content_type or "image/jpeg"
+            )
+            raw_file_paths.append({
+                "filename": file.filename,
+                "r2_key": r2_key,
+                "content_type": file.content_type
+            })
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}: {str(e)}")
+
+    # Create background job with pre-generated ID
+    job_manager.create_job_with_id(
+        job_id=job_id,
         job_type="process_part",
         part_number=part_number,
-        file_paths=file_paths,
-        temp_dir=temp_dir,
+        raw_file_paths=raw_file_paths,
         parameters={
             "view_numbers": view_numbers,
             "format": format,

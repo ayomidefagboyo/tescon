@@ -104,7 +104,51 @@ class JobManager:
         if job_type == "process_part":
             asyncio.create_task(self._process_part_job(job_id))
         return job_id
-    
+
+    def create_job_with_id(self, job_id: str, total_images: int = None, job_type: str = "batch", **kwargs):
+        """Create a new job with a pre-generated job ID."""
+        # For part processing, total_images is the number of files
+        if job_type == "process_part":
+            total_images = len(kwargs.get("raw_file_paths", []))
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Check if table has job_type column, add if missing
+        try:
+            cursor.execute("SELECT job_type FROM jobs LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE jobs ADD COLUMN job_type TEXT DEFAULT 'batch'")
+            cursor.execute("ALTER TABLE jobs ADD COLUMN job_data TEXT")
+
+        # Store job data as JSON for process_part jobs
+        job_data = None
+        if job_type == "process_part":
+            job_data = json.dumps({
+                "part_number": kwargs.get("part_number"),
+                "raw_file_paths": kwargs.get("raw_file_paths"),
+                "parameters": kwargs.get("parameters")
+            })
+
+        cursor.execute("""
+            INSERT INTO jobs (job_id, status, total_images, job_type, job_data, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            job_id,
+            JobStatus.PENDING.value,
+            total_images,
+            job_type,
+            job_data,
+            datetime.now().isoformat()
+        ))
+
+        conn.commit()
+        conn.close()
+
+        # Start background processing for process_part jobs
+        if job_type == "process_part":
+            asyncio.create_task(self._process_part_job(job_id))
+
     def get_job(self, job_id: str) -> Optional[dict]:
         """Get job by ID."""
         conn = sqlite3.connect(self.db_path)
@@ -233,8 +277,7 @@ class JobManager:
 
             job_data = json.loads(job["job_data"])
             part_number = job_data["part_number"]
-            file_paths = job_data["file_paths"]
-            temp_dir = job_data["temp_dir"]
+            raw_file_paths = job_data["raw_file_paths"]
             params = job_data["parameters"]
 
             # Import processing functions here to avoid circular imports
@@ -274,11 +317,15 @@ class JobManager:
             processed_files = []
             processed_count = 0
 
-            for idx, file_info in enumerate(file_paths):
+            for idx, file_info in enumerate(raw_file_paths):
                 try:
-                    # Read file from temporary storage
-                    with open(file_info["temp_path"], "rb") as f:
-                        file_bytes = f.read()
+                    # Download file from R2 raw storage
+                    r2_key = file_info["r2_key"]
+                    response = drive_storage.s3_client.get_object(
+                        Bucket=drive_storage.bucket_name,
+                        Key=r2_key
+                    )
+                    file_bytes = response['Body'].read()
 
                     # Validate image
                     is_valid, error_msg = validate_image(file_bytes)
@@ -338,12 +385,16 @@ class JobManager:
                 # Complete the job
                 self.update_job_status(job_id, JobStatus.COMPLETED, f"Successfully processed {len(saved_files)} images")
 
-                # Cleanup temporary directory
-                import shutil
+                # Cleanup raw images from R2 after successful processing
                 try:
-                    shutil.rmtree(temp_dir)
+                    for file_info in raw_file_paths:
+                        drive_storage.s3_client.delete_object(
+                            Bucket=drive_storage.bucket_name,
+                            Key=file_info["r2_key"]
+                        )
+                    print(f"Cleaned up {len(raw_file_paths)} raw files from R2 for job {job_id}")
                 except Exception as cleanup_error:
-                    print(f"Warning: Failed to cleanup temp directory {temp_dir}: {cleanup_error}")
+                    print(f"Warning: Failed to cleanup R2 raw files for job {job_id}: {cleanup_error}")
 
             except Exception as e:
                 self.update_job_status(job_id, JobStatus.FAILED, f"Cloudflare R2 upload failed: {str(e)}")
@@ -351,13 +402,23 @@ class JobManager:
         except Exception as e:
             self.update_job_status(job_id, JobStatus.FAILED, f"Job processing failed: {str(e)}")
         finally:
-            # Always cleanup temp directory
+            # Always cleanup R2 raw files on failure (success cleanup is done above)
             try:
-                import shutil
-                if 'temp_dir' in locals():
-                    shutil.rmtree(temp_dir)
+                if 'raw_file_paths' in locals() and 'drive_storage' in locals():
+                    # Only cleanup if job failed (success cleanup already done)
+                    job = self.get_job(job_id)
+                    if job and job.get('status') != JobStatus.COMPLETED.value:
+                        for file_info in raw_file_paths:
+                            try:
+                                drive_storage.s3_client.delete_object(
+                                    Bucket=drive_storage.bucket_name,
+                                    Key=file_info["r2_key"]
+                                )
+                            except Exception:
+                                pass  # Ignore individual file cleanup errors
+                        print(f"Cleaned up raw files for failed job {job_id}")
             except Exception as cleanup_error:
-                print(f"Warning: Failed to cleanup temp directory in finally block: {cleanup_error}")
+                print(f"Warning: Failed to cleanup R2 raw files in finally block: {cleanup_error}")
 
 
 # Global job manager instance
