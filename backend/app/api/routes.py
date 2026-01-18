@@ -338,6 +338,70 @@ async def search_parts(
     return [PartInfo(**part) for part in results]
 
 
+@router.post("/process/part/async", response_model=JobResponse)
+async def process_part_images_async(
+    files: List[UploadFile] = File(...),
+    part_number: str = Query(..., min_length=1),
+    view_numbers: Optional[str] = Query(None, description="Comma-separated view numbers (e.g., '1,2,3')"),
+    format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
+    white_background: bool = Query(True),
+    compression_quality: int = Query(85, ge=70, le=100),
+    max_dimension: int = Query(2048, ge=800, le=4096),
+    add_label: bool = Query(True),
+    label_position: str = Query("bottom-left", regex="^(bottom-left|bottom-right|top-left|top-right|bottom-center)$")
+):
+    """
+    Queue part images for background processing.
+    Returns job ID immediately so users can continue with other parts.
+
+    Background processing steps:
+    1. Background removal using PicWish API
+    2. Add white background
+    3. Add description label overlay
+    4. Save to Google Drive
+
+    Supports variable number of images (1-10).
+    """
+    # Quick validation
+    if not files or len(files) == 0:
+        raise HTTPException(status_code=400, detail="No images provided")
+
+    if len(files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
+
+    # Read file data into memory for job queue
+    file_data = []
+    for file in files:
+        content = await file.read()
+        file_data.append({
+            "filename": file.filename,
+            "content": content,
+            "content_type": file.content_type
+        })
+
+    # Create background job
+    job_id = job_manager.create_job(
+        job_type="process_part",
+        part_number=part_number,
+        file_data=file_data,
+        parameters={
+            "view_numbers": view_numbers,
+            "format": format,
+            "white_background": white_background,
+            "compression_quality": compression_quality,
+            "max_dimension": max_dimension,
+            "add_label": add_label,
+            "label_position": label_position
+        }
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status="queued",
+        message=f"Part {part_number} processing queued. Use /jobs/{job_id}/status to check progress."
+    )
+
+
 @router.post("/process/part", response_model=ProcessPartResponse)
 async def process_part_images(
     files: List[UploadFile] = File(...),
@@ -361,7 +425,7 @@ async def process_part_images(
     
     Supports variable number of images (1-10).
     """
-    from app.services.google_drive_storage import get_drive_storage
+    from app.services.google_drive_oauth import get_oauth_drive_storage
 
     # Validate image count
     if not files or len(files) == 0:
@@ -406,11 +470,11 @@ async def process_part_images(
         view_nums = list(range(1, len(files) + 1))
     
     # Check for duplicates in Google Drive
-    drive_storage = get_drive_storage()
+    drive_storage = get_oauth_drive_storage()
     if not drive_storage:
         raise HTTPException(
             status_code=503,
-            detail="Google Drive service not configured. Check GOOGLE_CLOUD_SETUP.md"
+            detail="Google Drive OAuth not configured. Run OAuth setup first."
         )
     
     duplicates = drive_storage.check_duplicates(part_number, view_nums)
@@ -466,11 +530,11 @@ async def process_part_images(
             processed_files.append((filename, processed_bytes))
         
         # Save directly to Google Drive (no local storage)
-        drive_storage = get_drive_storage()
+        drive_storage = get_oauth_drive_storage()
         if not drive_storage:
             raise HTTPException(
                 status_code=503,
-                detail="Google Drive service not configured. Check GOOGLE_CLOUD_SETUP.md"
+                detail="Google Drive OAuth not configured. Run OAuth setup first."
             )
 
         # Upload all files to Google Drive
@@ -687,4 +751,42 @@ async def reset_all_tracking():
     tracker.reset_all()
 
     return {"success": True, "message": "All tracking data has been reset"}
+
+
+@router.get("/debug/env")
+async def debug_environment():
+    """Debug endpoint to check environment variables."""
+    from app.services.google_drive_oauth import get_oauth_drive_storage
+
+    env_vars = {
+        "GOOGLE_DRIVE_FOLDER_ID": os.getenv("GOOGLE_DRIVE_FOLDER_ID"),
+        "GOOGLE_OAUTH_CREDENTIALS_PATH": os.getenv("GOOGLE_OAUTH_CREDENTIALS_PATH"),
+        "GOOGLE_TOKEN_PATH": os.getenv("GOOGLE_TOKEN_PATH"),
+        "PICWISH_API_KEY": os.getenv("PICWISH_API_KEY")
+    }
+
+    # Test OAuth service initialization
+    oauth_status = "failed"
+    oauth_error = None
+    try:
+        drive_storage = get_oauth_drive_storage()
+        if drive_storage:
+            oauth_status = "success"
+        else:
+            oauth_status = "failed"
+    except Exception as e:
+        oauth_error = str(e)
+
+    # Check if OAuth credentials file exists
+    oauth_file_exists = False
+    if env_vars["GOOGLE_OAUTH_CREDENTIALS_PATH"]:
+        oauth_file_path = Path(env_vars["GOOGLE_OAUTH_CREDENTIALS_PATH"])
+        oauth_file_exists = oauth_file_path.exists()
+
+    return {
+        "environment_variables": env_vars,
+        "oauth_credentials_file_exists": oauth_file_exists,
+        "oauth_service_status": oauth_status,
+        "oauth_error": oauth_error
+    }
 

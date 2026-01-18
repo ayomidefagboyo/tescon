@@ -25,3 +25,20 @@ export interface ProcessPartResponse {
   }>;
   message: string;
 }
+
+export interface JobResponse {
+  job_id: string;
+  status: string;
+  message: string;
+}
+
+export interface JobStatusResponse {
+  job_id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  total_images: number;
+  processed_count: number;
+  failed_count: number;
+  failed_images?: string[];
+  error_messages?: string[];
+  parts_organized?: number;
+}

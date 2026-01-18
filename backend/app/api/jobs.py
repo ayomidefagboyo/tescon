@@ -65,17 +65,43 @@ class JobManager:
             "completed_at": datetime.fromisoformat(row[9]) if row[9] else None,
         }
     
-    def create_job(self, total_images: int) -> str:
+    def create_job(self, total_images: int = None, job_type: str = "batch", **kwargs) -> str:
         """Create a new job and return job ID."""
         job_id = str(uuid.uuid4())
+
+        # For part processing, total_images is the number of files
+        if job_type == "process_part":
+            total_images = len(kwargs.get("file_data", []))
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+
+        # Check if table has job_type column, add if missing
+        try:
+            cursor.execute("SELECT job_type FROM jobs LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE jobs ADD COLUMN job_type TEXT DEFAULT 'batch'")
+            cursor.execute("ALTER TABLE jobs ADD COLUMN job_data TEXT")
+
+        # Store job data as JSON for process_part jobs
+        job_data = None
+        if job_type == "process_part":
+            job_data = json.dumps({
+                "part_number": kwargs.get("part_number"),
+                "file_data": kwargs.get("file_data"),
+                "parameters": kwargs.get("parameters")
+            })
+
         cursor.execute("""
-            INSERT INTO jobs (job_id, status, total_images, created_at)
-            VALUES (?, ?, ?, ?)
-        """, (job_id, JobStatus.PROCESSING, total_images, datetime.now().isoformat()))
+            INSERT INTO jobs (job_id, status, total_images, job_type, job_data, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (job_id, JobStatus.QUEUED, total_images, job_type, job_data, datetime.now().isoformat()))
         conn.commit()
         conn.close()
+
+        # Start processing the job in background
+        if job_type == "process_part":
+            asyncio.create_task(self._process_part_job(job_id))
         return job_id
     
     def get_job(self, job_id: str) -> Optional[dict]:
@@ -191,6 +217,127 @@ class JobManager:
         conn.commit()
         conn.close()
         return True
+
+    async def _process_part_job(self, job_id: str):
+        """Process a part job in the background."""
+        try:
+            # Update status to processing
+            self.update_job_status(job_id, JobStatus.PROCESSING)
+
+            # Get job data
+            job = self.get_job(job_id)
+            if not job or not job.get("job_data"):
+                self.update_job_status(job_id, JobStatus.FAILED, "No job data found")
+                return
+
+            job_data = json.loads(job["job_data"])
+            part_number = job_data["part_number"]
+            file_data = job_data["file_data"]
+            params = job_data["parameters"]
+
+            # Import processing functions here to avoid circular imports
+            from app.services.google_drive_oauth import get_oauth_drive_storage
+            from app.services.excel_service import get_excel_parts_service
+            from app.processing.picwish_processor import process_image
+            from app.processing.image_utils import validate_image
+            from app.services.parts_tracker import get_parts_tracker
+
+            # Get part info from Excel
+            excel_service = get_excel_parts_service()
+            if excel_service.unique_parts is None:
+                self.update_job_status(job_id, JobStatus.FAILED, "Excel catalog not loaded")
+                return
+
+            part_info = excel_service.get_part_info(part_number)
+            if not part_info:
+                self.update_job_status(job_id, JobStatus.FAILED, f"Part {part_number} not found in catalog")
+                return
+
+            description = part_info.get("description", "")
+
+            # Parse view numbers
+            view_numbers = params.get("view_numbers")
+            if view_numbers:
+                view_nums = [int(v.strip()) for v in view_numbers.split(",")]
+            else:
+                view_nums = list(range(1, len(file_data) + 1))
+
+            # Check Google Drive availability
+            drive_storage = get_oauth_drive_storage()
+            if not drive_storage:
+                self.update_job_status(job_id, JobStatus.FAILED, "Google Drive OAuth not configured")
+                return
+
+            # Process each image
+            processed_files = []
+            processed_count = 0
+
+            for idx, file_info in enumerate(file_data):
+                try:
+                    # Validate image
+                    file_bytes = file_info["content"]
+                    is_valid, error_msg = validate_image(file_bytes)
+                    if not is_valid:
+                        self.add_failed_image(job_id, f"Image {idx+1}: {error_msg}")
+                        continue
+
+                    # Process image
+                    view_num = view_nums[idx] if idx < len(view_nums) else idx + 1
+                    output_format = "PNG" if params.get("format", "PNG").upper() == "PNG" else "JPEG"
+
+                    processed_buffer = process_image(
+                        file_bytes,
+                        output_format=output_format,
+                        white_background=params.get("white_background", True),
+                        compression_quality=params.get("compression_quality", 85),
+                        max_dimension=params.get("max_dimension", 2048),
+                        description=description if params.get("add_label", True) else None,
+                        add_label=params.get("add_label", True),
+                        label_position=params.get("label_position", "bottom-left"),
+                        item_note=part_info.get("item_note"),
+                        use_ecommerce_layout=True
+                    )
+
+                    # Generate filename
+                    safe_description = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in description)
+                    safe_description = safe_description.replace(' ', '_')[:50]
+                    ext = ".jpg" if output_format.upper() in ["JPEG", "JPG"] else ".png"
+                    filename = f"{part_number}_{view_num}_{safe_description}{ext}"
+
+                    processed_bytes = processed_buffer.read()
+                    processed_files.append((filename, processed_bytes))
+                    processed_count += 1
+
+                    # Update progress
+                    self.update_job_progress(job_id, processed_count)
+
+                except Exception as e:
+                    self.add_failed_image(job_id, f"Image {idx+1} processing failed: {str(e)}")
+
+            if not processed_files:
+                self.update_job_status(job_id, JobStatus.FAILED, "No images processed successfully")
+                return
+
+            # Upload to Google Drive
+            try:
+                saved_files = drive_storage.save_part_images(
+                    part_number=part_number,
+                    image_files=processed_files,
+                    description=description
+                )
+
+                # Mark part as processed
+                tracker = get_parts_tracker()
+                tracker.mark_part_processed(part_number, len(saved_files))
+
+                # Complete the job
+                self.update_job_status(job_id, JobStatus.COMPLETED, f"Successfully processed {len(saved_files)} images")
+
+            except Exception as e:
+                self.update_job_status(job_id, JobStatus.FAILED, f"Google Drive upload failed: {str(e)}")
+
+        except Exception as e:
+            self.update_job_status(job_id, JobStatus.FAILED, f"Job processing failed: {str(e)}")
 
 
 # Global job manager instance

@@ -81,3 +81,52 @@ export async function processPartImages(
 
   return response.data;
 }
+
+/**
+ * Queue images for async background processing
+ */
+export async function processPartImagesAsync(
+  files: File[],
+  partNumber: string,
+  viewNumbers?: number[],
+  format: "PNG" | "JPEG" | "JPG" = "PNG",
+  whiteBackground: boolean = true,
+  compressionQuality: number = 85,
+  maxDimension: number = 2048,
+  addLabel: boolean = true,
+  labelPosition: "bottom-left" | "bottom-right" | "top-left" | "top-right" | "bottom-center" = "bottom-left"
+): Promise<JobResponse> {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const params = new URLSearchParams({
+    part_number: partNumber,
+    format,
+    white_background: whiteBackground.toString(),
+    compression_quality: compressionQuality.toString(),
+    max_dimension: maxDimension.toString(),
+    add_label: addLabel.toString(),
+    label_position: labelPosition,
+  });
+
+  if (viewNumbers && viewNumbers.length > 0) {
+    params.append("view_numbers", viewNumbers.join(","));
+  }
+
+  const response = await api.post<JobResponse>(
+    `/process/part/async?${params.toString()}`,
+    formData
+  );
+
+  return response.data;
+}
+
+/**
+ * Check job status
+ */
+export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
+  const response = await api.get<JobStatusResponse>(`/jobs/${jobId}/status`);
+  return response.data;
+}

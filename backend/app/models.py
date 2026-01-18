@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class JobStatus(str, Enum):
     """Job processing status."""
+    QUEUED = "queued"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"

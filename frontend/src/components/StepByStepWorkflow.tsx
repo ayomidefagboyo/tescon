@@ -1,7 +1,7 @@
 /** Step-by-step workflow component for streamlined part processing */
 import { useState, useEffect } from "react";
 import { UploadZone } from "./UploadZone";
-import { getPartInfo, processPartImages, PartInfo, ProcessPartResponse } from "../services/api";
+import { getPartInfo, processPartImagesAsync, getJobStatus, PartInfo, ProcessPartResponse, JobResponse, JobStatusResponse } from "../services/api";
 import { FileWithPreview } from "../types";
 import { ChevronLeft, ChevronRight, Upload, Search, Image, CheckCircle } from "lucide-react";
 
@@ -20,6 +20,8 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<ProcessPartResponse | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<JobStatusResponse | null>(null);
 
   // Handle file selection
   const handleFilesSelected = (selectedFiles: File[]) => {
@@ -81,7 +83,8 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
     setError(null);
 
     try {
-      const result = await processPartImages(
+      // Queue for background processing
+      const job = await processPartImagesAsync(
         files,
         partInfo.part_number,
         undefined, // Auto-assign view numbers 1, 2, 3...
@@ -93,12 +96,25 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         "bottom-left" // Label position
       );
 
-      setResponse(result);
+      setJobId(job.job_id);
       setCurrentStep("complete");
       setProcessing(false);
 
+      // Show immediate success message that processing is queued
+      const fakeResponse: ProcessPartResponse = {
+        success: true,
+        part_number: partInfo.part_number,
+        description: partInfo.description,
+        location: partInfo.location,
+        item_note: partInfo.item_note,
+        files_saved: files.length,
+        saved_paths: [],
+        message: `Part ${partInfo.part_number} queued for processing. You can continue with other parts.`
+      };
+      setResponse(fakeResponse);
+
       if (onSuccess) {
-        onSuccess(result);
+        onSuccess(fakeResponse);
       }
     } catch (err: any) {
       setProcessing(false);
