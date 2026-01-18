@@ -103,7 +103,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         item_note: partInfo.item_note,
         files_saved: files.length,
         saved_paths: [],
-        download_url: null,
+        download_url: undefined,
         message: `✅ ${files.length} images uploaded for ${partInfo.part_number}. Processing in background.`
       };
 
