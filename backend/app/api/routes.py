@@ -3,6 +3,7 @@ import os
 import time
 import zipfile
 import asyncio
+import sqlite3
 from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
@@ -369,6 +370,38 @@ async def process_part_images_async(
 
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
+
+    # Check if this part has already been processed or is in progress
+    tracker = get_parts_tracker()
+    if tracker.is_part_processed(part_number):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Part {part_number} has already been processed. Use the tracking dashboard to see results."
+        )
+
+    # Check if part is currently being processed (has active jobs)
+    # Get recent jobs for this part number to prevent concurrent processing
+    job_manager_instance = job_manager
+    recent_jobs = []
+    try:
+        conn = sqlite3.connect(job_manager_instance.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT status FROM jobs
+            WHERE job_data LIKE ?
+            AND status IN ('queued', 'processing')
+            AND datetime(created_at) > datetime('now', '-1 hour')
+        """, (f'%"part_number": "{part_number}"%',))
+        recent_jobs = cursor.fetchall()
+        conn.close()
+    except Exception:
+        pass  # If check fails, allow upload (fail-open)
+
+    if recent_jobs:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Part {part_number} is currently being processed. Please wait for completion."
+        )
 
     # Generate job ID first for R2 folder structure
     import uuid
