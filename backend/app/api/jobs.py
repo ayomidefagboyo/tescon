@@ -135,7 +135,7 @@ class JobManager:
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
             job_id,
-            JobStatus.PENDING.value,
+            JobStatus.QUEUED.value,
             total_images,
             job_type,
             job_data,
@@ -262,6 +262,25 @@ class JobManager:
         conn.commit()
         conn.close()
         return True
+
+    def update_job_status(self, job_id: str, status: JobStatus, message: str = None):
+        """Update job status with optional message."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        if status == JobStatus.COMPLETED or status == JobStatus.FAILED:
+            cursor.execute("""
+                UPDATE jobs
+                SET status = ?, completed_at = ?
+                WHERE job_id = ?
+            """, (status.value, datetime.now().isoformat(), job_id))
+        else:
+            cursor.execute("""
+                UPDATE jobs
+                SET status = ?
+                WHERE job_id = ?
+            """, (status.value, job_id))
+        conn.commit()
+        conn.close()
 
     async def _process_part_job(self, job_id: str):
         """Process a part job in the background."""
