@@ -13,6 +13,7 @@ from app.processing.image_utils import validate_image
 from app.processing.batch_manager import BatchProcessor
 from app.storage.local_storage import LocalStorage
 from app.api.jobs import job_manager
+from app.services.cloudflare_r2 import get_r2_storage
 from app.logging import log_image_processing, log_gpu_metrics
 from app.utils.filename_parser import validate_batch_filenames
 from app.services.excel_service import get_excel_parts_service
