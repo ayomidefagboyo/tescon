@@ -325,7 +325,7 @@ class JobManager:
             if view_numbers:
                 view_nums = [int(v.strip()) for v in view_numbers.split(",")]
             else:
-                view_nums = list(range(1, len(file_data) + 1))
+                view_nums = list(range(1, len(raw_file_paths) + 1))
 
             # Check R2 availability
             drive_storage = get_r2_storage()
