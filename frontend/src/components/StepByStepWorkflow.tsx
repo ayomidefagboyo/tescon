@@ -82,7 +82,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
 
     try {
       // Queue for background processing
-      const job = await processPartImagesAsync(
+      await processPartImagesAsync(
         files,
         partInfo.part_number,
         undefined, // Auto-assign view numbers 1, 2, 3...
