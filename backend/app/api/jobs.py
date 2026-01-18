@@ -265,6 +265,7 @@ class JobManager:
 
     def update_job_status(self, job_id: str, status: JobStatus, message: str = None):
         """Update job status with optional message."""
+        # Force redeploy to production
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         if status == JobStatus.COMPLETED or status == JobStatus.FAILED:
