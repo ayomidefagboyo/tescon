@@ -382,8 +382,8 @@ async def process_part_images_async(
     raw_file_paths = []
     for i, file in enumerate(files):
         content = await file.read()
-        # Store in R2 under raw/{job_id}/ folder
-        r2_key = f"raw/{job_id}/{i+1:02d}_{file.filename}"
+        # Store in R2 under raw/{part_number}/ folder for better organization
+        r2_key = f"raw/{part_number}/{job_id}_{i+1:02d}_{file.filename}"
 
         try:
             drive_storage.s3_client.put_object(
