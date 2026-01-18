@@ -236,7 +236,7 @@ class JobManager:
             params = job_data["parameters"]
 
             # Import processing functions here to avoid circular imports
-            from app.services.google_drive_oauth import get_oauth_drive_storage
+            from app.services.cloudflare_r2 import get_r2_storage
             from app.services.excel_service import get_excel_parts_service
             from app.processing.picwish_processor import process_image
             from app.processing.image_utils import validate_image
@@ -262,10 +262,10 @@ class JobManager:
             else:
                 view_nums = list(range(1, len(file_data) + 1))
 
-            # Check Google Drive availability
-            drive_storage = get_oauth_drive_storage()
+            # Check R2 availability
+            drive_storage = get_r2_storage()
             if not drive_storage:
-                self.update_job_status(job_id, JobStatus.FAILED, "Google Drive OAuth not configured")
+                self.update_job_status(job_id, JobStatus.FAILED, "Cloudflare R2 not configured")
                 return
 
             # Process each image
@@ -318,7 +318,7 @@ class JobManager:
                 self.update_job_status(job_id, JobStatus.FAILED, "No images processed successfully")
                 return
 
-            # Upload to Google Drive
+            # Upload to Cloudflare R2
             try:
                 saved_files = drive_storage.save_part_images(
                     part_number=part_number,
@@ -334,7 +334,7 @@ class JobManager:
                 self.update_job_status(job_id, JobStatus.COMPLETED, f"Successfully processed {len(saved_files)} images")
 
             except Exception as e:
-                self.update_job_status(job_id, JobStatus.FAILED, f"Google Drive upload failed: {str(e)}")
+                self.update_job_status(job_id, JobStatus.FAILED, f"Cloudflare R2 upload failed: {str(e)}")
 
         except Exception as e:
             self.update_job_status(job_id, JobStatus.FAILED, f"Job processing failed: {str(e)}")

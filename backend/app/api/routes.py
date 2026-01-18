@@ -425,7 +425,7 @@ async def process_part_images(
     
     Supports variable number of images (1-10).
     """
-    from app.services.google_drive_oauth import get_oauth_drive_storage
+    from app.services.cloudflare_r2 import get_r2_storage
 
     # Validate image count
     if not files or len(files) == 0:
@@ -470,11 +470,11 @@ async def process_part_images(
         view_nums = list(range(1, len(files) + 1))
     
     # Check for duplicates in Google Drive
-    drive_storage = get_oauth_drive_storage()
+    drive_storage = get_r2_storage()
     if not drive_storage:
         raise HTTPException(
             status_code=503,
-            detail="Google Drive OAuth not configured. Run OAuth setup first."
+            detail="Cloudflare R2 not configured. Check R2 environment variables."
         )
     
     duplicates = drive_storage.check_duplicates(part_number, view_nums)
@@ -530,11 +530,11 @@ async def process_part_images(
             processed_files.append((filename, processed_bytes))
         
         # Save directly to Google Drive (no local storage)
-        drive_storage = get_oauth_drive_storage()
+        drive_storage = get_r2_storage()
         if not drive_storage:
             raise HTTPException(
                 status_code=503,
-                detail="Google Drive OAuth not configured. Run OAuth setup first."
+                detail="Cloudflare R2 not configured. Check R2 environment variables."
             )
 
         # Upload all files to Google Drive
@@ -547,7 +547,7 @@ async def process_part_images(
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to upload images to Google Drive: {str(e)}"
+                detail=f"Failed to upload images to Cloudflare R2: {str(e)}"
             )
 
         # Mark part as processed in tracker
@@ -756,37 +756,34 @@ async def reset_all_tracking():
 @router.get("/debug/env")
 async def debug_environment():
     """Debug endpoint to check environment variables."""
-    from app.services.google_drive_oauth import get_oauth_drive_storage
+    from app.services.cloudflare_r2 import get_r2_storage
 
     env_vars = {
-        "GOOGLE_DRIVE_FOLDER_ID": os.getenv("GOOGLE_DRIVE_FOLDER_ID"),
-        "GOOGLE_OAUTH_CREDENTIALS_PATH": os.getenv("GOOGLE_OAUTH_CREDENTIALS_PATH"),
-        "GOOGLE_TOKEN_PATH": os.getenv("GOOGLE_TOKEN_PATH"),
+        "CLOUDFLARE_ACCOUNT_ID": os.getenv("CLOUDFLARE_ACCOUNT_ID"),
+        "CLOUDFLARE_ACCESS_KEY_ID": os.getenv("CLOUDFLARE_ACCESS_KEY_ID"),
+        "CLOUDFLARE_SECRET_ACCESS_KEY": os.getenv("CLOUDFLARE_SECRET_ACCESS_KEY"),
+        "CLOUDFLARE_BUCKET_NAME": os.getenv("CLOUDFLARE_BUCKET_NAME"),
         "PICWISH_API_KEY": os.getenv("PICWISH_API_KEY")
     }
 
-    # Test OAuth service initialization
-    oauth_status = "failed"
-    oauth_error = None
+    # Test R2 service initialization
+    r2_status = "failed"
+    r2_error = None
+    r2_stats = None
     try:
-        drive_storage = get_oauth_drive_storage()
-        if drive_storage:
-            oauth_status = "success"
+        r2_storage = get_r2_storage()
+        if r2_storage:
+            r2_status = "success"
+            r2_stats = r2_storage.get_storage_stats()
         else:
-            oauth_status = "failed"
+            r2_status = "failed"
     except Exception as e:
-        oauth_error = str(e)
-
-    # Check if OAuth credentials file exists
-    oauth_file_exists = False
-    if env_vars["GOOGLE_OAUTH_CREDENTIALS_PATH"]:
-        oauth_file_path = Path(env_vars["GOOGLE_OAUTH_CREDENTIALS_PATH"])
-        oauth_file_exists = oauth_file_path.exists()
+        r2_error = str(e)
 
     return {
         "environment_variables": env_vars,
-        "oauth_credentials_file_exists": oauth_file_exists,
-        "oauth_service_status": oauth_status,
-        "oauth_error": oauth_error
+        "r2_service_status": r2_status,
+        "r2_error": r2_error,
+        "r2_storage_stats": r2_stats
     }
 
