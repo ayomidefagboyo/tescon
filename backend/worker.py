@@ -43,11 +43,32 @@ class R2BackgroundWorker:
             raise Exception("❌ Cloudflare R2 not configured")
         print("✅ R2 storage connected")
 
-        # Initialize Excel service
+        # Initialize Excel service and load catalog
         self.excel_service = get_excel_parts_service()
+        
+        # Try to load Excel file if not already loaded
         if self.excel_service.unique_parts is None:
-            raise Exception("❌ Excel catalog not loaded")
-        print("✅ Excel catalog loaded")
+            excel_file_path = Path("EGTL Dump Total Dump ( sorted).xlsx")
+            if excel_file_path.exists():
+                try:
+                    print("📂 Loading Excel catalog from file...")
+                    success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Data")
+                    if success:
+                        stats = self.excel_service.get_stats()
+                        print(f"✅ Excel catalog loaded: {stats['total_parts']} parts")
+                        
+                        # Update parts tracker with total count
+                        from services.parts_tracker import get_parts_tracker
+                        tracker = get_parts_tracker()
+                        tracker.set_total_parts(stats['total_parts'])
+                    else:
+                        raise Exception("❌ Failed to load Excel catalog file")
+                except Exception as e:
+                    raise Exception(f"❌ Error loading Excel catalog: {e}")
+            else:
+                raise Exception("❌ Excel catalog file not found. Ensure 'EGTL Dump Total Dump ( sorted).xlsx' is in the backend directory.")
+        else:
+            print("✅ Excel catalog already loaded")
 
         # Initialize parts tracker
         self.parts_tracker = get_parts_tracker()
