@@ -1,7 +1,7 @@
 /** Step-by-step workflow component for streamlined part processing */
 import { useState, useEffect } from "react";
 import { UploadZone } from "./UploadZone";
-import { getPartInfo, processPartImagesAsync, getJobStatus, PartInfo, ProcessPartResponse, JobResponse, JobStatusResponse } from "../services/api";
+import { getPartInfo, processPartImagesAsync, PartInfo, ProcessPartResponse } from "../services/api";
 import { FileWithPreview } from "../types";
 import { ChevronLeft, ChevronRight, Upload, Search, Image, CheckCircle } from "lucide-react";
 
@@ -20,8 +20,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<ProcessPartResponse | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState<JobStatusResponse | null>(null);
 
   // Handle file selection
   const handleFilesSelected = (selectedFiles: File[]) => {
@@ -96,7 +94,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         "bottom-left" // Label position
       );
 
-      setJobId(job.job_id);
       setCurrentStep("complete");
       setProcessing(false);
 

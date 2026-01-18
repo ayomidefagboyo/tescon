@@ -1,9 +1,9 @@
 /** API client for backend communication */
 import axios from "axios";
-import { PartInfo, ProcessPartResponse } from "../types";
+import { PartInfo, ProcessPartResponse, JobResponse, JobStatusResponse } from "../types";
 
 // Re-export types for convenience
-export type { PartInfo, ProcessPartResponse } from "../types";
+export type { PartInfo, ProcessPartResponse, JobResponse, JobStatusResponse } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
