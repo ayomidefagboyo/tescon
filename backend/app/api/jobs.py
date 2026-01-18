@@ -147,7 +147,14 @@ class JobManager:
 
         # Start background processing for process_part jobs
         if job_type == "process_part":
-            asyncio.create_task(self._process_part_job(job_id))
+            import threading
+            # Use threading instead of asyncio for better production compatibility
+            thread = threading.Thread(
+                target=self._run_process_part_job,
+                args=(job_id,),
+                daemon=True  # Daemon thread won't block app shutdown
+            )
+            thread.start()
 
     def get_job(self, job_id: str) -> Optional[dict]:
         """Get job by ID."""
@@ -282,6 +289,17 @@ class JobManager:
             """, (status.value, job_id))
         conn.commit()
         conn.close()
+
+    def _run_process_part_job(self, job_id: str):
+        """Synchronous wrapper to run async processing in a thread."""
+        import asyncio
+        try:
+            # Create new event loop for this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._process_part_job(job_id))
+        finally:
+            loop.close()
 
     async def _process_part_job(self, job_id: str):
         """Process a part job in the background."""
