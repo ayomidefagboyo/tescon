@@ -1,0 +1,43 @@
+services:
+  # Main web server
+  - type: web
+    name: tescon-backend
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+      - fromGroup: tescon-env
+
+  # Background worker for image processing
+  - type: worker
+    name: tescon-worker
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python worker.py
+    envVars:
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+      - fromGroup: tescon-env
+
+# Environment variables group
+envVarGroups:
+  - name: tescon-env
+    envVars:
+      - key: CLOUDFLARE_R2_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_R2_ACCESS_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: CLOUDFLARE_R2_BUCKET_NAME
+        sync: false
+      - key: PICWISH_API_KEY
+        sync: false
+      - key: EXCEL_FILE_URL
+        sync: false

@@ -4,8 +4,10 @@ import time
 import zipfile
 import asyncio
 import sqlite3
+import json
 from pathlib import Path
 from typing import List, Optional
+from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from app.models import PartInfo, ProcessPartResponse, JobResponse, JobStatus, JobStatusResponse
@@ -433,13 +435,12 @@ async def process_part_images_async(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}: {str(e)}")
 
-    # Create background job with pre-generated ID
-    job_manager.create_job_with_id(
-        job_id=job_id,
-        job_type="process_part",
-        part_number=part_number,
-        raw_file_paths=raw_file_paths,
-        parameters={
+    # Create job metadata for R2 background worker
+    job_metadata = {
+        "job_id": job_id,
+        "part_number": part_number,
+        "raw_file_paths": raw_file_paths,
+        "parameters": {
             "view_numbers": view_numbers,
             "format": format,
             "white_background": white_background,
@@ -447,8 +448,22 @@ async def process_part_images_async(
             "max_dimension": max_dimension,
             "add_label": add_label,
             "label_position": label_position
-        }
-    )
+        },
+        "status": "queued",
+        "created_at": datetime.now().isoformat()
+    }
+
+    # Upload job metadata to R2 for worker to process
+    try:
+        job_key = f"jobs/queued/{job_id}.json"
+        drive_storage.s3_client.put_object(
+            Bucket=drive_storage.bucket_name,
+            Key=job_key,
+            Body=json.dumps(job_metadata, indent=2),
+            ContentType="application/json"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to queue job: {str(e)}")
 
     return JobResponse(
         job_id=job_id,
