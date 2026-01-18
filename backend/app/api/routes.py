@@ -358,7 +358,7 @@ async def process_part_images_async(
     1. Background removal using PicWish API
     2. Add white background
     3. Add description label overlay
-    4. Save to Google Drive
+    4. Save to Cloudflare R2
 
     Supports variable number of images (1-10).
     """
@@ -427,9 +427,9 @@ async def process_part_images(
     
     Flow:
     1. Lookup part in Google Sheets
-    2. Check for duplicates in Google Drive
+    2. Check for duplicates in Cloudflare R2
     3. Process images with text overlay
-    4. Save to Google Drive
+    4. Save to Cloudflare R2
     
     Supports variable number of images (1-10).
     """
@@ -477,7 +477,7 @@ async def process_part_images(
         # Auto-assign view numbers starting from 1
         view_nums = list(range(1, len(files) + 1))
     
-    # Check for duplicates in Google Drive
+    # Check for duplicates in Cloudflare R2
     drive_storage = get_r2_storage()
     if not drive_storage:
         raise HTTPException(
@@ -537,7 +537,7 @@ async def process_part_images(
             
             processed_files.append((filename, processed_bytes))
         
-        # Save directly to Google Drive (no local storage)
+        # Save directly to Cloudflare R2 (no local storage)
         drive_storage = get_r2_storage()
         if not drive_storage:
             raise HTTPException(
@@ -545,7 +545,7 @@ async def process_part_images(
                 detail="Cloudflare R2 not configured. Check R2 environment variables."
             )
 
-        # Upload all files to Google Drive
+        # Upload all files to Cloudflare R2
         try:
             saved_files = drive_storage.save_part_images(
                 part_number=part_number,
@@ -591,7 +591,7 @@ async def upload_excel_file(file: UploadFile = File(...)):
     """
     Upload and process Excel parts catalog file.
 
-    Replaces Google Sheets functionality with local Excel file processing.
+    Uses local Excel file processing and Cloudflare R2 storage.
     """
     if not file.filename or not file.filename.lower().endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are allowed")

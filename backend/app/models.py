@@ -87,7 +87,7 @@ class ExportValidationResponse(BaseModel):
 
 
 class PartInfo(BaseModel):
-    """Part information from Google Sheets."""
+    """Part information from Excel file."""
     part_number: str
     description: str
     location: str
