@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
 import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, Search } from "lucide-react";
+import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, resetPartStatus as apiResetPartStatus } from "../services/api";
 
 interface ProgressStats {
   total_parts: number;
@@ -29,18 +30,11 @@ export const PartsTrackingDashboard: React.FC = () => {
   const fetchTrackerData = async () => {
     setRefreshing(true);
     try {
-      const [progressRes, processedRes, failedRes, remainingRes] = await Promise.all([
-        fetch('/api/tracker/progress'),
-        fetch('/api/tracker/parts/processed'),
-        fetch('/api/tracker/parts/failed'),
-        fetch('/api/tracker/parts/remaining')
-      ]);
-
       const [progress, processed, failed, remaining] = await Promise.all([
-        progressRes.json(),
-        processedRes.json(),
-        failedRes.json(),
-        remainingRes.json()
+        getTrackerProgress(),
+        getProcessedParts(),
+        getFailedParts(),
+        getRemainingParts()
       ]);
 
       setTrackerData({
@@ -65,7 +59,7 @@ export const PartsTrackingDashboard: React.FC = () => {
 
   const resetPartStatus = async (partNumber: string) => {
     try {
-      await fetch(`/api/tracker/parts/${partNumber}/reset`, { method: 'POST' });
+      await apiResetPartStatus(partNumber);
       await fetchTrackerData();
     } catch (error) {
       console.error('Failed to reset part status:', error);

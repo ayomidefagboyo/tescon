@@ -130,3 +130,30 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
   const response = await api.get<JobStatusResponse>(`/jobs/${jobId}/status`);
   return response.data;
 }
+
+/**
+ * Tracker API functions
+ */
+export async function getTrackerProgress(): Promise<any> {
+  const response = await api.get('/tracker/progress');
+  return response.data;
+}
+
+export async function getProcessedParts(): Promise<any> {
+  const response = await api.get('/tracker/parts/processed');
+  return response.data;
+}
+
+export async function getFailedParts(): Promise<any> {
+  const response = await api.get('/tracker/parts/failed');
+  return response.data;
+}
+
+export async function getRemainingParts(): Promise<any> {
+  const response = await api.get('/tracker/parts/remaining');
+  return response.data;
+}
+
+export async function resetPartStatus(partNumber: string): Promise<void> {
+  await api.post(`/tracker/parts/${partNumber}/reset`);
+}
