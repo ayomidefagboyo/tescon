@@ -1,6 +1,5 @@
 /** Main application component */
 import React, { useState, useEffect } from "react";
-import { ProcessPartResponse } from "./types";
 import { healthCheck } from "./services/api";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "./styles/design-system";
