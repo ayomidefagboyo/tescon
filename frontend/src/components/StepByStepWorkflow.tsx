@@ -10,7 +10,7 @@ interface StepByStepWorkflowProps {
   onError?: (error: string) => void;
 }
 
-type WorkflowStep = "upload" | "part-number" | "review" | "processing" | "complete";
+type WorkflowStep = "upload" | "part-number" | "review" | "processing" | "success-notification" | "complete";
 
 export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowProps) {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>("upload");
@@ -76,7 +76,6 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
       return;
     }
 
-    setCurrentStep("processing");
     setProcessing(true);
     setError(null);
 
@@ -94,31 +93,19 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         "bottom-left" // Label position
       );
 
-      // Immediate success - processing happens in background
-      const successResponse: ProcessPartResponse = {
-        success: true,
-        part_number: partInfo.part_number,
-        description: partInfo.description,
-        location: partInfo.location,
-        item_note: partInfo.item_note,
-        files_saved: files.length,
-        saved_paths: [],
-        download_url: undefined,
-        message: `✅ ${files.length} images uploaded for ${partInfo.part_number}. Processing in background.`
-      };
-
-      setCurrentStep("complete");
+      // Show success notification
       setProcessing(false);
-      setResponse(successResponse);
+      setCurrentStep("success-notification");
 
-      if (onSuccess) {
-        onSuccess(successResponse);
-      }
+      // Auto-reset to start after 3 seconds
+      setTimeout(() => {
+        handleStartOver();
+      }, 3000);
+
     } catch (err: any) {
       setProcessing(false);
       const errorMessage = err.response?.data?.detail || err.message || "Processing failed";
       setError(errorMessage);
-      setCurrentStep("review"); // Go back to review step
 
       if (onError) {
         onError(errorMessage);
@@ -307,6 +294,24 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
   );
 
 
+  const renderSuccessNotification = () => (
+    <div className="step-content">
+      <div className="success-notification">
+        <CheckCircle size={64} className="success-icon" />
+        <h2>🎉 Images Uploaded Successfully!</h2>
+        <p className="success-message">
+          <strong>{partInfo?.part_number}</strong> - {files.length} images uploaded for background processing
+        </p>
+        <p className="auto-return">
+          Returning to start in a moment...
+        </p>
+        <button className="btn-secondary" onClick={handleStartOver}>
+          Continue Now
+        </button>
+      </div>
+    </div>
+  );
+
   const renderCompleteStep = () => (
     <div className="step-content">
       <div className="success-content">
@@ -352,6 +357,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
       {currentStep === "upload" && renderUploadStep()}
       {currentStep === "part-number" && renderPartNumberStep()}
       {currentStep === "review" && renderReviewStep()}
+      {currentStep === "success-notification" && renderSuccessNotification()}
       {currentStep === "complete" && renderCompleteStep()}
 
       <style>{`
@@ -672,6 +678,35 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
         .success-content {
           text-align: center;
           padding: 20px;
+        }
+
+        .success-notification {
+          text-align: center;
+          padding: 40px 20px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 12px;
+          border: 2px solid #28a745;
+          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+        }
+
+        .success-notification h2 {
+          color: #28a745;
+          font-size: 28px;
+          margin: 16px 0;
+          font-weight: bold;
+        }
+
+        .success-message {
+          font-size: 18px;
+          color: #333;
+          margin: 16px 0;
+        }
+
+        .auto-return {
+          font-size: 14px;
+          color: #666;
+          margin: 20px 0;
+          font-style: italic;
         }
 
         .success-icon {
