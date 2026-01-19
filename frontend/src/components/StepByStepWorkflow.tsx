@@ -22,8 +22,8 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   // Handle file selection
   const handleFilesSelected = (selectedFiles: File[]) => {
-    if (selectedFiles.length < 2 || selectedFiles.length > 4) {
-      setError("Please upload 2-4 images");
+    if (selectedFiles.length !== 3) {
+      setError("Please upload exactly 3 images");
       return;
     }
 
@@ -39,8 +39,8 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   // Handle next step from upload
   const handleUploadNext = () => {
-    if (files.length < 2 || files.length > 4) {
-      setError("Please upload 2-4 images before proceeding");
+    if (files.length !== 3) {
+      setError("Please upload exactly 3 images before proceeding");
       return;
     }
     setCurrentStep("part-number");
@@ -173,7 +173,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
   const renderUploadStep = () => (
     <div className="step-content">
       <h2>Step 1: Upload Part Photos</h2>
-      <p>Take 2-4 clear photos of the part from different angles</p>
+      <p>Take exactly 3 clear photos of the part from different angles</p>
 
       <UploadZone
         onFilesSelected={handleFilesSelected}

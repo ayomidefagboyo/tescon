@@ -55,11 +55,48 @@ class ExcelPartsService:
 
         # Fill null descriptions with empty strings
         self.unique_parts['Desc1'] = self.unique_parts['Desc1'].fillna('')
+        self.unique_parts['Desc2'] = self.unique_parts['Desc2'].fillna('')
         self.unique_parts['Long Text Desc'] = self.unique_parts['Long Text Desc'].fillna('')
+
+        # Create combined description for better text embedding
+        self.unique_parts['Combined_Description'] = self.unique_parts.apply(
+            lambda row: self._combine_descriptions(row['Desc1'], row['Desc2'], row['Long Text Desc']),
+            axis=1
+        )
 
         self.total_parts = len(self.unique_parts)
 
         logger.info(f"Processed {self.total_parts} unique parts after deduplication")
+
+    def _combine_descriptions(self, desc1: str, desc2: str, long_desc: str) -> str:
+        """
+        Combine multiple description fields into a comprehensive description.
+
+        Args:
+            desc1: Primary description
+            desc2: Secondary description
+            long_desc: Long text description
+
+        Returns:
+            Combined description string
+        """
+        parts = []
+        seen = set()
+
+        # Helper to add unique descriptions
+        def add_if_unique(text):
+            if text and text.strip() and text.strip().lower() not in seen:
+                clean_text = text.strip()
+                parts.append(clean_text)
+                seen.add(clean_text.lower())
+
+        # Add descriptions in order of priority
+        add_if_unique(desc1)
+        add_if_unique(desc2)
+        add_if_unique(long_desc)
+
+        # Join with " - " separator for better readability
+        return " - ".join(parts) if parts else ""
 
     def get_part_info(self, symbol_number: str) -> Optional[Dict]:
         """
@@ -86,7 +123,7 @@ class ExcelPartsService:
 
         return {
             'symbol_number': str(row['Symbol Number']),
-            'description': str(row['Desc1']),
+            'description': str(row['Combined_Description']),
             'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
             'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
         }
@@ -110,7 +147,7 @@ class ExcelPartsService:
         # Search in symbol number and description
         mask = (
             self.unique_parts['Symbol Number'].astype(str).str.lower().str.contains(query_lower, na=False) |
-            self.unique_parts['Desc1'].astype(str).str.lower().str.contains(query_lower, na=False)
+            self.unique_parts['Combined_Description'].astype(str).str.lower().str.contains(query_lower, na=False)
         )
 
         matching_parts = self.unique_parts[mask].head(limit)
@@ -119,7 +156,7 @@ class ExcelPartsService:
         for _, row in matching_parts.iterrows():
             results.append({
                 'symbol_number': str(row['Symbol Number']),
-                'description': str(row['Desc1']),
+                'description': str(row['Combined_Description']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
             })
@@ -147,7 +184,7 @@ class ExcelPartsService:
         for _, row in parts_subset.iterrows():
             results.append({
                 'symbol_number': str(row['Symbol Number']),
-                'description': str(row['Desc1']),
+                'description': str(row['Combined_Description']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
             })
