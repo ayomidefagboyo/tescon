@@ -128,7 +128,7 @@ def process_image(
                     processed_image = create_ecommerce_card_layout(
                         processed_image,
                         item_note=item_note,
-                        padding=20
+                        padding=24  # Increased padding for better spacing
                     )
                 elif add_label and description:
                     # Use original text overlay
