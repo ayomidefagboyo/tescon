@@ -123,19 +123,19 @@ def process_image(
                 
                 # Add text label or e-commerce layout
                 if use_ecommerce_layout and item_note:
-                    # Use new e-commerce card layout
+                    # Use new e-commerce card layout with combined description
                     from app.processing.image_utils import create_ecommerce_card_layout
                     processed_image = create_ecommerce_card_layout(
                         processed_image,
                         item_note=item_note,
                         padding=24  # Increased padding for better spacing
                     )
-                elif add_label and description:
-                    # Use original text overlay
+                elif add_label and item_note:
+                    # Use combined description for text overlay
                     from app.processing.image_utils import add_text_label
                     processed_image = add_text_label(
                         processed_image,
-                        text=description,
+                        text=item_note,
                         position=label_position,
                         font_size=None,  # Auto-calculate
                         text_color=(0, 0, 0),  # Black text

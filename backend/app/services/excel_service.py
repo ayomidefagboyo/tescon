@@ -95,8 +95,8 @@ class ExcelPartsService:
         add_if_unique(desc2)
         add_if_unique(long_desc)
 
-        # Join with " - " separator for better readability
-        return " - ".join(parts) if parts else ""
+        # Join with ", " separator for better readability
+        return ", ".join(parts) if parts else ""
 
     def get_part_info(self, symbol_number: str) -> Optional[Dict]:
         """
@@ -123,7 +123,8 @@ class ExcelPartsService:
 
         return {
             'symbol_number': str(row['Symbol Number']),
-            'description': str(row['Combined_Description']),
+            'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
+            'combined_description': str(row['Combined_Description']),
             'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
             'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
         }
@@ -156,7 +157,8 @@ class ExcelPartsService:
         for _, row in matching_parts.iterrows():
             results.append({
                 'symbol_number': str(row['Symbol Number']),
-                'description': str(row['Combined_Description']),
+                'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
+                'combined_description': str(row['Combined_Description']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
             })
@@ -184,7 +186,8 @@ class ExcelPartsService:
         for _, row in parts_subset.iterrows():
             results.append({
                 'symbol_number': str(row['Symbol Number']),
-                'description': str(row['Combined_Description']),
+                'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
+                'combined_description': str(row['Combined_Description']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
             })

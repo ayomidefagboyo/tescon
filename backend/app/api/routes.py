@@ -304,11 +304,20 @@ async def get_part_info(symbol_number: str):
     Used for autocomplete/search in frontend.
     """
     excel_service = get_excel_parts_service()
+    tracker = get_parts_tracker()
 
     if excel_service.unique_parts is None:
         raise HTTPException(
             status_code=503,
             detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
+        )
+
+    # Check if part is already processed
+    part_status = tracker.get_part_status(symbol_number)
+    if part_status and part_status.get('status') == 'completed':
+        raise HTTPException(
+            status_code=409,
+            detail=f"Symbol number '{symbol_number}' has already been processed"
         )
 
     part_info = excel_service.get_part_info(symbol_number)

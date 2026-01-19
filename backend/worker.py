@@ -188,7 +188,7 @@ class R2BackgroundWorker:
                         description=description if parameters.get("add_label", True) else None,
                         add_label=parameters.get("add_label", True),
                         label_position=parameters.get("label_position", "bottom-left"),
-                        item_note=part_info.get("item_note"),
+                        item_note=part_info.get("combined_description"),
                         use_ecommerce_layout=True
                     )
 

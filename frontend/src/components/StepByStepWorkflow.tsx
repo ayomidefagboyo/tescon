@@ -61,7 +61,9 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       setError(null);
     } catch (err: any) {
       if (err.response?.status === 404) {
-        setError(`Part number '${partNumber.trim()}' not found in database`);
+        setError(`Symbol number '${partNumber.trim()}' not found in database`);
+      } else if (err.response?.status === 409) {
+        setError(`Symbol number '${partNumber.trim()}' has already been processed`);
       } else {
         setError("Failed to load part information. Please check your connection and try again.");
       }
