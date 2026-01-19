@@ -6,7 +6,7 @@ export interface FileWithPreview extends File {
 }
 
 export interface PartInfo {
-  part_number: string;
+  symbol_number: string;
   description: string;
   location: string;
   item_note: string;
@@ -14,7 +14,7 @@ export interface PartInfo {
 
 export interface ProcessPartResponse {
   success: boolean;
-  part_number: string;
+  symbol_number: string;
   description: string;
   location: string;
   item_note?: string;

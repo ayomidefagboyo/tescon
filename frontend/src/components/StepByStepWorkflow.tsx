@@ -84,7 +84,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       // Upload for background processing - user can continue immediately
       await processPartImagesAsync(
         files,
-        partInfo.part_number,
+        partInfo.symbol_number,
         undefined, // Auto-assign view numbers 1, 2, 3...
         "PNG",
         true, // White background
@@ -251,7 +251,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
           <div className="info-grid">
             <div className="info-item">
               <strong>Symbol Number:</strong>
-              <span>{partInfo.part_number}</span>
+              <span>{partInfo.symbol_number}</span>
             </div>
             <div className="info-item">
               <strong>Description:</strong>
@@ -321,7 +321,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
         {response && (
           <div className="success-details">
-            <p><strong>Part:</strong> {response.part_number}</p>
+            <p><strong>Part:</strong> {response.symbol_number}</p>
             <p><strong>Files Processed:</strong> {response.files_saved}</p>
             <p><strong>Status:</strong> {response.message}</p>
 

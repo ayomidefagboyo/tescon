@@ -61,7 +61,7 @@ export async function processPartImages(
   });
 
   const params = new URLSearchParams({
-    part_number: partNumber,
+    symbol_number: partNumber,
     format,
     white_background: whiteBackground.toString(),
     compression_quality: compressionQuality.toString(),
@@ -102,7 +102,7 @@ export async function processPartImagesAsync(
   });
 
   const params = new URLSearchParams({
-    part_number: partNumber,
+    symbol_number: partNumber,
     format,
     white_background: whiteBackground.toString(),
     compression_quality: compressionQuality.toString(),
