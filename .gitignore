@@ -42,3 +42,4 @@ processed/
 .DS_Store
 Thumbs.db
 
+backend/parts_tracker.json
