@@ -97,10 +97,10 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
       setProcessing(false);
       setCurrentStep("success-notification");
 
-      // Auto-reset to start after 3 seconds
+      // Auto-reset to start immediately after brief notification
       setTimeout(() => {
         handleStartOver();
-      }, 3000);
+      }, 1500);
 
     } catch (err: any) {
       setProcessing(false);
@@ -303,7 +303,7 @@ export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowPro
           <strong>{partInfo?.part_number}</strong> - {files.length} images uploaded for background processing
         </p>
         <p className="auto-return">
-          Returning to start in a moment...
+          Ready for next part...
         </p>
         <button className="btn-secondary" onClick={handleStartOver}>
           Continue Now
