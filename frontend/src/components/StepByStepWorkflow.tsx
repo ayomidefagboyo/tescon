@@ -301,7 +301,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
         <CheckCircle size={64} className="success-icon" />
         <h2>🎉 Images Uploaded Successfully!</h2>
         <p className="success-message">
-          <strong>{partInfo?.part_number}</strong> - {files.length} images uploaded for background processing
+          <strong>{partInfo?.symbol_number}</strong> - {files.length} images uploaded for background processing
         </p>
         <p className="auto-return">
           Ready for next part...
