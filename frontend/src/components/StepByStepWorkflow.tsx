@@ -6,13 +6,12 @@ import { FileWithPreview } from "../types";
 import { ChevronLeft, ChevronRight, Upload, Search, Image, CheckCircle } from "lucide-react";
 
 interface StepByStepWorkflowProps {
-  onSuccess?: (response: ProcessPartResponse) => void;
   onError?: (error: string) => void;
 }
 
 type WorkflowStep = "upload" | "part-number" | "review" | "processing" | "success-notification" | "complete";
 
-export function StepByStepWorkflow({ onSuccess, onError }: StepByStepWorkflowProps) {
+export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>("upload");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [partNumber, setPartNumber] = useState("");
