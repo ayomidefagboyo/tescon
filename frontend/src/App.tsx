@@ -203,9 +203,6 @@ function App() {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {currentView === 'workflow' ? (
           <StepByStepWorkflow
-            onSuccess={(_response: ProcessPartResponse) => {
-              // Success is handled within the component
-            }}
             onError={(_error: string) => {
               // Error is handled within the component
             }}
