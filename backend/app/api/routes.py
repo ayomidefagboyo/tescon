@@ -1,5 +1,6 @@
 """API routes for image processing."""
 import os
+import io
 import time
 import zipfile
 import asyncio
@@ -856,4 +857,97 @@ async def debug_environment():
         "r2_error": r2_error,
         "r2_storage_stats": r2_stats
     }
+
+
+@router.get("/r2/download-all")
+async def download_all_r2_files(
+    prefix: Optional[str] = Query(None, description="Optional prefix filter (e.g., 'parts/' to download only processed images)"),
+    include_raw: bool = Query(False, description="Include raw uploaded images")
+):
+    """
+    Download all files from Cloudflare R2 bucket as a ZIP archive.
+    
+    Options:
+    - prefix: Filter by prefix (e.g., 'parts/' for processed images only)
+    - include_raw: Include raw uploaded images (default: False, only processed images)
+    """
+    r2_storage = get_r2_storage()
+    if not r2_storage:
+        raise HTTPException(
+            status_code=503,
+            detail="Cloudflare R2 not configured. Check R2 environment variables."
+        )
+
+    try:
+        # Determine prefix
+        if prefix:
+            search_prefix = prefix
+        elif include_raw:
+            search_prefix = ""  # Download everything
+        else:
+            search_prefix = "parts/"  # Default: only processed images
+
+        # List all objects
+        all_objects = []
+        paginator = r2_storage.s3_client.get_paginator('list_objects_v2')
+        
+        for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix=search_prefix):
+            if 'Contents' in page:
+                all_objects.extend(page['Contents'])
+
+        if not all_objects:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No files found with prefix '{search_prefix}'"
+            )
+
+        # Create ZIP in memory
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for obj in all_objects:
+                s3_key = obj['Key']
+                
+                # Skip job metadata JSON files
+                if s3_key.endswith('.json') and 'jobs/' in s3_key:
+                    continue
+                
+                try:
+                    # Download file from R2
+                    response = r2_storage.s3_client.get_object(
+                        Bucket=r2_storage.bucket_name,
+                        Key=s3_key
+                    )
+                    file_content = response['Body'].read()
+                    
+                    # Add to ZIP (preserve folder structure)
+                    zip_file.writestr(s3_key, file_content)
+                    
+                except Exception as e:
+                    print(f"⚠ Warning: Failed to download {s3_key}: {e}")
+                    continue
+
+        zip_buffer.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        prefix_name = search_prefix.replace('/', '_').rstrip('_') if search_prefix else 'all'
+        zip_filename = f"r2_backup_{prefix_name}_{timestamp}.zip"
+
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{zip_filename}"',
+                "Content-Length": str(zip_buffer.getbuffer().nbytes)
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create download archive: {str(e)}"
+        )
 

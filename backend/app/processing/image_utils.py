@@ -212,17 +212,17 @@ def create_ecommerce_card_layout(
     max_text_width = img_width - (padding * 2)
     max_font_size = text_area_height - (padding * 2)
 
-    # Start with a reasonable font size and adjust based on text length
-    base_font_size = max(14, min(32, int(text_area_height * 0.4)))
+    # Start with a larger, more readable font size
+    base_font_size = max(24, min(48, int(text_area_height * 0.6)))
 
-    # Adjust font size based on text length
+    # Adjust font size based on text length - larger minimum sizes for better readability
     text_length = len(item_note)
     if text_length > 100:
-        font_size = max(12, int(base_font_size * 0.7))
+        font_size = max(18, int(base_font_size * 0.75))  # Increased from 12
     elif text_length > 60:
-        font_size = max(14, int(base_font_size * 0.8))
+        font_size = max(22, int(base_font_size * 0.85))  # Increased from 14
     elif text_length > 30:
-        font_size = max(16, int(base_font_size * 0.9))
+        font_size = max(26, int(base_font_size * 0.9))   # Increased from 16
     else:
         font_size = base_font_size
 
