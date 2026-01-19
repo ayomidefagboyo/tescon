@@ -49,7 +49,7 @@ class CloudflareR2Storage:
 
     def save_part_images(
         self,
-        part_number: str,
+        symbol_number: str,
         image_files: List[tuple],
         description: str = ""
     ) -> List[Dict[str, Any]]:
@@ -57,7 +57,7 @@ class CloudflareR2Storage:
         Save processed images to Cloudflare R2.
 
         Args:
-            part_number: Part number for organizing files
+            symbol_number: Symbol number for organizing files
             image_files: List of (filename, image_bytes) tuples
             description: Part description for metadata
 
@@ -66,8 +66,8 @@ class CloudflareR2Storage:
         """
         saved_files = []
 
-        # Create folder structure: parts/{part_number}/
-        folder_prefix = f"parts/{part_number}/"
+        # Create folder structure: parts/{symbol_number}/
+        folder_prefix = f"parts/{symbol_number}/"
 
         for filename, image_bytes in image_files:
             try:
@@ -81,7 +81,7 @@ class CloudflareR2Storage:
                     Body=image_bytes,
                     ContentType='image/jpeg' if filename.lower().endswith(('.jpg', '.jpeg')) else 'image/png',
                     Metadata={
-                        'part_number': part_number,
+                        'symbol_number': symbol_number,
                         'description': description,
                         'source': 'tescon-processor'
                     }
@@ -105,19 +105,19 @@ class CloudflareR2Storage:
 
         return saved_files
 
-    def check_duplicates(self, part_number: str, view_numbers: List[int]) -> Dict[int, bool]:
+    def check_duplicates(self, symbol_number: str, view_numbers: List[int]) -> Dict[int, bool]:
         """
         Check if images already exist for given part and view numbers.
 
         Args:
-            part_number: Part number to check
+            symbol_number: Symbol number to check
             view_numbers: List of view numbers to check
 
         Returns:
             Dict mapping view_number -> exists (bool)
         """
         duplicates = {}
-        folder_prefix = f"parts/{part_number}/"
+        folder_prefix = f"parts/{symbol_number}/"
 
         try:
             # List objects in the part folder
@@ -143,9 +143,9 @@ class CloudflareR2Storage:
 
         return duplicates
 
-    def list_part_images(self, part_number: str) -> List[Dict[str, Any]]:
+    def list_part_images(self, symbol_number: str) -> List[Dict[str, Any]]:
         """List all images for a given part number."""
-        folder_prefix = f"parts/{part_number}/"
+        folder_prefix = f"parts/{symbol_number}/"
         images = []
 
         try:
@@ -168,13 +168,13 @@ class CloudflareR2Storage:
                     })
 
         except Exception as e:
-            print(f"⚠ Warning: Could not list images for {part_number}: {e}")
+            print(f"⚠ Warning: Could not list images for {symbol_number}: {e}")
 
         return images
 
-    def delete_part_images(self, part_number: str) -> bool:
+    def delete_part_images(self, symbol_number: str) -> bool:
         """Delete all images for a given part number."""
-        folder_prefix = f"parts/{part_number}/"
+        folder_prefix = f"parts/{symbol_number}/"
 
         try:
             # List all objects in the part folder
@@ -192,11 +192,11 @@ class CloudflareR2Storage:
                     Delete={'Objects': delete_keys}
                 )
 
-                print(f"🗑️ Deleted {len(delete_keys)} images for part {part_number}")
+                print(f"🗑️ Deleted {len(delete_keys)} images for part {symbol_number}")
                 return True
 
         except Exception as e:
-            print(f"❌ Failed to delete images for {part_number}: {e}")
+            print(f"❌ Failed to delete images for {symbol_number}: {e}")
             return False
 
         return True  # No images to delete
@@ -216,7 +216,7 @@ class CloudflareR2Storage:
                     total_objects += 1
                     total_size += obj['Size']
 
-                    # Extract part number from key (parts/{part_number}/...)
+                    # Extract part number from key (parts/{symbol_number}/...)
                     key_parts = obj['Key'].split('/')
                     if len(key_parts) >= 2 and key_parts[0] == 'parts':
                         parts.add(key_parts[1])

@@ -107,7 +107,7 @@ GOOGLE_CREDENTIALS_PATH=google-credentials.json
 GOOGLE_DRIVE_FOLDER_ID=1oFy8XefGQJW7rX4SApgmm-Q56tn1v3_D
 
 # Optional: Column name overrides (if your sheet uses different column names)
-# GOOGLE_SHEETS_PART_NUMBER_COL=Part Number
+# GOOGLE_SHEETS_PART_NUMBER_COL=Symbol Number
 # GOOGLE_SHEETS_DESCRIPTION_COL=Description
 # GOOGLE_SHEETS_LOCATION_COL=Location
 # GOOGLE_SHEETS_ITEM_NOTE_COL=Item Note

@@ -14,8 +14,8 @@ class PartsTracker:
     def __init__(self, tracker_file: str = "parts_tracker.json"):
         self.tracker_file = Path(tracker_file)
         self.processed_parts: Set[str] = set()
-        self.failed_parts: Dict[str, str] = {}  # part_number -> error_reason
-        self.part_stats: Dict[str, Dict] = {}   # part_number -> stats
+        self.failed_parts: Dict[str, str] = {}  # symbol_number -> error_reason
+        self.part_stats: Dict[str, Dict] = {}   # symbol_number -> stats
         self.total_parts = 0
         self.load_tracker()
 
@@ -53,23 +53,23 @@ class PartsTracker:
         self.total_parts = total
         self.save_tracker()
 
-    def mark_part_processed(self, part_number: str, image_count: int, processing_time: float = None):
+    def mark_part_processed(self, symbol_number: str, image_count: int, processing_time: float = None):
         """
         Mark a part as successfully processed.
 
         Args:
-            part_number: The part number
+            symbol_number: The part number
             image_count: Number of images processed for this part
             processing_time: Processing time in seconds
         """
-        self.processed_parts.add(part_number)
+        self.processed_parts.add(symbol_number)
 
         # Remove from failed if it was there
-        if part_number in self.failed_parts:
-            del self.failed_parts[part_number]
+        if symbol_number in self.failed_parts:
+            del self.failed_parts[symbol_number]
 
         # Update stats
-        self.part_stats[part_number] = {
+        self.part_stats[symbol_number] = {
             'status': 'completed',
             'image_count': image_count,
             'processing_time': processing_time,
@@ -77,38 +77,38 @@ class PartsTracker:
         }
 
         self.save_tracker()
-        logger.info(f"Part {part_number} marked as processed with {image_count} images")
+        logger.info(f"Part {symbol_number} marked as processed with {image_count} images")
 
-    def mark_part_failed(self, part_number: str, error_reason: str):
+    def mark_part_failed(self, symbol_number: str, error_reason: str):
         """
         Mark a part as failed processing.
 
         Args:
-            part_number: The part number
+            symbol_number: The part number
             error_reason: Reason for failure
         """
-        self.failed_parts[part_number] = error_reason
+        self.failed_parts[symbol_number] = error_reason
 
         # Remove from processed if it was there
-        self.processed_parts.discard(part_number)
+        self.processed_parts.discard(symbol_number)
 
         # Update stats
-        self.part_stats[part_number] = {
+        self.part_stats[symbol_number] = {
             'status': 'failed',
             'error_reason': error_reason,
             'failed_at': datetime.now().isoformat()
         }
 
         self.save_tracker()
-        logger.warning(f"Part {part_number} marked as failed: {error_reason}")
+        logger.warning(f"Part {symbol_number} marked as failed: {error_reason}")
 
-    def is_part_processed(self, part_number: str) -> bool:
+    def is_part_processed(self, symbol_number: str) -> bool:
         """Check if a part has been processed."""
-        return part_number in self.processed_parts
+        return symbol_number in self.processed_parts
 
-    def is_part_failed(self, part_number: str) -> bool:
+    def is_part_failed(self, symbol_number: str) -> bool:
         """Check if a part has failed processing."""
-        return part_number in self.failed_parts
+        return symbol_number in self.failed_parts
 
     def get_progress_stats(self) -> Dict:
         """Get overall progress statistics."""
@@ -151,33 +151,33 @@ class PartsTracker:
         processed_and_failed = self.processed_parts.union(set(self.failed_parts.keys()))
         return list(all_parts_set - processed_and_failed)
 
-    def get_part_status(self, part_number: str) -> Optional[Dict]:
+    def get_part_status(self, symbol_number: str) -> Optional[Dict]:
         """
         Get detailed status of a specific part.
 
         Args:
-            part_number: The part number to check
+            symbol_number: The part number to check
 
         Returns:
             Dict with part status or None if not found
         """
-        return self.part_stats.get(part_number)
+        return self.part_stats.get(symbol_number)
 
-    def reset_part(self, part_number: str):
+    def reset_part(self, symbol_number: str):
         """
         Reset a part's status (remove from processed/failed).
 
         Args:
-            part_number: The part number to reset
+            symbol_number: The part number to reset
         """
-        self.processed_parts.discard(part_number)
-        if part_number in self.failed_parts:
-            del self.failed_parts[part_number]
-        if part_number in self.part_stats:
-            del self.part_stats[part_number]
+        self.processed_parts.discard(symbol_number)
+        if symbol_number in self.failed_parts:
+            del self.failed_parts[symbol_number]
+        if symbol_number in self.part_stats:
+            del self.part_stats[symbol_number]
 
         self.save_tracker()
-        logger.info(f"Reset status for part {part_number}")
+        logger.info(f"Reset status for part {symbol_number}")
 
     def reset_all(self):
         """Reset all tracking data."""
@@ -213,8 +213,8 @@ class PartsTracker:
             "-" * 20
         ]
 
-        for part_number, error in self.failed_parts.items():
-            report_lines.append(f"{part_number}: {error}")
+        for symbol_number, error in self.failed_parts.items():
+            report_lines.append(f"{symbol_number}: {error}")
 
         report_content = "\n".join(report_lines)
 

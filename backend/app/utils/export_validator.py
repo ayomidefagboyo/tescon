@@ -47,7 +47,7 @@ def validate_export(job_id: str, processed_dir: Path) -> Dict[str, Any]:
     # Scan all images in job directory
     for part_dir in job_dir.iterdir():
         if part_dir.is_dir():
-            part_number = part_dir.name
+            symbol_number = part_dir.name
             
             for image_file in part_dir.glob("*.*"):
                 if image_file.suffix.lower() in ['.jpg', '.jpeg', '.png']:
@@ -55,9 +55,9 @@ def validate_export(job_id: str, processed_dir: Path) -> Dict[str, Any]:
                     parsed = parse_filename(image_file.name)
                     
                     if parsed.is_valid:
-                        parts_data[part_number]["views"].append(parsed.view_number)
-                        parts_data[part_number]["locations"].add(parsed.location)
-                        parts_data[part_number]["filenames"].append(image_file.name)
+                        parts_data[symbol_number]["views"].append(parsed.view_number)
+                        parts_data[symbol_number]["locations"].add(parsed.location)
+                        parts_data[symbol_number]["filenames"].append(image_file.name)
                         all_images.append(image_file.name)
                         
                         # Check if file is readable/valid
@@ -72,7 +72,7 @@ def validate_export(job_id: str, processed_dir: Path) -> Dict[str, Any]:
     
     # Check for missing views
     missing_views = []
-    for part_number, data in parts_data.items():
+    for symbol_number, data in parts_data.items():
         views = sorted(set(data["views"]), key=lambda x: int(x))
         expected_views = [str(i) for i in range(1, len(views) + 1)]
         
@@ -84,7 +84,7 @@ def validate_export(job_id: str, processed_dir: Path) -> Dict[str, Any]:
             
             if missing:
                 missing_views.append({
-                    "part_number": part_number,
+                    "symbol_number": symbol_number,
                     "expected_views": expected_range,
                     "actual_views": actual_views_int,
                     "missing_views": missing
@@ -95,9 +95,9 @@ def validate_export(job_id: str, processed_dir: Path) -> Dict[str, Any]:
     if len(parts_data) == 0:
         warnings.append("No parts found - check if images were processed")
     
-    for part_number, data in parts_data.items():
+    for symbol_number, data in parts_data.items():
         if len(data["locations"]) > 1:
-            warnings.append(f"Part {part_number} has multiple locations: {', '.join(data['locations'])}")
+            warnings.append(f"Part {symbol_number} has multiple locations: {', '.join(data['locations'])}")
     
     # Overall validation
     is_valid = (

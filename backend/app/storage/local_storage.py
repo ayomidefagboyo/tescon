@@ -64,7 +64,7 @@ class LocalStorage:
         file_bytes: bytes, 
         filename: str, 
         job_id: Optional[str] = None,
-        part_number: Optional[str] = None
+        symbol_number: Optional[str] = None
     ) -> str:
         """
         Save processed image organized by part number.
@@ -73,14 +73,14 @@ class LocalStorage:
             file_bytes: Processed image bytes
             filename: Filename (with extension)
             job_id: Optional job ID for organization
-            part_number: Part number for folder organization
+            symbol_number: Symbol number for folder organization
             
         Returns:
             Path to saved file (relative)
         """
-        if job_id and part_number:
-            # Organize by job_id/part_number/filename
-            part_dir = self.processed_dir / job_id / part_number
+        if job_id and symbol_number:
+            # Organize by job_id/symbol_number/filename
+            part_dir = self.processed_dir / job_id / symbol_number
             part_dir.mkdir(parents=True, exist_ok=True)
             file_path = part_dir / filename
         elif job_id:
@@ -110,7 +110,7 @@ class LocalStorage:
             file_paths: List of relative file paths to include
             output_filename: Output ZIP filename
             job_id: Optional job ID for organization
-            preserve_structure: If True, preserve part_number folder structure
+            preserve_structure: If True, preserve symbol_number folder structure
             
         Returns:
             Path to created ZIP file
@@ -122,10 +122,10 @@ class LocalStorage:
         
         # Sort file paths: by part number (folder), then by filename
         def sort_key(file_path: str) -> tuple:
-            """Sort key: (part_number, filename) for proper ordering."""
+            """Sort key: (symbol_number, filename) for proper ordering."""
             path_parts = Path(file_path).parts
             if len(path_parts) >= 2:
-                # Has part_number folder: (part_number, filename)
+                # Has symbol_number folder: (symbol_number, filename)
                 return (path_parts[-2], path_parts[-1])
             else:
                 # No folder: (empty, filename)
@@ -138,11 +138,11 @@ class LocalStorage:
                 full_path = self.processed_dir / file_path
                 if full_path.exists():
                     if preserve_structure:
-                        # Preserve folder structure (part_number folders)
-                        # Remove job_id from path but keep part_number/filename
+                        # Preserve folder structure (symbol_number folders)
+                        # Remove job_id from path but keep symbol_number/filename
                         path_parts = Path(file_path).parts
                         if len(path_parts) >= 2:
-                            # Keep part_number/filename structure
+                            # Keep symbol_number/filename structure
                             arcname = str(Path(*path_parts[-2:]))
                         else:
                             arcname = Path(file_path).name

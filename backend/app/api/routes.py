@@ -296,8 +296,8 @@ async def download_job_results(job_id: str):
     )
 
 
-@router.get("/parts/{part_number}", response_model=PartInfo)
-async def get_part_info(part_number: str):
+@router.get("/parts/{symbol_number}", response_model=PartInfo)
+async def get_part_info(symbol_number: str):
     """
     Get part information from Excel catalog.
 
@@ -311,11 +311,11 @@ async def get_part_info(part_number: str):
             detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
         )
 
-    part_info = excel_service.get_part_info(part_number)
+    part_info = excel_service.get_part_info(symbol_number)
     if not part_info:
         raise HTTPException(
             status_code=404,
-            detail=f"Part number '{part_number}' not found in Excel catalog"
+            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
         )
 
     return PartInfo(**part_info)
@@ -346,7 +346,7 @@ async def search_parts(
 @router.post("/process/part/async", response_model=JobResponse)
 async def process_part_images_async(
     files: List[UploadFile] = File(...),
-    part_number: str = Query(..., min_length=1),
+    symbol_number: str = Query(..., min_length=1),
     view_numbers: Optional[str] = Query(None, description="Comma-separated view numbers (e.g., '1,2,3')"),
     format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
     white_background: bool = Query(True),
@@ -376,10 +376,10 @@ async def process_part_images_async(
 
     # Check if this part has already been processed or is in progress
     tracker = get_parts_tracker()
-    if tracker.is_part_processed(part_number):
+    if tracker.is_part_processed(symbol_number):
         raise HTTPException(
             status_code=409,
-            detail=f"Part {part_number} has already been processed. Use the tracking dashboard to see results."
+            detail=f"Part {symbol_number} has already been processed. Use the tracking dashboard to see results."
         )
 
     # Check if part is currently being processed (has active jobs)
@@ -394,7 +394,7 @@ async def process_part_images_async(
             WHERE job_data LIKE ?
             AND status IN ('queued', 'processing')
             AND datetime(created_at) > datetime('now', '-1 hour')
-        """, (f'%"part_number": "{part_number}"%',))
+        """, (f'%"symbol_number": "{symbol_number}"%',))
         recent_jobs = cursor.fetchall()
         conn.close()
     except Exception:
@@ -403,7 +403,7 @@ async def process_part_images_async(
     if recent_jobs:
         raise HTTPException(
             status_code=409,
-            detail=f"Part {part_number} is currently being processed. Please wait for completion."
+            detail=f"Part {symbol_number} is currently being processed. Please wait for completion."
         )
 
     # Generate job ID first for R2 folder structure
@@ -418,8 +418,8 @@ async def process_part_images_async(
     raw_file_paths = []
     for i, file in enumerate(files):
         content = await file.read()
-        # Store in R2 under raw/{part_number}/ folder for better organization
-        r2_key = f"raw/{part_number}/{job_id}_{i+1:02d}_{file.filename}"
+        # Store in R2 under raw/{symbol_number}/ folder for better organization
+        r2_key = f"raw/{symbol_number}/{job_id}_{i+1:02d}_{file.filename}"
 
         try:
             drive_storage.s3_client.put_object(
@@ -439,7 +439,7 @@ async def process_part_images_async(
     # Create job metadata for R2 background worker
     job_metadata = {
         "job_id": job_id,
-        "part_number": part_number,
+        "symbol_number": symbol_number,
         "raw_file_paths": raw_file_paths,
         "parameters": {
             "view_numbers": view_numbers,
@@ -469,14 +469,14 @@ async def process_part_images_async(
     return JobResponse(
         job_id=job_id,
         status="queued",
-        message=f"Part {part_number} processing queued. Use /jobs/{job_id}/status to check progress."
+        message=f"Part {symbol_number} processing queued. Use /jobs/{job_id}/status to check progress."
     )
 
 
 @router.post("/process/part", response_model=ProcessPartResponse)
 async def process_part_images(
     files: List[UploadFile] = File(...),
-    part_number: str = Query(..., min_length=1),
+    symbol_number: str = Query(..., min_length=1),
     view_numbers: Optional[str] = Query(None, description="Comma-separated view numbers (e.g., '1,2,3')"),
     format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
     white_background: bool = Query(True),
@@ -514,11 +514,11 @@ async def process_part_images(
             detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
         )
 
-    part_info = excel_service.get_part_info(part_number)
+    part_info = excel_service.get_part_info(symbol_number)
     if not part_info:
         raise HTTPException(
             status_code=404,
-            detail=f"Part number '{part_number}' not found in Excel catalog"
+            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
         )
     
     description = part_info.get("description", "")
@@ -548,7 +548,7 @@ async def process_part_images(
             detail="Cloudflare R2 not configured. Check R2 environment variables."
         )
     
-    duplicates = drive_storage.check_duplicates(part_number, view_nums)
+    duplicates = drive_storage.check_duplicates(symbol_number, view_nums)
     duplicate_views = [v for v, exists in duplicates.items() if exists]
     
     if duplicate_views:
@@ -593,7 +593,7 @@ async def process_part_images(
             safe_description = safe_description.replace(' ', '_')[:50]  # Limit length
             
             ext = ".jpg" if output_format.upper() in ["JPEG", "JPG"] else ".png"
-            filename = f"{part_number}_{view_num}_{safe_description}{ext}"
+            filename = f"{symbol_number}_{view_num}_{safe_description}{ext}"
             
             # Get processed bytes
             processed_bytes = processed_buffer.read()
@@ -611,7 +611,7 @@ async def process_part_images(
         # Upload all files to Cloudflare R2
         try:
             saved_files = drive_storage.save_part_images(
-                part_number=part_number,
+                symbol_number=symbol_number,
                 image_files=processed_files,
                 description=description
             )
@@ -623,29 +623,29 @@ async def process_part_images(
 
         # Mark part as processed in tracker
         tracker = get_parts_tracker()
-        tracker.mark_part_processed(part_number, len(saved_files))
+        tracker.mark_part_processed(symbol_number, len(saved_files))
 
         return ProcessPartResponse(
             success=True,
-            part_number=part_number,
+            symbol_number=symbol_number,
             description=description,
             location=location,
             item_note=item_note if item_note else None,
             files_saved=len(saved_files),
             saved_paths=[{"filename": f.get("filename", ""), "url": f.get("url", "")} for f in saved_files],
-            message=f"Successfully processed and saved {len(saved_files)} images for part {part_number}"
+            message=f"Successfully processed and saved {len(saved_files)} images for part {symbol_number}"
         )
         
     except HTTPException as e:
         # Mark as failed in tracker for non-404 errors
         if "not found" not in str(e).lower():
             tracker = get_parts_tracker()
-            tracker.mark_part_failed(part_number, str(e))
+            tracker.mark_part_failed(symbol_number, str(e))
         raise
     except Exception as e:
         # Mark part as failed in tracker
         tracker = get_parts_tracker()
-        tracker.mark_part_failed(part_number, str(e))
+        tracker.mark_part_failed(symbol_number, str(e))
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 
@@ -706,16 +706,16 @@ async def search_excel_parts(
     return results
 
 
-@router.get("/excel/parts/{part_number}")
-async def get_excel_part_info(part_number: str):
+@router.get("/excel/parts/{symbol_number}")
+async def get_excel_part_info(symbol_number: str):
     """Get part information from Excel catalog."""
     excel_service = get_excel_parts_service()
     if excel_service.unique_parts is None:
         raise HTTPException(status_code=503, detail="No Excel file loaded. Upload an Excel file first.")
 
-    part_info = excel_service.get_part_info(part_number)
+    part_info = excel_service.get_part_info(symbol_number)
     if not part_info:
-        raise HTTPException(status_code=404, detail=f"Part number '{part_number}' not found in Excel catalog")
+        raise HTTPException(status_code=404, detail=f"Symbol number '{symbol_number}' not found in Excel catalog")
 
     return part_info
 
@@ -775,32 +775,32 @@ async def get_remaining_parts():
     }
 
 
-@router.get("/tracker/parts/{part_number}/status")
-async def get_part_status(part_number: str):
+@router.get("/tracker/parts/{symbol_number}/status")
+async def get_part_status(symbol_number: str):
     """Get detailed status of a specific part."""
     tracker = get_parts_tracker()
-    status = tracker.get_part_status(part_number)
+    status = tracker.get_part_status(symbol_number)
 
     if not status:
         # Check if part exists in Excel
         excel_service = get_excel_parts_service()
         if excel_service.unique_parts is not None:
-            part_info = excel_service.get_part_info(part_number)
+            part_info = excel_service.get_part_info(symbol_number)
             if part_info:
-                return {"part_number": part_number, "status": "pending", "exists": True}
+                return {"symbol_number": symbol_number, "status": "pending", "exists": True}
 
-        raise HTTPException(status_code=404, detail=f"Part number '{part_number}' not found")
+        raise HTTPException(status_code=404, detail=f"Symbol number '{symbol_number}' not found")
 
-    return {"part_number": part_number, **status}
+    return {"symbol_number": symbol_number, **status}
 
 
-@router.post("/tracker/parts/{part_number}/reset")
-async def reset_part_status(part_number: str):
+@router.post("/tracker/parts/{symbol_number}/reset")
+async def reset_part_status(symbol_number: str):
     """Reset status for a specific part (remove from processed/failed)."""
     tracker = get_parts_tracker()
-    tracker.reset_part(part_number)
+    tracker.reset_part(symbol_number)
 
-    return {"success": True, "message": f"Reset status for part {part_number}"}
+    return {"success": True, "message": f"Reset status for part {symbol_number}"}
 
 
 @router.get("/tracker/report")

@@ -85,7 +85,7 @@ class ExcelPartsService:
         row = part_row.iloc[0]
 
         return {
-            'part_number': str(row['Symbol Number']),
+            'symbol_number': str(row['Symbol Number']),
             'description': str(row['Desc1']),
             'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
             'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
@@ -118,7 +118,7 @@ class ExcelPartsService:
         results = []
         for _, row in matching_parts.iterrows():
             results.append({
-                'part_number': str(row['Symbol Number']),
+                'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
@@ -146,7 +146,7 @@ class ExcelPartsService:
         results = []
         for _, row in parts_subset.iterrows():
             results.append({
-                'part_number': str(row['Symbol Number']),
+                'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None

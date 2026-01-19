@@ -94,7 +94,7 @@ CLOUDFLARE_BUCKET_NAME=tescon-images
 ## Step 8: Process Your First Image
 
 1. Go to your frontend: `http://localhost:4173`
-2. Upload an image for any part number
+2. Upload an image for any symbol number
 3. The image will be processed and uploaded to R2
 4. Check your R2 bucket - you'll see the organized files:
 

@@ -133,15 +133,15 @@ class R2BackgroundWorker:
     async def process_job(self, job_key: str, job_data: Dict[str, Any]) -> bool:
         """Process a single job."""
         job_id = job_data.get('job_id', 'unknown')
-        part_number = job_data.get('part_number', 'unknown')
+        symbol_number = job_data.get('symbol_number', 'unknown')
 
-        print(f"🔄 Processing job {job_id} for part {part_number}")
+        print(f"🔄 Processing job {job_id} for part {symbol_number}")
 
         try:
             # Get part info from Excel
-            part_info = self.excel_service.get_part_info(part_number)
+            part_info = self.excel_service.get_part_info(symbol_number)
             if not part_info:
-                raise Exception(f"Part {part_number} not found in catalog")
+                raise Exception(f"Part {symbol_number} not found in catalog")
 
             description = part_info.get("description", "")
             raw_file_paths = job_data.get('raw_file_paths', [])
@@ -196,7 +196,7 @@ class R2BackgroundWorker:
                     safe_description = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in description)
                     safe_description = safe_description.replace(' ', '_')[:50]
                     ext = ".jpg" if output_format.upper() in ["JPEG", "JPG"] else ".png"
-                    filename = f"{part_number}_{view_num}_{safe_description}{ext}"
+                    filename = f"{symbol_number}_{view_num}_{safe_description}{ext}"
 
                     processed_bytes = processed_buffer.read()
                     processed_files.append((filename, processed_bytes))
@@ -211,13 +211,13 @@ class R2BackgroundWorker:
 
             # Upload processed images to R2
             saved_files = self.r2_storage.save_part_images(
-                part_number=part_number,
+                symbol_number=symbol_number,
                 image_files=processed_files,
                 description=description
             )
 
             # Mark part as processed in tracker
-            self.parts_tracker.mark_part_processed(part_number, len(saved_files))
+            self.parts_tracker.mark_part_processed(symbol_number, len(saved_files))
 
             # Cleanup raw images
             try:

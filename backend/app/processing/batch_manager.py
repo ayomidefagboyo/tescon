@@ -103,13 +103,13 @@ class BatchProcessor:
                     processed_filename = f"{original_name}{ext}"
                     
                     # Save with part number organization if filename is valid
-                    part_number = parsed.part_number if parsed.is_valid else None
+                    symbol_number = parsed.symbol_number if parsed.is_valid else None
                     
                     file_path = self.storage.save_processed(
                         processed_buffer.read(),
                         processed_filename,
                         job_id,
-                        part_number=part_number
+                        symbol_number=symbol_number
                     )
                     
                     # Log success
@@ -206,7 +206,7 @@ class BatchProcessor:
                 all_processed_files, 
                 zip_filename, 
                 job_id,
-                preserve_structure=True  # Keep part_number folders
+                preserve_structure=True  # Keep symbol_number folders
             )
             job_manager.add_processed_file(job_id, zip_path)
         

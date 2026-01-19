@@ -87,7 +87,7 @@ class JobManager:
         job_data = None
         if job_type == "process_part":
             job_data = json.dumps({
-                "part_number": kwargs.get("part_number"),
+                "symbol_number": kwargs.get("symbol_number"),
                 "file_paths": kwargs.get("file_paths"),
                 "temp_dir": kwargs.get("temp_dir"),
                 "parameters": kwargs.get("parameters")
@@ -125,7 +125,7 @@ class JobManager:
         job_data = None
         if job_type == "process_part":
             job_data = json.dumps({
-                "part_number": kwargs.get("part_number"),
+                "symbol_number": kwargs.get("symbol_number"),
                 "raw_file_paths": kwargs.get("raw_file_paths"),
                 "parameters": kwargs.get("parameters")
             })
@@ -314,7 +314,7 @@ class JobManager:
                 return
 
             job_data = json.loads(job["job_data"])
-            part_number = job_data["part_number"]
+            symbol_number = job_data["symbol_number"]
             raw_file_paths = job_data["raw_file_paths"]
             params = job_data["parameters"]
 
@@ -331,9 +331,9 @@ class JobManager:
                 self.update_job_status(job_id, JobStatus.FAILED, "Excel catalog not loaded")
                 return
 
-            part_info = excel_service.get_part_info(part_number)
+            part_info = excel_service.get_part_info(symbol_number)
             if not part_info:
-                self.update_job_status(job_id, JobStatus.FAILED, f"Part {part_number} not found in catalog")
+                self.update_job_status(job_id, JobStatus.FAILED, f"Part {symbol_number} not found in catalog")
                 return
 
             description = part_info.get("description", "")
@@ -392,7 +392,7 @@ class JobManager:
                     safe_description = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in description)
                     safe_description = safe_description.replace(' ', '_')[:50]
                     ext = ".jpg" if output_format.upper() in ["JPEG", "JPG"] else ".png"
-                    filename = f"{part_number}_{view_num}_{safe_description}{ext}"
+                    filename = f"{symbol_number}_{view_num}_{safe_description}{ext}"
 
                     processed_bytes = processed_buffer.read()
                     processed_files.append((filename, processed_bytes))
@@ -411,14 +411,14 @@ class JobManager:
             # Upload to Cloudflare R2
             try:
                 saved_files = drive_storage.save_part_images(
-                    part_number=part_number,
+                    symbol_number=symbol_number,
                     image_files=processed_files,
                     description=description
                 )
 
                 # Mark part as processed
                 tracker = get_parts_tracker()
-                tracker.mark_part_processed(part_number, len(saved_files))
+                tracker.mark_part_processed(symbol_number, len(saved_files))
 
                 # Complete the job
                 self.update_job_status(job_id, JobStatus.COMPLETED, f"Successfully processed {len(saved_files)} images")

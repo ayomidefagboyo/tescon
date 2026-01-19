@@ -47,10 +47,10 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
     setError(null);
   };
 
-  // Handle part number lookup
+  // Handle symbol number lookup
   const handlePartNumberNext = async () => {
     if (!partNumber.trim()) {
-      setError("Please enter a part number");
+      setError("Please enter a symbol number");
       return;
     }
 
@@ -144,7 +144,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
   const renderStepIndicator = () => {
     const steps = [
       { key: "upload", label: "Upload Photos", icon: Upload },
-      { key: "part-number", label: "Part Number", icon: Search },
+      { key: "part-number", label: "Symbol Number", icon: Search },
       { key: "review", label: "Review", icon: Image },
     ];
 
@@ -191,7 +191,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
           onClick={handleUploadNext}
           disabled={files.length < 2 || files.length > 4}
         >
-          Next: Enter Part Number
+          Next: Enter Symbol Number
           <ChevronRight size={16} />
         </button>
       </div>
@@ -200,17 +200,17 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   const renderPartNumberStep = () => (
     <div className="step-content">
-      <h2>Step 2: Enter Part Number</h2>
-      <p>Enter the part number to look up description and details</p>
+      <h2>Step 2: Enter Symbol Number</h2>
+      <p>Enter the symbol number to look up description and details</p>
 
       <div className="part-number-input">
-        <label htmlFor="part-number">Part Number</label>
+        <label htmlFor="part-number">Symbol Number</label>
         <input
           id="part-number"
           type="text"
           value={partNumber}
           onChange={(e) => setPartNumber(e.target.value)}
-          placeholder="Enter part number..."
+          placeholder="Enter symbol number..."
           onKeyPress={(e) => e.key === 'Enter' && handlePartNumberNext()}
           autoFocus
         />
@@ -248,7 +248,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
           <h3>Part Information</h3>
           <div className="info-grid">
             <div className="info-item">
-              <strong>Part Number:</strong>
+              <strong>Symbol Number:</strong>
               <span>{partInfo.part_number}</span>
             </div>
             <div className="info-item">

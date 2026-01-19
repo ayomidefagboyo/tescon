@@ -7,7 +7,7 @@ from dataclasses import dataclass
 @dataclass
 class ParsedFilename:
     """Parsed filename components."""
-    part_number: str
+    symbol_number: str
     view_number: str
     location: str
     original_filename: str
@@ -40,9 +40,9 @@ def parse_filename(filename: str) -> ParsedFilename:
     match = re.match(pattern, name_without_ext)
     
     if match:
-        part_number, view_number, location = match.groups()
+        symbol_number, view_number, location = match.groups()
         return ParsedFilename(
-            part_number=part_number,
+            symbol_number=symbol_number,
             view_number=view_number,
             location=location,
             original_filename=filename,
@@ -54,7 +54,7 @@ def parse_filename(filename: str) -> ParsedFilename:
         error_msg = _get_error_message(name_without_ext)
         
         return ParsedFilename(
-            part_number="",
+            symbol_number="",
             view_number="",
             location="",
             original_filename=filename,
@@ -84,13 +84,13 @@ def _get_error_message(filename: str) -> str:
             return "Invalid format. Expected: PartNumber_ViewNumber_Description"
 
 
-def suggest_filename(filename: str, part_number: str = "", view_number: str = "1", description: str = "") -> str:
+def suggest_filename(filename: str, symbol_number: str = "", view_number: str = "1", description: str = "") -> str:
     """
     Suggest a valid filename based on user input.
     
     Args:
         filename: Original filename
-        part_number: Suggested part number
+        symbol_number: Suggested part number
         view_number: Suggested view number
         description: Suggested description (e.g., BEARING, FAN TYPE)
         
@@ -101,7 +101,7 @@ def suggest_filename(filename: str, part_number: str = "", view_number: str = "1
     ext = filename.rsplit('.', 1)[1] if '.' in filename else 'jpg'
     
     # Build suggested filename
-    suggested = f"{part_number}_{view_number}_{description}.{ext}"
+    suggested = f"{symbol_number}_{view_number}_{description}.{ext}"
     
     return suggested
 
@@ -122,7 +122,7 @@ def validate_batch_filenames(filenames: list[str]) -> dict:
     invalid_files = [r for r in results if not r.is_valid]
     
     # Count unique part numbers
-    unique_parts = set(r.part_number for r in valid_files)
+    unique_parts = set(r.symbol_number for r in valid_files)
     
     return {
         "total_files": len(filenames),
@@ -145,22 +145,22 @@ def _get_parts_summary(parsed_files: list[ParsedFilename]) -> dict:
     parts_dict = {}
     
     for pf in parsed_files:
-        if pf.part_number not in parts_dict:
-            parts_dict[pf.part_number] = {
+        if pf.symbol_number not in parts_dict:
+            parts_dict[pf.symbol_number] = {
                 "views": [],
                 "locations": set(),
                 "count": 0
             }
         
-        parts_dict[pf.part_number]["views"].append(pf.view_number)
-        parts_dict[pf.part_number]["locations"].add(pf.location)
-        parts_dict[pf.part_number]["count"] += 1
+        parts_dict[pf.symbol_number]["views"].append(pf.view_number)
+        parts_dict[pf.symbol_number]["locations"].add(pf.location)
+        parts_dict[pf.symbol_number]["count"] += 1
     
     # Convert to list format
     summary = []
     for part_num, data in parts_dict.items():
         summary.append({
-            "part_number": part_num,
+            "symbol_number": part_num,
             "view_count": data["count"],
             "views": sorted(set(data["views"]), key=lambda x: int(x)),
             "locations": list(data["locations"])

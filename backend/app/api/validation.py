@@ -29,7 +29,7 @@ async def parse_single_filename(filename: str):
     """
     result = parse_filename(filename)
     return ParsedFilenameInfo(
-        part_number=result.part_number,
+        symbol_number=result.symbol_number,
         view_number=result.view_number,
         location=result.location,
         original_filename=result.original_filename,
@@ -45,7 +45,7 @@ async def suggest_valid_filename(rename_request: RenameRequest) -> dict:
     """
     suggested = suggest_filename(
         rename_request.original_filename,
-        rename_request.part_number,
+        rename_request.symbol_number,
         rename_request.view_number,
         rename_request.location
     )

@@ -12,7 +12,7 @@ The tool offers two ways to process images:
 
 ### 1. **Simple Workflow** (Recommended)
 - Upload images (1-10 at a time)
-- Enter part number
+- Enter symbol number
 - System automatically:
   - Looks up part description, location, and notes from Google Sheets
   - Adds text labels to processed images
@@ -35,8 +35,8 @@ The tool offers two ways to process images:
 ### Step 1: Select "Simple" Mode
 - Click the **"Simple"** button at the top of the page
 
-### Step 2: Enter Part Number
-- Type the part number in the search box
+### Step 2: Enter Symbol Number
+- Type the symbol number in the search box
 - Select from autocomplete suggestions (if available)
 - System will show part information:
   - Description
@@ -55,11 +55,11 @@ The tool offers two ways to process images:
   - Check for duplicates in Google Drive
   - Process images with background removal
   - Add text labels with part description
-  - Save to Google Drive in part number folders
+  - Save to Google Drive in symbol number folders
 
 ### Step 5: Access Results
 - Images are automatically saved to Google Drive
-- Organized in folders by part number
+- Organized in folders by symbol number
 - Filenames: `PartNumber_ViewNumber_Description.jpg`
 - Access via Google Drive link provided
 
@@ -96,7 +96,7 @@ photo1.jpg              (missing all components)
 
 ### What Each Part Means
 
-- **PartNumber**: The item/part number (e.g., `58802935`)
+- **PartNumber**: The item/symbol number (e.g., `58802935`)
 - **ViewNumber**: The angle/view (1, 2, 3, 4...)
   - View 1: Front
   - View 2: Side
@@ -125,7 +125,7 @@ The system automatically shows:
 - ✅ **Valid files**: Correctly named images
 - ❌ **Invalid files**: Files that don't match the naming format
 - 📦 **Unique parts**: How many different parts you're uploading
-- 📊 **Part breakdown**: List of part numbers found
+- 📊 **Part breakdown**: List of symbol numbers found
 
 ### Step 3: Fix Invalid Names (if any)
 
@@ -133,7 +133,7 @@ If you see files with invalid names:
 
 1. Click **"Rename"** on the invalid file
 2. Fill in the three fields:
-   - **Part Number** (e.g., `58802935`)
+   - **Symbol Number** (e.g., `58802935`)
    - **View Number** (e.g., `1`, `2`, `3`)
    - **Location** (e.g., `EG1060007`)
 3. Click **"Save"** - the file will be renamed
@@ -186,7 +186,7 @@ processed_[job_id].zip
 ### Step 7: Upload to SharePoint
 
 1. Extract the ZIP file
-2. You'll see folders named by part number
+2. You'll see folders named by symbol number
 3. Upload each folder (or all at once) to SharePoint
 4. Done! No manual sorting needed.
 
@@ -257,7 +257,7 @@ Before uploading to SharePoint, verify:
 - [ ] All images have valid filenames
 - [ ] Processing completed without failures
 - [ ] Validation shows no missing views
-- [ ] ZIP structure shows folders by part number
+- [ ] ZIP structure shows folders by symbol number
 - [ ] Image quality is acceptable for catalog
 - [ ] File sizes are reasonable (< 2MB per image)
 

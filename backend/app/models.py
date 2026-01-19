@@ -14,7 +14,7 @@ class JobStatus(str, Enum):
 
 class ParsedFilenameInfo(BaseModel):
     """Parsed filename information."""
-    part_number: str
+    symbol_number: str
     view_number: str
     location: str  # Now used as description (e.g., BEARING, FAN TYPE)
     original_filename: str
@@ -35,7 +35,7 @@ class FilenameValidationResponse(BaseModel):
 class RenameRequest(BaseModel):
     """Request to rename a file."""
     original_filename: str
-    part_number: str
+    symbol_number: str
     view_number: str
     location: str  # Now description field
 
@@ -88,7 +88,7 @@ class ExportValidationResponse(BaseModel):
 
 class PartInfo(BaseModel):
     """Part information from Excel file."""
-    part_number: str
+    symbol_number: str
     description: str
     location: str
     item_note: str
@@ -97,7 +97,7 @@ class PartInfo(BaseModel):
 class ProcessPartResponse(BaseModel):
     """Response for part processing."""
     success: bool
-    part_number: str
+    symbol_number: str
     description: str
     location: str
     item_note: Optional[str] = None

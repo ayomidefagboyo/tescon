@@ -1,6 +1,6 @@
 # Tescon - Internal Image Background Removal Tool
 
-An internal tool for automatically processing spare-part images for SharePoint catalog upload. Removes backgrounds, standardizes to white backgrounds, validates filenames, and organizes by part number.
+An internal tool for automatically processing spare-part images for SharePoint catalog upload. Removes backgrounds, standardizes to white backgrounds, validates filenames, and organizes by symbol number.
 
 ## Features
 
@@ -13,7 +13,7 @@ An internal tool for automatically processing spare-part images for SharePoint c
 ### SharePoint Integration
 - **Filename Validation**: Enforces `PartNumber_ViewNumber_Location.jpg` format
 - **On-the-Spot Renaming**: Fix invalid filenames before processing
-- **Auto-Folder Organization**: Creates folders by part number automatically
+- **Auto-Folder Organization**: Creates folders by symbol number automatically
 - **Export Structure**: `/PartNumber/PartNumber_view1_Location.jpg`
 - **Pre-Export Validation**: Checks for missing views and corrupted images
 
@@ -118,7 +118,7 @@ npm run dev
 
 ### Jobs
 - `GET /api/jobs/{job_id}` - Get job status with progress and failed images
-- `GET /api/jobs/{job_id}/download` - Download processed images ZIP (organized by part number)
+- `GET /api/jobs/{job_id}/download` - Download processed images ZIP (organized by symbol number)
 - `POST /api/jobs/{job_id}/retry` - Retry failed images from a completed job
 
 ### Health
@@ -147,7 +147,7 @@ Environment variables (backend):
 
 ### 2. Fix Invalid Names (if any)
 - Click "Rename" on any invalid file
-- Enter: Part Number, View Number, Location
+- Enter: Symbol Number, View Number, Location
 - Or skip invalid files
 
 ### 3. Configure Processing
