@@ -196,51 +196,39 @@ def create_ecommerce_card_layout(
 
     # Calculate dimensions
     img_width, img_height = image.size
-    
-    # Increase text area height for better readability (25% instead of 15%)
-    text_area_height = max(80, int(img_height * text_area_height_ratio))
-    
-    # Add minimal top padding to reduce excessive white space
-    top_padding = max(10, int(img_height * 0.02))  # 2% of image height, min 10px
 
-    # Create new canvas with extended height for text area and top padding
-    card_height = top_padding + img_height + text_area_height
-    card_image = Image.new("RGB", (img_width, card_height), (255, 255, 255))
+    # Minimal top padding - Amazon style has products close to top
+    top_padding = max(5, int(img_height * 0.01))  # 1% of image height, min 5px
 
-    # Paste original image with top padding (not at absolute top)
-    card_image.paste(image, (0, top_padding))
-
-    # Draw on the card
-    draw = ImageDraw.Draw(card_image)
-
-    # Calculate optimal font size based on text length and area
+    # Calculate optimal font size first, then determine text area based on actual text
     max_text_width = img_width - (padding * 2)
-    max_font_size = text_area_height - (padding * 2)
 
-    # Start with a much larger, more readable font size (increased from 0.6 to 0.75)
-    base_font_size = max(32, min(56, int(text_area_height * 0.75)))
+    # Amazon-style very large, prominent text - significantly bigger
+    base_font_size = max(60, min(100, int(img_height * 0.08)))  # 8% of image height
 
-    # Adjust font size based on text length - larger minimum sizes for better readability
+    # Adjust font size based on text length - Amazon listing style very large fonts
     text_length = len(item_note)
     if text_length > 100:
-        font_size = max(24, int(base_font_size * 0.8))  # Increased minimum
+        font_size = max(48, int(base_font_size * 0.8))   # Large even for long text
     elif text_length > 60:
-        font_size = max(28, int(base_font_size * 0.9))  # Increased minimum
+        font_size = max(56, int(base_font_size * 0.85))  # Very large for medium text
     elif text_length > 30:
-        font_size = max(32, int(base_font_size * 0.95))  # Increased minimum
+        font_size = max(64, int(base_font_size * 0.9))   # Extra large for short text
     else:
-        font_size = base_font_size
+        font_size = base_font_size  # Maximum size for very short text
 
-    # Try to load a good font
+    # Try to load Amazon-style font (Arial is Amazon's primary font)
     font = None
     try:
-        # Try system fonts in order of preference
+        # Amazon-style fonts in order of preference
         font_paths = [
-            "/System/Library/Fonts/Helvetica.ttc",  # macOS
-            "/System/Library/Fonts/Arial.ttf",       # macOS
-            "arial.ttf",                             # Windows/Linux
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
-            "/usr/share/fonts/TTF/arial.ttf"         # Linux
+            "/System/Library/Fonts/Arial.ttf",       # macOS - Amazon's primary font
+            "arial.ttf",                             # Windows/Linux - Amazon's primary
+            "/System/Library/Fonts/Helvetica.ttc",  # macOS - similar to Amazon
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux - Arial alternative
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux fallback
+            "/usr/share/fonts/TTF/arial.ttf",        # Linux
+            "/System/Library/Fonts/Helvetica Neue.ttc"  # macOS alternative
         ]
 
         for font_path in font_paths:
@@ -251,19 +239,27 @@ def create_ecommerce_card_layout(
                 continue
 
         if font is None:
-            font = ImageFont.load_default()
+            # Try to use a larger default font
+            try:
+                font = ImageFont.load_default()
+            except:
+                font = ImageFont.load_default()
 
     except:
         font = ImageFont.load_default()
 
-    # Word wrap the text to fit within the text area
+    # Create a temporary draw object to calculate text dimensions
+    temp_image = Image.new("RGB", (img_width, 100), (255, 255, 255))
+    temp_draw = ImageDraw.Draw(temp_image)
+
+    # Word wrap the text to fit within the width
     words = item_note.split()
     lines = []
     current_line = ""
 
     for word in words:
         test_line = current_line + (" " if current_line else "") + word
-        bbox = draw.textbbox((0, 0), test_line, font=font)
+        bbox = temp_draw.textbbox((0, 0), test_line, font=font)
         text_width = bbox[2] - bbox[0]
 
         if text_width <= max_text_width:
@@ -281,17 +277,20 @@ def create_ecommerce_card_layout(
         lines.append(current_line)
 
     # If text is too long for the area, reduce font size and try again
-    while len(lines) > 3 and font_size > 18:  # Max 3 lines, minimum 18px (increased from 10px)
-        font_size = max(18, int(font_size * 0.9))
+    while len(lines) > 3 and font_size > 24:  # Max 3 lines, minimum 24px (keep Amazon style large)
+        font_size = max(24, int(font_size * 0.9))
         try:
+            # Use same Amazon-style font paths for consistency
             for font_path in font_paths:
                 try:
                     font = ImageFont.truetype(font_path, font_size)
                     break
                 except:
                     continue
+            if font is None:
+                font = ImageFont.load_default()
         except:
-            pass
+            font = ImageFont.load_default()
 
         # Recalculate word wrap with smaller font
         lines = []
@@ -299,7 +298,7 @@ def create_ecommerce_card_layout(
 
         for word in words:
             test_line = current_line + (" " if current_line else "") + word
-            bbox = draw.textbbox((0, 0), test_line, font=font)
+            bbox = temp_draw.textbbox((0, 0), test_line, font=font)
             text_width = bbox[2] - bbox[0]
 
             if text_width <= max_text_width:
@@ -315,16 +314,33 @@ def create_ecommerce_card_layout(
         if current_line:
             lines.append(current_line)
 
-    # Calculate total text height
+    # Calculate actual text height based on content
     if lines:
-        bbox = draw.textbbox((0, 0), lines[0], font=font)
+        bbox = temp_draw.textbbox((0, 0), lines[0], font=font)
         line_height = bbox[3] - bbox[1]
-        # Increased line spacing for better readability (from 4px to 6px)
-        total_text_height = len(lines) * line_height + (len(lines) - 1) * 6
+        # Reduced line spacing for closer positioning to part (2px for tighter layout)
+        total_text_height = len(lines) * line_height + (len(lines) - 1) * 2
 
-        # Center text vertically in text area (accounting for top padding)
+        # Dynamic text area height based on actual content + minimal padding
+        text_area_height = total_text_height + (padding * 2)
+    else:
+        text_area_height = 0
+
+    # Now create the actual canvas with exact size needed
+    card_height = top_padding + img_height + text_area_height
+    card_image = Image.new("RGB", (img_width, card_height), (255, 255, 255))
+
+    # Paste original image with minimal top padding
+    card_image.paste(image, (0, top_padding))
+
+    # Draw on the actual card
+    draw = ImageDraw.Draw(card_image)
+
+    # Draw text if we have any
+    if lines and text_area_height > 0:
+        # Position text right after the image (minimal gap)
         text_area_start_y = top_padding + img_height
-        text_start_y = text_area_start_y + (text_area_height - total_text_height) // 2
+        text_start_y = text_area_start_y + padding  # Just add padding, no centering
 
         # Draw each line
         for i, line in enumerate(lines):
@@ -333,7 +349,7 @@ def create_ecommerce_card_layout(
 
             # Center text horizontally
             text_x = (img_width - line_width) // 2
-            text_y = text_start_y + i * (line_height + 6)  # Updated line spacing
+            text_y = text_start_y + i * (line_height + 2)  # Reduced line spacing for closer positioning
 
             # Draw the text in Amazon blue
             draw.text((text_x, text_y), line, fill=AMAZON_BLUE, font=font)
