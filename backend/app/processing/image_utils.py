@@ -296,6 +296,36 @@ def create_ecommerce_card_layout(
     VALUE_FONT_SIZE = 48  # Values/content text
     max_text_width = img_width - (padding * 2)
 
+    def wrap_text(text: str, max_width: int, font, draw) -> List[str]:
+        """Wrap text to fit within max_width, returning list of lines."""
+        if not text:
+            return [""]
+
+        words = text.split()
+        lines = []
+        current_line = ""
+
+        for word in words:
+            # Test if adding this word would exceed max width
+            test_line = current_line + (" " if current_line else "") + word
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            if (bbox[2] - bbox[0]) <= max_width:
+                current_line = test_line
+            else:
+                # Word doesn't fit, start new line
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # Single word is too long, add it anyway to avoid infinite loop
+                    lines.append(word)
+                    current_line = ""
+
+        if current_line:
+            lines.append(current_line)
+
+        return lines if lines else [""]
+
     # Load fonts - try bold variants first, then regular
     label_font = None
     value_font = None
@@ -374,48 +404,86 @@ def create_ecommerce_card_layout(
                 value = pair
             processed_lines.append((label, value))
 
-    # Create drawing instructions for each line
-    # Each line can contain multiple label-value pairs
+    # Calculate label indentation width (width of "LONG DESCRIPTION: " for proper alignment)
+    label_indent_bbox = temp_draw.textbbox((0, 0), "LONG DESCRIPTION: ", font=label_font)
+    label_indent_width = label_indent_bbox[2] - label_indent_bbox[0]
+
+    # Create drawing instructions for each line with proper word wrapping
     drawing_lines: List[List[Tuple[str, str]]] = []  # [[(text, font_type), ...], ...]
 
     i = 0
     while i < len(processed_lines):
         label, value = processed_lines[i]
-        current_line: List[Tuple[str, str]] = []
 
-        # Check if we should combine this pair with the next one on the same line
+        # Handle combined symbol/location line
         if label and value and i + 1 < len(processed_lines):
             next_label, next_value = processed_lines[i + 1]
             if next_label and next_value and (
                 ("SYMBOL NUMBER" in label and "LOCATION" in next_label) or
                 ("LOCATION" in label and "SYMBOL NUMBER" in next_label)
             ):
-                # Add both pairs to the same line
-                current_line.extend([
-                    (label, "label"),
-                    (value, "value"),
-                    ("    ", "spacer"),  # 4 spaces between pairs
-                    (next_label, "label"),
-                    (next_value, "value")
-                ])
-                i += 2  # Skip next pair
-            else:
-                # Just this pair on its line
-                current_line.extend([
-                    (label, "label"),
-                    (value, "value")
-                ])
-                i += 1
-        else:
-            # Single pair or individual element
-            if label:
-                current_line.append((label, "label"))
-            if value:
-                current_line.append((value, "value"))
-            i += 1
+                # Check if the combined line fits, otherwise wrap individual values
+                combined_text = f"{label} {value}    {next_label} {next_value}"
+                bbox = temp_draw.textbbox((0, 0), combined_text, font=label_font)
+                if (bbox[2] - bbox[0]) <= max_text_width:
+                    # Fits on one line
+                    combined_line = []
+                    combined_line.append((label, "label"))
+                    combined_line.append((value, "value"))
+                    combined_line.append(("    ", "spacer"))
+                    combined_line.append((next_label, "label"))
+                    combined_line.append((next_value, "value"))
+                    drawing_lines.append(combined_line)
+                else:
+                    # Too long, wrap each value separately
+                    # Add symbol number line
+                    if value:
+                        wrapped_values = wrap_text(value, max_text_width - label_indent_width, value_font, temp_draw)
+                        for j, wrapped_value in enumerate(wrapped_values):
+                            current_line = []
+                            if j == 0:
+                                current_line.append((label, "label"))
+                            else:
+                                current_line.append((f"indent_{label_indent_width}", "indent"))
+                            current_line.append((wrapped_value, "value"))
+                            drawing_lines.append(current_line)
 
-        if current_line:
-            drawing_lines.append(current_line)
+                    # Add location line
+                    if next_value:
+                        wrapped_values = wrap_text(next_value, max_text_width - label_indent_width, value_font, temp_draw)
+                        for j, wrapped_value in enumerate(wrapped_values):
+                            current_line = []
+                            if j == 0:
+                                current_line.append((next_label, "label"))
+                            else:
+                                current_line.append((f"indent_{label_indent_width}", "indent"))
+                            current_line.append((wrapped_value, "value"))
+                            drawing_lines.append(current_line)
+
+                i += 2
+                continue
+
+        # Handle regular description lines with word wrapping
+        if label and value:
+            # Word wrap the value if it's too long
+            wrapped_lines = wrap_text(value, max_text_width - label_indent_width, value_font, temp_draw)
+            for j, wrapped_value in enumerate(wrapped_lines):
+                current_line = []
+                if j == 0:  # First line gets the label
+                    current_line.append((label, "label"))
+                else:  # Subsequent lines are indented
+                    current_line.append((f"indent_{label_indent_width}", "indent"))
+                current_line.append((wrapped_value, "value"))
+                drawing_lines.append(current_line)
+        elif label:
+            drawing_lines.append([(label, "label")])
+        elif value:
+            # Word wrap standalone value
+            wrapped_lines = wrap_text(value, max_text_width, value_font, temp_draw)
+            for wrapped_value in wrapped_lines:
+                drawing_lines.append([(wrapped_value, "value")])
+
+        i += 1
 
     # Calculate total text height based on drawing lines
     total_text_height = 0
@@ -467,6 +535,11 @@ def create_ecommerce_card_layout(
                     font = label_font
                 elif font_type == "value":
                     font = value_font
+                elif font_type.startswith("indent_"):
+                    # Handle indentation for wrapped lines
+                    indent_width = int(font_type.split("_")[1])
+                    current_x += indent_width
+                    continue
                 else:  # spacer
                     # For spacers, just advance x position
                     bbox = temp_draw.textbbox((0, 0), text, font=label_font)
