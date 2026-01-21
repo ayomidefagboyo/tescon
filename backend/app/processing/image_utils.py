@@ -238,9 +238,11 @@ def create_ecommerce_card_layout(
 
     Args:
         image: PIL Image (product image with white background)
-        desc1: Primary description (labeled as "Desc1:")
-        desc2: Secondary description (labeled as "Desc2:")
-        item_note: Item note (labeled as "Item Note:")
+        symbol_number: Part symbol number
+        location: Part location
+        desc1: Primary description
+        desc2: Secondary description
+        long_description: Long description text
         padding: Padding around text in pixels
         text_area_height_ratio: Height of text area as ratio of image height (0.25 = 25%)
 
@@ -280,8 +282,8 @@ def create_ecommerce_card_layout(
     if not lines:
         return framed_image.copy()
 
-    # Amazon blue like the reference listing text
-    TEXT_COLOR = (33, 98, 161)  # #2162a1
+    # Brand blue color
+    BRAND_BLUE = (33, 98, 161)  # #2162a1
 
     # Calculate dimensions
     img_width, img_height = framed_image.size
@@ -289,15 +291,29 @@ def create_ecommerce_card_layout(
     # Minimal top padding
     top_padding = max(6, int(img_height * 0.012))
 
-    # Base font size from width for consistent readability
+    # Fixed larger font sizes for better readability
+    LABEL_FONT_SIZE = 42  # Labels like "Symbol Number:", "Location:", etc.
+    VALUE_FONT_SIZE = 54  # Values/content text
     max_text_width = img_width - (padding * 2)
 
-    base_font_size = max(22, min(44, int(img_width * 0.035)))
+    # Load fonts - try bold variants first, then regular
+    label_font = None
+    value_font = None
 
-    # Load font
-    font = None
     try:
-        font_paths = [
+        # Try bold fonts first for labels
+        bold_font_paths = [
+            "/System/Library/Fonts/Arial Bold.ttf",
+            "/System/Library/Fonts/Arial-Black.ttf",
+            "arialbd.ttf",  # Windows Arial Bold
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/TTF/arialbd.ttf",
+            "/System/Library/Fonts/Helvetica Bold.ttc"
+        ]
+
+        # Try regular fonts for fallback
+        regular_font_paths = [
             "/System/Library/Fonts/Arial.ttf",
             "arial.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
@@ -307,54 +323,119 @@ def create_ecommerce_card_layout(
             "/System/Library/Fonts/Helvetica Neue.ttc"
         ]
 
-        for font_path in font_paths:
+        # Load label font (bold, 42px)
+        for font_path in bold_font_paths + regular_font_paths:
             try:
-                font = ImageFont.truetype(font_path, base_font_size)
+                label_font = ImageFont.truetype(font_path, LABEL_FONT_SIZE)
                 break
             except:
                 continue
 
-        if font is None:
-            font = ImageFont.load_default()
+        # Load value font (bold, 54px)
+        for font_path in bold_font_paths + regular_font_paths:
+            try:
+                value_font = ImageFont.truetype(font_path, VALUE_FONT_SIZE)
+                break
+            except:
+                continue
+
+        # Fallback to default if needed
+        if label_font is None:
+            label_font = ImageFont.load_default()
+        if value_font is None:
+            value_font = ImageFont.load_default()
+
     except:
-        font = ImageFont.load_default()
+        # Ultimate fallback
+        label_font = ImageFont.load_default()
+        value_font = ImageFont.load_default()
 
     # Create temporary canvas for text measurement
     temp_image = Image.new("RGB", (img_width, 100), (255, 255, 255))
     temp_draw = ImageDraw.Draw(temp_image)
 
-    # Word-wrap each of the 5 lines independently
-    all_lines: List[str] = []
-    line_spacing = 10
+    # Process each line to separate labels from values and handle word wrapping
+    processed_lines: List[Tuple[str, str]] = []  # [(label, value), ...]
 
-    for base in lines:
-        words = base.split()
-        current = ""
-        for word in words:
-            test = current + (" " if current else "") + word
-            bbox = temp_draw.textbbox((0, 0), test, font=font)
-            if (bbox[2] - bbox[0]) <= max_text_width:
-                current = test
-            else:
-                if current:
-                    all_lines.append(current)
-                    current = word
+    for line in lines:
+        if ": " in line:
+            label, value = line.split(": ", 1)
+            label = label + ":"
+        else:
+            # Handle lines without colon separator
+            label = ""
+            value = line
+        processed_lines.append((label, value))
+
+    # Word-wrap each line independently and collect all text elements
+    all_text_elements: List[Tuple[str, str, str]] = []  # [(text, font_type, alignment_key), ...]
+
+    for label, value in processed_lines:
+        # Handle label (42px, tight line height)
+        if label:
+            # Word wrap label if needed
+            label_words = label.split()
+            current_label = ""
+            for word in label_words:
+                test = current_label + (" " if current_label else "") + word
+                bbox = temp_draw.textbbox((0, 0), test, font=label_font)
+                if (bbox[2] - bbox[0]) <= max_text_width:
+                    current_label = test
                 else:
-                    all_lines.append(word)
-                    current = ""
-        if current:
-            all_lines.append(current)
+                    if current_label:
+                        all_text_elements.append((current_label, "label", f"label_{len(all_text_elements)}"))
+                        current_label = word
+                    else:
+                        all_text_elements.append((word, "label", f"label_{len(all_text_elements)}"))
+                        current_label = ""
+            if current_label:
+                all_text_elements.append((current_label, "label", f"label_{len(all_text_elements)}"))
 
-    # Calculate total text height
-    if all_lines:
-        sample_bbox = temp_draw.textbbox((0, 0), "Ag", font=font)
-        line_height = sample_bbox[3] - sample_bbox[1]
+        # Handle value (54px, slightly relaxed line height)
+        if value:
+            # Word wrap value if needed
+            value_words = value.split()
+            current_value = ""
+            for word in value_words:
+                test = current_value + (" " if current_value else "") + word
+                bbox = temp_draw.textbbox((0, 0), test, font=value_font)
+                if (bbox[2] - bbox[0]) <= max_text_width:
+                    current_value = test
+                else:
+                    if current_value:
+                        all_text_elements.append((current_value, "value", f"value_{len(all_text_elements)}"))
+                        current_value = word
+                    else:
+                        all_text_elements.append((word, "value", f"value_{len(all_text_elements)}"))
+                        current_value = ""
+            if current_value:
+                all_text_elements.append((current_value, "value", f"value_{len(all_text_elements)}"))
 
-        total_text_height = (len(all_lines) * line_height) + ((len(all_lines) - 1) * line_spacing)
+    # Calculate total text height with different line heights
+    total_text_height = 0
+    line_heights = []
 
-        text_area_height = total_text_height + (padding * 2)
-    else:
-        text_area_height = 0
+    for text, font_type, _ in all_text_elements:
+        if font_type == "label":
+            bbox = temp_draw.textbbox((0, 0), "Ag", font=label_font)
+            line_height = bbox[3] - bbox[1]
+            # Tight line height for labels
+            total_text_height += line_height
+            line_heights.append(line_height)
+        else:  # value
+            bbox = temp_draw.textbbox((0, 0), "Ag", font=value_font)
+            line_height = bbox[3] - bbox[1]
+            # Slightly relaxed line height for values (1.2x)
+            adjusted_height = int(line_height * 1.2)
+            total_text_height += adjusted_height
+            line_heights.append(adjusted_height)
+
+    # Add spacing between elements
+    element_spacing = 8
+    if all_text_elements:
+        total_text_height += (len(all_text_elements) - 1) * element_spacing
+
+    text_area_height = total_text_height + (padding * 2)
 
     # Create final canvas
     card_height = top_padding + img_height + text_area_height
@@ -366,14 +447,14 @@ def create_ecommerce_card_layout(
     # Draw text
     draw = ImageDraw.Draw(card_image)
 
-    if all_lines and text_area_height > 0:
+    if all_text_elements and text_area_height > 0:
         text_area_start_y = top_padding + img_height
         current_y = text_area_start_y + padding
 
-        x = padding  # left-aligned like the reference
-        for line in all_lines:
-            draw.text((x, current_y), line, fill=TEXT_COLOR, font=font)
-            current_y += line_height + line_spacing
+        for i, (text, font_type, _) in enumerate(all_text_elements):
+            font = label_font if font_type == "label" else value_font
+            draw.text((padding, current_y), text, fill=BRAND_BLUE, font=font)
+            current_y += line_heights[i] + element_spacing
 
     return card_image
 
