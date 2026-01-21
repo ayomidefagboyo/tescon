@@ -259,18 +259,16 @@ def create_ecommerce_card_layout(
         return s if s else None
 
     # Build requested lines with formatting:
-    #  - Line 1: Symbol Number and Location (same line when both exist)
-    #  - Line 2+: each description on its own line
+    #  - Line 1: Symbol Number (if exists)
+    #  - Line 2: Location (if exists)
+    #  - Line 3+: each description on its own line
     lines: List[str] = []
     sym = norm(symbol_number)
     loc = norm(location)
-    if sym or loc:
-        if sym and loc:
-            lines.append(f"SYMBOL NUMBER: {sym}    LOCATION: {loc}")
-        elif sym:
-            lines.append(f"SYMBOL NUMBER: {sym}")
-        else:
-            lines.append(f"LOCATION: {loc}")
+    if sym:
+        lines.append(f"SYMBOL NUMBER: {sym}")
+    if loc:
+        lines.append(f"LOCATION: {loc}")
     if norm(desc1):
         lines.append(f"DESCRIPTION 1: {norm(desc1)}")
     if norm(desc2):
