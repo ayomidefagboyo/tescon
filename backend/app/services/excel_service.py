@@ -131,7 +131,8 @@ class ExcelPartsService:
             'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
             'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
             'combined_description': str(row['Combined_Description']),
-            'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
+            # Location: use Excel Location column only (no warehouse prefix)
+            'location': str(row['Location']) if pd.notna(row['Location']) else None
         }
 
     def search_parts(self, query: str, limit: int = 10) -> List[Dict]:
@@ -168,7 +169,7 @@ class ExcelPartsService:
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
                 'combined_description': str(row['Combined_Description']),
-                'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
+                'location': str(row['Location']) if pd.notna(row['Location']) else None
             })
 
         return results
@@ -200,7 +201,7 @@ class ExcelPartsService:
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
                 'combined_description': str(row['Combined_Description']),
-                'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
+                'location': str(row['Location']) if pd.notna(row['Location']) else None
             })
 
         return results, total_count
