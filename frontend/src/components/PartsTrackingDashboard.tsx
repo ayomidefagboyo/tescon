@@ -199,18 +199,19 @@ export const PartsTrackingDashboard: React.FC = () => {
       borderRadius: borderRadius.md,
       boxShadow: shadows.sm,
       border: `1px solid ${colors.neutral[200]}`,
+      gap: mobileSpacing.xs,
     },
     partHeader: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: mobileSpacing.sm,
+      marginBottom: mobileSpacing.xs,
     },
     partNumber: {
-      fontSize: mobileTypography.fontSize.lg,
+      fontSize: 'clamp(28px, 6vw, 48px)',
       fontWeight: typography.fontWeight.bold,
       color: colors.primary.main,
-      lineHeight: 1.35,
+      lineHeight: 1.1,
       maxWidth: '320px',
     },
     statusBadge: {
