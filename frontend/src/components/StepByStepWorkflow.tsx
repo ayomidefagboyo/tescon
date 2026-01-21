@@ -635,13 +635,16 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
         }
 
         .info-item strong {
-          color: #666;
+          color: #4a5970;
           font-size: 14px;
+          font-weight: 600;
         }
 
         .info-item span {
-          color: #333;
-          font-size: 16px;
+          color: #1a3a6d;
+          font-size: 18px;
+          font-weight: 700;
+          line-height: 1.35;
         }
 
 

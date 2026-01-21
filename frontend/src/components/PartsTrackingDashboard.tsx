@@ -207,9 +207,11 @@ export const PartsTrackingDashboard: React.FC = () => {
       marginBottom: mobileSpacing.sm,
     },
     partNumber: {
-      fontSize: mobileTypography.fontSize.base,
-      fontWeight: typography.fontWeight.semibold,
-      color: colors.text.primary,
+      fontSize: mobileTypography.fontSize.lg,
+      fontWeight: typography.fontWeight.bold,
+      color: colors.primary.main,
+      lineHeight: 1.35,
+      maxWidth: '320px',
     },
     statusBadge: {
       padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
