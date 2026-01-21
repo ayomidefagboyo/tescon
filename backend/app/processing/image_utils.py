@@ -259,16 +259,18 @@ def create_ecommerce_card_layout(
         return s if s else None
 
     # Build requested lines with formatting:
-    #  - Line 1: Symbol Number (if exists)
-    #  - Line 2: Location (if exists)
-    #  - Line 3+: each description on its own line
+    #  - Line 1: Symbol Number and Location on same line (if both exist)
+    #  - Line 2+: each description on its own line
     lines: List[str] = []
     sym = norm(symbol_number)
     loc = norm(location)
-    if sym:
-        lines.append(f"SYMBOL NUMBER: {sym}")
-    if loc:
-        lines.append(f"LOCATION: {loc}")
+    if sym or loc:
+        if sym and loc:
+            lines.append(f"SYMBOL NUMBER: {sym}    LOCATION: {loc}")
+        elif sym:
+            lines.append(f"SYMBOL NUMBER: {sym}")
+        else:
+            lines.append(f"LOCATION: {loc}")
     if norm(desc1):
         lines.append(f"DESCRIPTION 1: {norm(desc1)}")
     if norm(desc2):
@@ -356,14 +358,21 @@ def create_ecommerce_card_layout(
     processed_lines: List[Tuple[str, str]] = []  # [(label, value), ...]
 
     for line in lines:
-        if ": " in line:
-            label, value = line.split(": ", 1)
-            label = label + ":"
+        # Handle lines with multiple label-value pairs (separated by 4 spaces)
+        if "    " in line:
+            pairs = line.split("    ")
         else:
-            # Handle lines without colon separator
-            label = ""
-            value = line
-        processed_lines.append((label, value))
+            pairs = [line]
+
+        for pair in pairs:
+            if ": " in pair:
+                label, value = pair.split(": ", 1)
+                label = label + ":"
+            else:
+                # Handle pairs without colon separator
+                label = ""
+                value = pair
+            processed_lines.append((label, value))
 
     # Word-wrap each line independently and collect all text elements
     all_text_elements: List[Tuple[str, str, str]] = []  # [(text, font_type, alignment_key), ...]
