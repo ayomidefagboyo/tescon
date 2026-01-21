@@ -266,17 +266,17 @@ def create_ecommerce_card_layout(
     loc = norm(location)
     if sym or loc:
         if sym and loc:
-            lines.append(f"Symbol Number: {sym}    Location: {loc}")
+            lines.append(f"SYMBOL NUMBER: {sym}    LOCATION: {loc}")
         elif sym:
-            lines.append(f"Symbol Number: {sym}")
+            lines.append(f"SYMBOL NUMBER: {sym}")
         else:
-            lines.append(f"Location: {loc}")
+            lines.append(f"LOCATION: {loc}")
     if norm(desc1):
-        lines.append(f"Description 1: {norm(desc1)}")
+        lines.append(f"DESCRIPTION 1: {norm(desc1)}")
     if norm(desc2):
-        lines.append(f"Description 2: {norm(desc2)}")
+        lines.append(f"DESCRIPTION 2: {norm(desc2)}")
     if norm(long_description):
-        lines.append(f"Long Description: {norm(long_description)}")
+        lines.append(f"LONG DESCRIPTION: {norm(long_description)}")
 
     # If nothing to render, return framed image
     if not lines:
