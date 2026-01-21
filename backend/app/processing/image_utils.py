@@ -292,8 +292,8 @@ def create_ecommerce_card_layout(
     top_padding = max(6, int(img_height * 0.012))
 
     # Fixed larger font sizes for better readability
-    LABEL_FONT_SIZE = 42  # Labels like "Symbol Number:", "Location:", etc.
-    VALUE_FONT_SIZE = 54  # Values/content text
+    LABEL_FONT_SIZE = 56  # Labels like "SYMBOL NUMBER:", "LOCATION:", etc. (bigger than values)
+    VALUE_FONT_SIZE = 48  # Values/content text
     max_text_width = img_width - (padding * 2)
 
     # Load fonts - try bold variants first, then regular
@@ -323,7 +323,7 @@ def create_ecommerce_card_layout(
             "/System/Library/Fonts/Helvetica Neue.ttc"
         ]
 
-        # Load label font (bold, 42px)
+        # Load label font (bold, 56px)
         for font_path in bold_font_paths + regular_font_paths:
             try:
                 label_font = ImageFont.truetype(font_path, LABEL_FONT_SIZE)
@@ -331,7 +331,7 @@ def create_ecommerce_card_layout(
             except:
                 continue
 
-        # Load value font (bold, 54px)
+        # Load value font (bold, 48px)
         for font_path in bold_font_paths + regular_font_paths:
             try:
                 value_font = ImageFont.truetype(font_path, VALUE_FONT_SIZE)
@@ -371,7 +371,7 @@ def create_ecommerce_card_layout(
     all_text_elements: List[Tuple[str, str, str]] = []  # [(text, font_type, alignment_key), ...]
 
     for label, value in processed_lines:
-        # Handle label (42px, tight line height)
+        # Handle label (56px, tight line height)
         if label:
             # Word wrap label if needed
             label_words = label.split()
@@ -391,7 +391,7 @@ def create_ecommerce_card_layout(
             if current_label:
                 all_text_elements.append((current_label, "label", f"label_{len(all_text_elements)}"))
 
-        # Handle value (54px, slightly relaxed line height)
+        # Handle value (48px, slightly relaxed line height)
         if value:
             # Word wrap value if needed
             value_words = value.split()
