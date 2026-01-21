@@ -533,6 +533,9 @@ async def process_part_images(
     description = part_info.get("description", "")
     location = part_info.get("location", "")
     item_note = part_info.get("item_note", "")
+    desc1 = part_info.get("description_1") or description
+    desc2 = part_info.get("description_2") or ""
+    long_desc = part_info.get("long_description") or (item_note or "")
     
     # Parse view numbers or auto-assign
     if view_numbers:
@@ -593,6 +596,11 @@ async def process_part_images(
                 add_label=add_label,
                 label_position=label_position,
                 item_note=item_note if item_note else None,
+                symbol_number=symbol_number,
+                location=location,
+                desc1=desc1,
+                desc2=desc2,
+                long_description=long_desc,
                 use_ecommerce_layout=True  # Enable e-commerce card layout
             )
             
@@ -640,6 +648,9 @@ async def process_part_images(
             description=description,
             location=location,
             item_note=item_note if item_note else None,
+            description_1=desc1,
+            description_2=desc2,
+            long_description=long_desc if long_desc else None,
             files_saved=len(saved_files),
             saved_paths=[{"filename": f.get("filename", ""), "url": f.get("url", "")} for f in saved_files],
             message=f"Successfully processed and saved {len(saved_files)} images for part {symbol_number}"

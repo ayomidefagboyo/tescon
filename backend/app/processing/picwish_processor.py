@@ -37,6 +37,11 @@ def process_image(
     add_label: bool = True,
     label_position: str = "bottom-left",
     item_note: Optional[str] = None,
+    symbol_number: Optional[str] = None,
+    location: Optional[str] = None,
+    desc1: Optional[str] = None,
+    desc2: Optional[str] = None,
+    long_description: Optional[str] = None,
     use_ecommerce_layout: bool = False
 ) -> BytesIO:
     """
@@ -122,20 +127,24 @@ def process_image(
                     processed_image = composite_white_background(processed_image)
                 
                 # Add text label or e-commerce layout
-                if use_ecommerce_layout and item_note:
-                    # Use new e-commerce card layout with combined description
+                if use_ecommerce_layout:
+                    # Listing-style card: include requested fields when available
                     from app.processing.image_utils import create_ecommerce_card_layout
                     processed_image = create_ecommerce_card_layout(
                         processed_image,
-                        item_note=item_note,
-                        padding=24  # Increased padding for better spacing
+                        symbol_number=symbol_number,
+                        location=location,
+                        desc1=desc1 or description,
+                        desc2=desc2,
+                        long_description=long_description or item_note,
+                        padding=24
                     )
-                elif add_label and item_note:
-                    # Use combined description for text overlay
+                elif add_label and (item_note or description):
+                    # Fallback: overlay a single combined text block
                     from app.processing.image_utils import add_text_label
                     processed_image = add_text_label(
                         processed_image,
-                        text=item_note,
+                        text=item_note or description or "",
                         position=label_position,
                         font_size=None,  # Auto-calculate
                         text_color=(0, 0, 0),  # Black text

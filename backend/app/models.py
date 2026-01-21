@@ -92,6 +92,11 @@ class PartInfo(BaseModel):
     description: str
     location: str
     item_note: str
+    # Optional richer fields (when present in Excel)
+    description_1: Optional[str] = None
+    description_2: Optional[str] = None
+    long_description: Optional[str] = None
+    combined_description: Optional[str] = None
 
 
 class ProcessPartResponse(BaseModel):
@@ -101,6 +106,9 @@ class ProcessPartResponse(BaseModel):
     description: str
     location: str
     item_note: Optional[str] = None
+    description_1: Optional[str] = None
+    description_2: Optional[str] = None
+    long_description: Optional[str] = None
     files_saved: int
     saved_paths: List[Dict[str, str]]
     message: str

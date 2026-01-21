@@ -1,7 +1,7 @@
 """Image manipulation utilities."""
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageChops
 from io import BytesIO
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 
 def composite_white_background(image: Image.Image) -> Image.Image:
@@ -26,6 +26,59 @@ def composite_white_background(image: Image.Image) -> Image.Image:
     else:
         # Convert to RGB
         return image.convert("RGB")
+
+
+def fit_subject_to_canvas(
+    image: Image.Image,
+    background_color: Tuple[int, int, int] = (255, 255, 255),
+    diff_threshold: int = 14,
+    margin_ratio: float = 0.06
+) -> Image.Image:
+    """
+    Reduce excessive whitespace by detecting the non-background subject,
+    cropping to its bounds, then scaling and centering it back onto the
+    original canvas.
+
+    Useful when the subject sits low in frame (common on mobile), which
+    otherwise results in a large empty area at the top.
+    """
+    img = image.convert("RGB") if image.mode != "RGB" else image
+    w, h = img.size
+    if w <= 0 or h <= 0:
+        return img.copy()
+
+    bg = Image.new("RGB", img.size, background_color)
+    diff = ImageChops.difference(img, bg).convert("L")
+    mask = diff.point(lambda p: 255 if p > diff_threshold else 0)
+    bbox = mask.getbbox()
+    if not bbox:
+        return img.copy()
+
+    left, top, right, bottom = bbox
+    pad = int(min(w, h) * 0.01)
+    left = max(0, left - pad)
+    top = max(0, top - pad)
+    right = min(w, right + pad)
+    bottom = min(h, bottom + pad)
+
+    subject = img.crop((left, top, right, bottom))
+    sw, sh = subject.size
+    if sw <= 0 or sh <= 0:
+        return img.copy()
+
+    margin = int(min(w, h) * margin_ratio)
+    target_w = max(1, w - (2 * margin))
+    target_h = max(1, h - (2 * margin))
+    scale = min(target_w / sw, target_h / sh)
+    new_w = max(1, int(sw * scale))
+    new_h = max(1, int(sh * scale))
+
+    subject_resized = subject.resize((new_w, new_h), Image.LANCZOS)
+    out = Image.new("RGB", (w, h), background_color)
+    x = (w - new_w) // 2
+    y = (h - new_h) // 2
+    out.paste(subject_resized, (x, y))
+    return out
 
 
 def convert_format(image: Image.Image, format: str, quality: int = 95) -> BytesIO:
@@ -172,187 +225,148 @@ def add_text_label(
 
 def create_ecommerce_card_layout(
     image: Image.Image,
-    item_note: str,
+    symbol_number: Optional[str] = None,
+    location: Optional[str] = None,
+    desc1: Optional[str] = None,
+    desc2: Optional[str] = None,
+    long_description: Optional[str] = None,
     padding: int = 20,
     text_area_height_ratio: float = 0.25
 ) -> Image.Image:
     """
-    Create e-commerce card layout with image on top and item note below.
+    Create e-commerce card layout with image on top and separate description fields below.
 
     Args:
         image: PIL Image (product image with white background)
-        item_note: Item note text to display below image
+        desc1: Primary description (labeled as "Desc1:")
+        desc2: Secondary description (labeled as "Desc2:")
+        item_note: Item note (labeled as "Item Note:")
         padding: Padding around text in pixels
         text_area_height_ratio: Height of text area as ratio of image height (0.25 = 25%)
 
     Returns:
         PIL Image with e-commerce card layout
     """
-    if not item_note or not item_note.strip():
-        return image.copy()
+    # Normalize framing so subject fills the image area better
+    framed_image = fit_subject_to_canvas(image)
 
-    # Amazon blue color
-    AMAZON_BLUE = (33, 98, 161)  # #2162a1
+    def norm(v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s else None
+
+    # Build the 5 requested lines (with graceful fallbacks)
+    lines: List[str] = []
+    if norm(symbol_number):
+        lines.append(f"Symbol Number: {norm(symbol_number)}")
+    if norm(location):
+        lines.append(f"Location: {norm(location)}")
+    if norm(desc1):
+        lines.append(f"Description 1: {norm(desc1)}")
+    if norm(desc2):
+        lines.append(f"Description 2: {norm(desc2)}")
+    if norm(long_description):
+        lines.append(f"Long Description: {norm(long_description)}")
+
+    # If nothing to render, return framed image
+    if not lines:
+        return framed_image.copy()
+
+    # Amazon blue like the reference listing text
+    TEXT_COLOR = (33, 98, 161)  # #2162a1
 
     # Calculate dimensions
-    img_width, img_height = image.size
+    img_width, img_height = framed_image.size
 
-    # Minimal top padding - Amazon style has products close to top
-    top_padding = max(5, int(img_height * 0.01))  # 1% of image height, min 5px
+    # Minimal top padding
+    top_padding = max(6, int(img_height * 0.012))
 
-    # Calculate optimal font size first, then determine text area based on actual text
+    # Base font size from width for consistent readability
     max_text_width = img_width - (padding * 2)
 
-    # Amazon-style very large, prominent text - significantly bigger
-    base_font_size = max(60, min(100, int(img_height * 0.08)))  # 8% of image height
+    base_font_size = max(22, min(44, int(img_width * 0.035)))
 
-    # Adjust font size based on text length - Amazon listing style very large fonts
-    text_length = len(item_note)
-    if text_length > 100:
-        font_size = max(48, int(base_font_size * 0.8))   # Large even for long text
-    elif text_length > 60:
-        font_size = max(56, int(base_font_size * 0.85))  # Very large for medium text
-    elif text_length > 30:
-        font_size = max(64, int(base_font_size * 0.9))   # Extra large for short text
-    else:
-        font_size = base_font_size  # Maximum size for very short text
-
-    # Try to load Amazon-style font (Arial is Amazon's primary font)
+    # Load font
     font = None
     try:
-        # Amazon-style fonts in order of preference
         font_paths = [
-            "/System/Library/Fonts/Arial.ttf",       # macOS - Amazon's primary font
-            "arial.ttf",                             # Windows/Linux - Amazon's primary
-            "/System/Library/Fonts/Helvetica.ttc",  # macOS - similar to Amazon
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux - Arial alternative
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux fallback
-            "/usr/share/fonts/TTF/arial.ttf",        # Linux
-            "/System/Library/Fonts/Helvetica Neue.ttc"  # macOS alternative
+            "/System/Library/Fonts/Arial.ttf",
+            "arial.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/TTF/arial.ttf",
+            "/System/Library/Fonts/Helvetica Neue.ttc"
         ]
 
         for font_path in font_paths:
             try:
-                font = ImageFont.truetype(font_path, font_size)
+                font = ImageFont.truetype(font_path, base_font_size)
                 break
             except:
                 continue
 
         if font is None:
-            # Try to use a larger default font
-            try:
-                font = ImageFont.load_default()
-            except:
-                font = ImageFont.load_default()
-
+            font = ImageFont.load_default()
     except:
         font = ImageFont.load_default()
 
-    # Create a temporary draw object to calculate text dimensions
+    # Create temporary canvas for text measurement
     temp_image = Image.new("RGB", (img_width, 100), (255, 255, 255))
     temp_draw = ImageDraw.Draw(temp_image)
 
-    # Word wrap the text to fit within the width
-    words = item_note.split()
-    lines = []
-    current_line = ""
+    # Word-wrap each of the 5 lines independently
+    all_lines: List[str] = []
+    line_spacing = 10
 
-    for word in words:
-        test_line = current_line + (" " if current_line else "") + word
-        bbox = temp_draw.textbbox((0, 0), test_line, font=font)
-        text_width = bbox[2] - bbox[0]
-
-        if text_width <= max_text_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line)
-                current_line = word
-            else:
-                # Single word is too long, add it anyway
-                lines.append(word)
-                current_line = ""
-
-    if current_line:
-        lines.append(current_line)
-
-    # If text is too long for the area, reduce font size and try again
-    while len(lines) > 3 and font_size > 24:  # Max 3 lines, minimum 24px (keep Amazon style large)
-        font_size = max(24, int(font_size * 0.9))
-        try:
-            # Use same Amazon-style font paths for consistency
-            for font_path in font_paths:
-                try:
-                    font = ImageFont.truetype(font_path, font_size)
-                    break
-                except:
-                    continue
-            if font is None:
-                font = ImageFont.load_default()
-        except:
-            font = ImageFont.load_default()
-
-        # Recalculate word wrap with smaller font
-        lines = []
-        current_line = ""
-
+    for base in lines:
+        words = base.split()
+        current = ""
         for word in words:
-            test_line = current_line + (" " if current_line else "") + word
-            bbox = temp_draw.textbbox((0, 0), test_line, font=font)
-            text_width = bbox[2] - bbox[0]
-
-            if text_width <= max_text_width:
-                current_line = test_line
+            test = current + (" " if current else "") + word
+            bbox = temp_draw.textbbox((0, 0), test, font=font)
+            if (bbox[2] - bbox[0]) <= max_text_width:
+                current = test
             else:
-                if current_line:
-                    lines.append(current_line)
-                    current_line = word
+                if current:
+                    all_lines.append(current)
+                    current = word
                 else:
-                    lines.append(word)
-                    current_line = ""
+                    all_lines.append(word)
+                    current = ""
+        if current:
+            all_lines.append(current)
 
-        if current_line:
-            lines.append(current_line)
+    # Calculate total text height
+    if all_lines:
+        sample_bbox = temp_draw.textbbox((0, 0), "Ag", font=font)
+        line_height = sample_bbox[3] - sample_bbox[1]
 
-    # Calculate actual text height based on content
-    if lines:
-        bbox = temp_draw.textbbox((0, 0), lines[0], font=font)
-        line_height = bbox[3] - bbox[1]
-        # Reduced line spacing for closer positioning to part (2px for tighter layout)
-        total_text_height = len(lines) * line_height + (len(lines) - 1) * 2
+        total_text_height = (len(all_lines) * line_height) + ((len(all_lines) - 1) * line_spacing)
 
-        # Dynamic text area height based on actual content + minimal padding
         text_area_height = total_text_height + (padding * 2)
     else:
         text_area_height = 0
 
-    # Now create the actual canvas with exact size needed
+    # Create final canvas
     card_height = top_padding + img_height + text_area_height
     card_image = Image.new("RGB", (img_width, card_height), (255, 255, 255))
 
-    # Paste original image with minimal top padding
-    card_image.paste(image, (0, top_padding))
+    # Paste framed image
+    card_image.paste(framed_image, (0, top_padding))
 
-    # Draw on the actual card
+    # Draw text
     draw = ImageDraw.Draw(card_image)
 
-    # Draw text if we have any
-    if lines and text_area_height > 0:
-        # Position text right after the image (minimal gap)
+    if all_lines and text_area_height > 0:
         text_area_start_y = top_padding + img_height
-        text_start_y = text_area_start_y + padding  # Just add padding, no centering
+        current_y = text_area_start_y + padding
 
-        # Draw each line
-        for i, line in enumerate(lines):
-            bbox = draw.textbbox((0, 0), line, font=font)
-            line_width = bbox[2] - bbox[0]
-
-            # Center text horizontally
-            text_x = (img_width - line_width) // 2
-            text_y = text_start_y + i * (line_height + 2)  # Reduced line spacing for closer positioning
-
-            # Draw the text in Amazon blue
-            draw.text((text_x, text_y), line, fill=AMAZON_BLUE, font=font)
+        x = padding  # left-aligned like the reference
+        for line in all_lines:
+            draw.text((x, current_y), line, fill=TEXT_COLOR, font=font)
+            current_y += line_height + line_spacing
 
     return card_image
 

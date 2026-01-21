@@ -123,9 +123,14 @@ class ExcelPartsService:
 
         return {
             'symbol_number': str(row['Symbol Number']),
+            # Keep backward-compatible fields
             'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-            'combined_description': str(row['Combined_Description']),
             'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
+            # Expose source fields explicitly for richer labeling
+            'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
+            'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
+            'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
+            'combined_description': str(row['Combined_Description']),
             'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
         }
 
@@ -158,8 +163,11 @@ class ExcelPartsService:
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'combined_description': str(row['Combined_Description']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
+                'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
+                'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
+                'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
+                'combined_description': str(row['Combined_Description']),
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
             })
 
@@ -187,8 +195,11 @@ class ExcelPartsService:
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'combined_description': str(row['Combined_Description']),
                 'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
+                'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
+                'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
+                'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
+                'combined_description': str(row['Combined_Description']),
                 'location': f"{row['Whs']} - {row['Location']}" if pd.notna(row['Location']) else None
             })
 
