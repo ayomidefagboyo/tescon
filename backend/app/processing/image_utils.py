@@ -374,73 +374,74 @@ def create_ecommerce_card_layout(
                 value = pair
             processed_lines.append((label, value))
 
-    # Word-wrap each line independently and collect all text elements
-    all_text_elements: List[Tuple[str, str, str]] = []  # [(text, font_type, alignment_key), ...]
+    # Create drawing instructions for each line
+    # Each line can contain multiple label-value pairs
+    drawing_lines: List[List[Tuple[str, str]]] = []  # [[(text, font_type), ...], ...]
 
-    for label, value in processed_lines:
-        # Handle label (56px, tight line height)
-        if label:
-            # Word wrap label if needed
-            label_words = label.split()
-            current_label = ""
-            for word in label_words:
-                test = current_label + (" " if current_label else "") + word
-                bbox = temp_draw.textbbox((0, 0), test, font=label_font)
-                if (bbox[2] - bbox[0]) <= max_text_width:
-                    current_label = test
-                else:
-                    if current_label:
-                        all_text_elements.append((current_label, "label", f"label_{len(all_text_elements)}"))
-                        current_label = word
-                    else:
-                        all_text_elements.append((word, "label", f"label_{len(all_text_elements)}"))
-                        current_label = ""
-            if current_label:
-                all_text_elements.append((current_label, "label", f"label_{len(all_text_elements)}"))
+    i = 0
+    while i < len(processed_lines):
+        label, value = processed_lines[i]
+        current_line: List[Tuple[str, str]] = []
 
-        # Handle value (48px, slightly relaxed line height)
-        if value:
-            # Word wrap value if needed
-            value_words = value.split()
-            current_value = ""
-            for word in value_words:
-                test = current_value + (" " if current_value else "") + word
-                bbox = temp_draw.textbbox((0, 0), test, font=value_font)
-                if (bbox[2] - bbox[0]) <= max_text_width:
-                    current_value = test
-                else:
-                    if current_value:
-                        all_text_elements.append((current_value, "value", f"value_{len(all_text_elements)}"))
-                        current_value = word
-                    else:
-                        all_text_elements.append((word, "value", f"value_{len(all_text_elements)}"))
-                        current_value = ""
-            if current_value:
-                all_text_elements.append((current_value, "value", f"value_{len(all_text_elements)}"))
+        # Check if we should combine this pair with the next one on the same line
+        if label and value and i + 1 < len(processed_lines):
+            next_label, next_value = processed_lines[i + 1]
+            if next_label and next_value and (
+                ("SYMBOL NUMBER" in label and "LOCATION" in next_label) or
+                ("LOCATION" in label and "SYMBOL NUMBER" in next_label)
+            ):
+                # Add both pairs to the same line
+                current_line.extend([
+                    (label, "label"),
+                    (value, "value"),
+                    ("    ", "spacer"),  # 4 spaces between pairs
+                    (next_label, "label"),
+                    (next_value, "value")
+                ])
+                i += 2  # Skip next pair
+            else:
+                # Just this pair on its line
+                current_line.extend([
+                    (label, "label"),
+                    (value, "value")
+                ])
+                i += 1
+        else:
+            # Single pair or individual element
+            if label:
+                current_line.append((label, "label"))
+            if value:
+                current_line.append((value, "value"))
+            i += 1
 
-    # Calculate total text height with different line heights
+        if current_line:
+            drawing_lines.append(current_line)
+
+    # Calculate total text height based on drawing lines
     total_text_height = 0
     line_heights = []
 
-    for text, font_type, _ in all_text_elements:
-        if font_type == "label":
-            bbox = temp_draw.textbbox((0, 0), "Ag", font=label_font)
-            line_height = bbox[3] - bbox[1]
-            # Tight line height for labels
-            total_text_height += line_height
-            line_heights.append(line_height)
-        else:  # value
-            bbox = temp_draw.textbbox((0, 0), "Ag", font=value_font)
-            line_height = bbox[3] - bbox[1]
-            # Slightly relaxed line height for values (1.2x)
-            adjusted_height = int(line_height * 1.2)
-            total_text_height += adjusted_height
-            line_heights.append(adjusted_height)
+    for line_elements in drawing_lines:
+        # Find the maximum height needed for this line (use the tallest font)
+        max_line_height = 0
+        for text, font_type in line_elements:
+            if font_type == "label":
+                bbox = temp_draw.textbbox((0, 0), "Ag", font=label_font)
+                height = bbox[3] - bbox[1]
+            elif font_type == "value":
+                bbox = temp_draw.textbbox((0, 0), "Ag", font=value_font)
+                height = bbox[3] - bbox[1]
+            else:  # spacer
+                height = 0
+            max_line_height = max(max_line_height, height)
 
-    # Add spacing between elements
-    element_spacing = 8
-    if all_text_elements:
-        total_text_height += (len(all_text_elements) - 1) * element_spacing
+        total_text_height += max_line_height
+        line_heights.append(max_line_height)
+
+    # Add spacing between lines
+    line_spacing = 12
+    if drawing_lines:
+        total_text_height += (len(drawing_lines) - 1) * line_spacing
 
     text_area_height = total_text_height + (padding * 2)
 
@@ -454,14 +455,31 @@ def create_ecommerce_card_layout(
     # Draw text
     draw = ImageDraw.Draw(card_image)
 
-    if all_text_elements and text_area_height > 0:
+    if drawing_lines and text_area_height > 0:
         text_area_start_y = top_padding + img_height
         current_y = text_area_start_y + padding
 
-        for i, (text, font_type, _) in enumerate(all_text_elements):
-            font = label_font if font_type == "label" else value_font
-            draw.text((padding, current_y), text, fill=BRAND_BLUE, font=font)
-            current_y += line_heights[i] + element_spacing
+        for line_idx, line_elements in enumerate(drawing_lines):
+            current_x = padding
+
+            for text, font_type in line_elements:
+                if font_type == "label":
+                    font = label_font
+                elif font_type == "value":
+                    font = value_font
+                else:  # spacer
+                    # For spacers, just advance x position
+                    bbox = temp_draw.textbbox((0, 0), text, font=label_font)
+                    current_x += (bbox[2] - bbox[0])
+                    continue
+
+                draw.text((current_x, current_y), text, fill=BRAND_BLUE, font=font)
+
+                # Advance x position for next element
+                bbox = temp_draw.textbbox((0, 0), text, font=font)
+                current_x += (bbox[2] - bbox[0])
+
+            current_y += line_heights[line_idx] + line_spacing
 
     return card_image
 
