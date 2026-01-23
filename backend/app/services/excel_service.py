@@ -98,6 +98,30 @@ class ExcelPartsService:
         # Join with ", " separator for better readability
         return ", ".join(parts) if parts else ""
 
+    def _safe_get_column(self, row, column_name: str, default='') -> Optional[str]:
+        """
+        Safely get a column value from a row, handling missing columns.
+        
+        Args:
+            row: DataFrame row (Series)
+            column_name: Name of the column to retrieve
+            default: Default value if column doesn't exist
+            
+        Returns:
+            Column value as string or None if empty/invalid
+        """
+        # Check if column exists in the DataFrame
+        if self.unique_parts is not None and column_name not in self.unique_parts.columns:
+            return None
+            
+        # Get value using .get() to handle missing keys
+        value = row.get(column_name, default)
+        
+        # Check if value is valid (not NaN, not empty string, not 'nan' string)
+        if pd.notna(value) and str(value).lower() not in ['', 'nan']:
+            return str(value)
+        return None
+
     def _get_long_description_with_fallback(self, row) -> str:
         """
         Get long description using Desc1 + Desc2.
@@ -161,9 +185,9 @@ class ExcelPartsService:
             'combined_description': str(row['Combined_Description']),
             # Location: use Excel Location column only (no warehouse prefix)
             'location': str(row['Location']) if pd.notna(row['Location']) else None,
-            # JDE columns (Part No and Mfg Name)
-            'part_number': str(row['Part No']) if pd.notna(row['Part No']) and str(row['Part No']).lower() not in ['', 'nan'] else None,
-            'manufacturer': str(row['Mfg Name']) if pd.notna(row['Mfg Name']) and str(row['Mfg Name']).lower() not in ['', 'nan'] else None
+            # JDE columns (Part No and Mfg Name) - use helper for safe access
+            'part_number': self._safe_get_column(row, 'Part No'),
+            'manufacturer': self._safe_get_column(row, 'Mfg Name')
         }
 
     def search_parts(self, query: str, limit: int = 10) -> List[Dict]:
@@ -204,8 +228,8 @@ class ExcelPartsService:
                 'long_description': long_desc,
                 'combined_description': str(row['Combined_Description']),
                 'location': str(row['Location']) if pd.notna(row['Location']) else None,
-                'part_number': str(row['Part No']) if pd.notna(row['Part No']) and str(row['Part No']).lower() not in ['', 'nan'] else None,
-                'manufacturer': str(row['Mfg Name']) if pd.notna(row['Mfg Name']) and str(row['Mfg Name']).lower() not in ['', 'nan'] else None
+                'part_number': self._safe_get_column(row, 'Part No'),
+                'manufacturer': self._safe_get_column(row, 'Mfg Name')
             })
 
         return results
@@ -241,8 +265,8 @@ class ExcelPartsService:
                 'long_description': long_desc,
                 'combined_description': str(row['Combined_Description']),
                 'location': str(row['Location']) if pd.notna(row['Location']) else None,
-                'part_number': str(row['Part No']) if pd.notna(row['Part No']) and str(row['Part No']).lower() not in ['', 'nan'] else None,
-                'manufacturer': str(row['Mfg Name']) if pd.notna(row['Mfg Name']) and str(row['Mfg Name']).lower() not in ['', 'nan'] else None
+                'part_number': self._safe_get_column(row, 'Part No'),
+                'manufacturer': self._safe_get_column(row, 'Mfg Name')
             })
 
         return results, total_count
