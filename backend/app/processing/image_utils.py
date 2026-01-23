@@ -239,19 +239,18 @@ def create_ecommerce_card_layout(
     Create e-commerce card layout with image on top and separate description fields below.
 
     New Layout:
-    1. Symbol Number
-    2. Long Description
-    3. Part Number
-    4. Manufacturer
-    5. Part Number and Manufacturer on the same line
+    1. Symbol Number and Part Number (on same line)
+    2. Manufacturer
+    3. Description 1
+    4. Description 2
 
     Args:
         image: PIL Image (product image with white background)
         symbol_number: Part symbol number
         location: Part location (not used in new layout)
-        desc1: Primary description (not used in new layout)
-        desc2: Secondary description (not used in new layout)
-        long_description: Long description text
+        desc1: Primary description
+        desc2: Secondary description
+        long_description: Long description text (not used in new layout)
         part_number: Part number (defaults to symbol_number if not provided)
         manufacturer: Manufacturer name
         padding: Padding around text in pixels
@@ -270,37 +269,37 @@ def create_ecommerce_card_layout(
         return s if s else None
 
     # Build new layout lines:
-    # 1. Symbol Number
-    # 2. Long Description
-    # 3. Part Number
-    # 4. Manufacturer
-    # 5. Part Number and Manufacturer on the same line
+    # 1. Symbol Number and Part Number on same line
+    # 2. Manufacturer
+    # 3. Description 1
+    # 4. Description 2
     lines: List[str] = []
 
     sym = norm(symbol_number)
-    long_desc = norm(long_description)
+    description1 = norm(desc1)
+    description2 = norm(desc2)
     part_num = norm(part_number) or sym  # Default part number to symbol number
     manuf = norm(manufacturer)
 
-    # Line 1: Symbol Number
-    if sym:
+    # Line 1: Symbol Number and Part Number on same line
+    if sym and part_num:
+        lines.append(f"SYMBOL NUMBER: {sym}    PART NUMBER: {part_num}")
+    elif sym:
         lines.append(f"SYMBOL NUMBER: {sym}")
+    elif part_num:
+        lines.append(f"PART NUMBER: {part_num}")
 
-    # Line 2: Long Description
-    if long_desc:
-        lines.append(f"LONG DESCRIPTION: {long_desc}")
+    # Line 2: Manufacturer
+    if manuf:
+        lines.append(f"MANUFACTURER: {manuf}")
 
-    # Lines 3-4: Part Number and Manufacturer
-    # If both exist, put them on the same line. Otherwise, separate lines.
-    if part_num and manuf:
-        # Both exist: put on same line
-        lines.append(f"PART NUMBER: {part_num}    MANUFACTURER: {manuf}")
-    else:
-        # Only one exists: put on separate lines
-        if part_num:
-            lines.append(f"PART NUMBER: {part_num}")
-        if manuf:
-            lines.append(f"MANUFACTURER: {manuf}")
+    # Line 3: Description 1
+    if description1:
+        lines.append(f"DESCRIPTION 1: {description1}")
+
+    # Line 4: Description 2
+    if description2:
+        lines.append(f"DESCRIPTION 2: {description2}")
 
     # If nothing to render, return framed image
     if not lines:
@@ -439,12 +438,12 @@ def create_ecommerce_card_layout(
     while i < len(processed_lines):
         label, value = processed_lines[i]
 
-        # Handle combined part number/manufacturer line
+        # Handle combined symbol number/part number line
         if label and value and i + 1 < len(processed_lines):
             next_label, next_value = processed_lines[i + 1]
             if next_label and next_value and (
-                ("PART NUMBER" in label and "MANUFACTURER" in next_label) or
-                ("MANUFACTURER" in label and "PART NUMBER" in next_label)
+                ("SYMBOL NUMBER" in label and "PART NUMBER" in next_label) or
+                ("PART NUMBER" in label and "SYMBOL NUMBER" in next_label)
             ):
                 # Check if the combined line fits, otherwise wrap individual values
                 combined_text = f"{label} {value}    {next_label} {next_value}"
@@ -460,7 +459,7 @@ def create_ecommerce_card_layout(
                     drawing_lines.append(combined_line)
                 else:
                     # Too long, wrap each value separately
-                    # Add part number line
+                    # Add symbol number line
                     if value:
                         wrapped_values = wrap_text(value, max_text_width - label_indent_width, value_font, temp_draw)
                         for j, wrapped_value in enumerate(wrapped_values):
@@ -472,7 +471,7 @@ def create_ecommerce_card_layout(
                             current_line.append((wrapped_value, "value"))
                             drawing_lines.append(current_line)
 
-                    # Add manufacturer line
+                    # Add part number line
                     if next_value:
                         wrapped_values = wrap_text(next_value, max_text_width - label_indent_width, value_font, temp_draw)
                         for j, wrapped_value in enumerate(wrapped_values):

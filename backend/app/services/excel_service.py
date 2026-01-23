@@ -100,11 +100,9 @@ class ExcelPartsService:
 
     def _get_long_description_with_fallback(self, row) -> str:
         """
-        Get long description with fallback logic.
+        Get long description using Desc1 + Desc2.
 
-        Priority:
-        1. Long Text JDE (if available)
-        2. Desc1 + Desc2 joined together (if Long Text JDE is empty)
+        Always uses Desc1 + Desc2 joined together with " | " separator.
 
         Args:
             row: DataFrame row with part data
@@ -112,12 +110,7 @@ class ExcelPartsService:
         Returns:
             Long description string
         """
-        # Try Long Text JDE first
-        jde_desc = row.get('Long Text JDE')
-        if pd.notna(jde_desc) and str(jde_desc).strip() and str(jde_desc).lower() != 'nan':
-            return str(jde_desc).strip()
-
-        # Fallback to Desc1 + Desc2
+        # Always use Desc1 + Desc2
         desc1 = str(row.get('Desc1', '')) if pd.notna(row.get('Desc1')) else ''
         desc2 = str(row.get('Desc2', '')) if pd.notna(row.get('Desc2')) else ''
 
@@ -263,7 +256,7 @@ class ExcelPartsService:
             'total_parts': self.total_parts,
             'loaded': True,
             'has_descriptions': (self.unique_parts['Desc1'] != '').sum(),
-            'has_long_descriptions': self.unique_parts['Long Text JDE'].notna().sum(),
+            'has_long_descriptions': (self.unique_parts['Desc1'].notna() | self.unique_parts['Desc2'].notna()).sum(),
             'unique_warehouses': self.unique_parts['Whs'].nunique() if 'Whs' in self.unique_parts.columns else 0
         }
 
