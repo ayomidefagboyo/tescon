@@ -98,6 +98,38 @@ class ExcelPartsService:
         # Join with ", " separator for better readability
         return ", ".join(parts) if parts else ""
 
+    def _get_long_description_with_fallback(self, row) -> str:
+        """
+        Get long description with fallback logic.
+
+        Priority:
+        1. Long Text JDE (if available)
+        2. Desc1 + Desc2 joined together (if Long Text JDE is empty)
+
+        Args:
+            row: DataFrame row with part data
+
+        Returns:
+            Long description string
+        """
+        # Try Long Text JDE first
+        jde_desc = row.get('Long Text JDE')
+        if pd.notna(jde_desc) and str(jde_desc).strip() and str(jde_desc).lower() != 'nan':
+            return str(jde_desc).strip()
+
+        # Fallback to Desc1 + Desc2
+        desc1 = str(row.get('Desc1', '')) if pd.notna(row.get('Desc1')) else ''
+        desc2 = str(row.get('Desc2', '')) if pd.notna(row.get('Desc2')) else ''
+
+        # Join with " | " separator for clarity
+        fallback_parts = []
+        if desc1.strip():
+            fallback_parts.append(desc1.strip())
+        if desc2.strip():
+            fallback_parts.append(desc2.strip())
+
+        return " | ".join(fallback_parts) if fallback_parts else ""
+
     def get_part_info(self, symbol_number: str) -> Optional[Dict]:
         """
         Get part information by symbol number.
@@ -121,18 +153,24 @@ class ExcelPartsService:
 
         row = part_row.iloc[0]
 
+        # Get long description with fallback
+        long_desc = self._get_long_description_with_fallback(row)
+
         return {
             'symbol_number': str(row['Symbol Number']),
             # Keep backward-compatible fields
             'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-            'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
+            'item_note': long_desc or None,
             # Expose source fields explicitly for richer labeling
             'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
             'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
-            'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
+            'long_description': long_desc,
             'combined_description': str(row['Combined_Description']),
             # Location: use Excel Location column only (no warehouse prefix)
-            'location': str(row['Location']) if pd.notna(row['Location']) else None
+            'location': str(row['Location']) if pd.notna(row['Location']) else None,
+            # JDE columns (Part No and Mfg Name)
+            'part_number': str(row['Part No']) if pd.notna(row['Part No']) and str(row['Part No']).lower() not in ['', 'nan'] else None,
+            'manufacturer': str(row['Mfg Name']) if pd.notna(row['Mfg Name']) and str(row['Mfg Name']).lower() not in ['', 'nan'] else None
         }
 
     def search_parts(self, query: str, limit: int = 10) -> List[Dict]:
@@ -161,15 +199,20 @@ class ExcelPartsService:
 
         results = []
         for _, row in matching_parts.iterrows():
+            # Get long description with fallback
+            long_desc = self._get_long_description_with_fallback(row)
+
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
+                'item_note': long_desc or None,
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
-                'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
+                'long_description': long_desc,
                 'combined_description': str(row['Combined_Description']),
-                'location': str(row['Location']) if pd.notna(row['Location']) else None
+                'location': str(row['Location']) if pd.notna(row['Location']) else None,
+                'part_number': str(row['Part No']) if pd.notna(row['Part No']) and str(row['Part No']).lower() not in ['', 'nan'] else None,
+                'manufacturer': str(row['Mfg Name']) if pd.notna(row['Mfg Name']) and str(row['Mfg Name']).lower() not in ['', 'nan'] else None
             })
 
         return results
@@ -193,15 +236,20 @@ class ExcelPartsService:
 
         results = []
         for _, row in parts_subset.iterrows():
+            # Get long description with fallback
+            long_desc = self._get_long_description_with_fallback(row)
+
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else None,
+                'item_note': long_desc or None,
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
-                'long_description': str(row['Long Text Desc']) if pd.notna(row['Long Text Desc']) else '',
+                'long_description': long_desc,
                 'combined_description': str(row['Combined_Description']),
-                'location': str(row['Location']) if pd.notna(row['Location']) else None
+                'location': str(row['Location']) if pd.notna(row['Location']) else None,
+                'part_number': str(row['Part No']) if pd.notna(row['Part No']) and str(row['Part No']).lower() not in ['', 'nan'] else None,
+                'manufacturer': str(row['Mfg Name']) if pd.notna(row['Mfg Name']) and str(row['Mfg Name']).lower() not in ['', 'nan'] else None
             })
 
         return results, total_count
@@ -215,7 +263,7 @@ class ExcelPartsService:
             'total_parts': self.total_parts,
             'loaded': True,
             'has_descriptions': (self.unique_parts['Desc1'] != '').sum(),
-            'has_long_descriptions': self.unique_parts['Long Text Desc'].notna().sum(),
+            'has_long_descriptions': self.unique_parts['Long Text JDE'].notna().sum(),
             'unique_warehouses': self.unique_parts['Whs'].nunique() if 'Whs' in self.unique_parts.columns else 0
         }
 

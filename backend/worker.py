@@ -48,15 +48,15 @@ class R2BackgroundWorker:
         
         # Try to load Excel file if not already loaded
         if self.excel_service.unique_parts is None:
-            excel_file_path = Path("EGTL Dump Total Dump ( sorted).xlsx")
+            excel_file_path = Path("EGTL Dump_with_JDE.xlsx")
             if excel_file_path.exists():
                 try:
-                    print("📂 Loading Excel catalog from file...")
+                    print("📂 Loading Excel catalog with JDE data from file...")
                     success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Data")
                     if success:
                         stats = self.excel_service.get_stats()
                         print(f"✅ Excel catalog loaded: {stats['total_parts']} parts")
-                        
+
                         # Update parts tracker with total count
                         from services.parts_tracker import get_parts_tracker
                         tracker = get_parts_tracker()
@@ -66,7 +66,7 @@ class R2BackgroundWorker:
                 except Exception as e:
                     raise Exception(f"❌ Error loading Excel catalog: {e}")
             else:
-                raise Exception("❌ Excel catalog file not found. Ensure 'EGTL Dump Total Dump ( sorted).xlsx' is in the backend directory.")
+                raise Exception("❌ Excel catalog file not found. Ensure 'EGTL Dump_with_JDE.xlsx' is in the backend directory.")
         else:
             print("✅ Excel catalog already loaded")
 
@@ -194,6 +194,8 @@ class R2BackgroundWorker:
                         desc1=part_info.get("description_1") or part_info.get("description") or "",
                         desc2=part_info.get("description_2") or "",
                         long_description=part_info.get("long_description") or "",
+                        part_number=part_info.get("part_number") or parameters.get("part_number") or symbol_number,
+                        manufacturer=part_info.get("manufacturer") or parameters.get("manufacturer"),
                         use_ecommerce_layout=True
                     )
 

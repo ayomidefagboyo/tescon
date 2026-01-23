@@ -42,6 +42,8 @@ def process_image(
     desc1: Optional[str] = None,
     desc2: Optional[str] = None,
     long_description: Optional[str] = None,
+    part_number: Optional[str] = None,
+    manufacturer: Optional[str] = None,
     use_ecommerce_layout: bool = False
 ) -> BytesIO:
     """
@@ -137,6 +139,8 @@ def process_image(
                         desc1=desc1 or description,
                         desc2=desc2,
                         long_description=long_description or item_note,
+                        part_number=part_number,
+                        manufacturer=manufacturer,
                         padding=24
                     )
                 elif add_label and (item_note or description):
