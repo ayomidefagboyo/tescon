@@ -170,14 +170,17 @@ class ExcelPartsService:
 
         row = part_row.iloc[0]
 
-        # Get long description with fallback
+        # Get Long Text JDE for item_note
+        long_text_jde = self._safe_get_column(row, 'Long Text JDE')
+        
+        # Get long description with fallback (Desc1 + Desc2)
         long_desc = self._get_long_description_with_fallback(row)
 
         return {
             'symbol_number': str(row['Symbol Number']),
             # Keep backward-compatible fields
             'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-            'item_note': long_desc or None,
+            'item_note': long_text_jde or None,  # Use Long Text JDE column
             # Expose source fields explicitly for richer labeling
             'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
             'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
@@ -216,13 +219,16 @@ class ExcelPartsService:
 
         results = []
         for _, row in matching_parts.iterrows():
-            # Get long description with fallback
+            # Get Long Text JDE for item_note
+            long_text_jde = self._safe_get_column(row, 'Long Text JDE')
+            
+            # Get long description with fallback (Desc1 + Desc2)
             long_desc = self._get_long_description_with_fallback(row)
 
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': long_desc or None,
+                'item_note': long_text_jde or None,  # Use Long Text JDE column
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': long_desc,
@@ -253,13 +259,16 @@ class ExcelPartsService:
 
         results = []
         for _, row in parts_subset.iterrows():
-            # Get long description with fallback
+            # Get Long Text JDE for item_note
+            long_text_jde = self._safe_get_column(row, 'Long Text JDE')
+            
+            # Get long description with fallback (Desc1 + Desc2)
             long_desc = self._get_long_description_with_fallback(row)
 
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': long_desc or None,
+                'item_note': long_text_jde or None,  # Use Long Text JDE column
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': long_desc,
