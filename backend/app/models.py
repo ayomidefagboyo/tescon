@@ -90,8 +90,8 @@ class PartInfo(BaseModel):
     """Part information from Excel file."""
     symbol_number: str
     description: str
-    location: str
-    item_note: str
+    location: str  # Always has a value (empty string if missing)
+    item_note: str  # Always has a value (Long Text JDE or Desc1+Desc2 fallback)
     # Optional richer fields (when present in Excel)
     description_1: Optional[str] = None
     description_2: Optional[str] = None

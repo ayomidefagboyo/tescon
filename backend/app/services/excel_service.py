@@ -180,14 +180,14 @@ class ExcelPartsService:
             'symbol_number': str(row['Symbol Number']),
             # Keep backward-compatible fields
             'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-            'item_note': long_text_jde or None,  # Use Long Text JDE column
+            'item_note': long_text_jde or long_desc or '',  # Use Long Text JDE, fallback to Desc1+Desc2
             # Expose source fields explicitly for richer labeling
             'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
             'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
             'long_description': long_desc,
             'combined_description': str(row['Combined_Description']),
             # Location: use Excel Location column only (no warehouse prefix)
-            'location': str(row['Location']) if pd.notna(row['Location']) else None,
+            'location': str(row['Location']) if pd.notna(row['Location']) else '',
             # JDE columns (Part No and Mfg Name) - use helper for safe access
             'part_number': self._safe_get_column(row, 'Part No'),
             'manufacturer': self._safe_get_column(row, 'Mfg Name')
@@ -228,12 +228,12 @@ class ExcelPartsService:
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': long_text_jde or None,  # Use Long Text JDE column
+                'item_note': long_text_jde or long_desc or '',  # Use Long Text JDE, fallback to Desc1+Desc2
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': long_desc,
                 'combined_description': str(row['Combined_Description']),
-                'location': str(row['Location']) if pd.notna(row['Location']) else None,
+                'location': str(row['Location']) if pd.notna(row['Location']) else '',
                 'part_number': self._safe_get_column(row, 'Part No'),
                 'manufacturer': self._safe_get_column(row, 'Mfg Name')
             })
@@ -268,12 +268,12 @@ class ExcelPartsService:
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': long_text_jde or None,  # Use Long Text JDE column
+                'item_note': long_text_jde or long_desc or '',  # Use Long Text JDE, fallback to Desc1+Desc2
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': long_desc,
                 'combined_description': str(row['Combined_Description']),
-                'location': str(row['Location']) if pd.notna(row['Location']) else None,
+                'location': str(row['Location']) if pd.notna(row['Location']) else '',
                 'part_number': self._safe_get_column(row, 'Part No'),
                 'manufacturer': self._safe_get_column(row, 'Mfg Name')
             })
