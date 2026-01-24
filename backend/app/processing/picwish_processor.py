@@ -38,7 +38,6 @@ def process_image(
     label_position: str = "bottom-left",
     item_note: Optional[str] = None,
     symbol_number: Optional[str] = None,
-    location: Optional[str] = None,
     desc1: Optional[str] = None,
     desc2: Optional[str] = None,
     long_description: Optional[str] = None,
@@ -135,7 +134,6 @@ def process_image(
                     processed_image = create_ecommerce_card_layout(
                         processed_image,
                         symbol_number=symbol_number,
-                        location=location,
                         desc1=desc1 or description,
                         desc2=desc2,
                         long_description=long_description or item_note,

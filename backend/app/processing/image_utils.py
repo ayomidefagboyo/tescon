@@ -226,7 +226,6 @@ def add_text_label(
 def create_ecommerce_card_layout(
     image: Image.Image,
     symbol_number: Optional[str] = None,
-    location: Optional[str] = None,
     desc1: Optional[str] = None,
     desc2: Optional[str] = None,
     long_description: Optional[str] = None,
