@@ -237,20 +237,20 @@ def create_ecommerce_card_layout(
     """
     Create e-commerce card layout with image on top and separate description fields below.
 
-    New Layout:
+    Layout:
     1. Symbol Number and Part Number (on same line)
     2. Manufacturer
     3. Description 1
     4. Description 2
+    5. Long Description
 
     Args:
         image: PIL Image (product image with white background)
         symbol_number: Part symbol number
-        location: Part location (not used in new layout)
         desc1: Primary description
         desc2: Secondary description
-        long_description: Long description text (not used in new layout)
-        part_number: Part number (defaults to symbol_number if not provided)
+        long_description: Long description text
+        part_number: Part number
         manufacturer: Manufacturer name
         padding: Padding around text in pixels
         text_area_height_ratio: Height of text area as ratio of image height (0.25 = 25%)
@@ -267,18 +267,20 @@ def create_ecommerce_card_layout(
         s = str(v).strip()
         return s if s else None
 
-    # Build new layout lines:
+    # Build layout lines:
     # 1. Symbol Number and Part Number on same line
     # 2. Manufacturer
     # 3. Description 1
     # 4. Description 2
+    # 5. Long Description
     lines: List[str] = []
 
     sym = norm(symbol_number)
+    part_num = norm(part_number)
+    manuf = norm(manufacturer)
     description1 = norm(desc1)
     description2 = norm(desc2)
-    part_num = norm(part_number) or sym  # Default part number to symbol number
-    manuf = norm(manufacturer)
+    long_desc = norm(long_description)
 
     # Line 1: Symbol Number and Part Number on same line
     if sym and part_num:
@@ -299,6 +301,10 @@ def create_ecommerce_card_layout(
     # Line 4: Description 2
     if description2:
         lines.append(f"DESCRIPTION 2: {description2}")
+
+    # Line 5: Long Description
+    if long_desc:
+        lines.append(f"LONG DESCRIPTION: {long_desc}")
 
     # If nothing to render, return framed image
     if not lines:
