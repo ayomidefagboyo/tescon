@@ -132,7 +132,7 @@ class ExcelPartsService:
             row: DataFrame row with part data
 
         Returns:
-            Long description string
+            Long description string (never empty)
         """
         # Always use Desc1 + Desc2
         desc1 = str(row.get('Desc1', '')) if pd.notna(row.get('Desc1')) else ''
@@ -145,7 +145,8 @@ class ExcelPartsService:
         if desc2.strip():
             fallback_parts.append(desc2.strip())
 
-        return " | ".join(fallback_parts) if fallback_parts else ""
+        result = " | ".join(fallback_parts) if fallback_parts else 'No description available'
+        return result
 
     def get_part_info(self, symbol_number: str) -> Optional[Dict]:
         """
@@ -180,7 +181,7 @@ class ExcelPartsService:
             'symbol_number': str(row['Symbol Number']),
             # Keep backward-compatible fields
             'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-            'item_note': long_text_jde or long_desc or '',  # Use Long Text JDE, fallback to Desc1+Desc2
+            'item_note': long_text_jde or long_desc or 'No description available',  # Ensure never None
             # Expose source fields explicitly for richer labeling
             'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
             'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
@@ -228,7 +229,7 @@ class ExcelPartsService:
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': long_text_jde or long_desc or '',  # Use Long Text JDE, fallback to Desc1+Desc2
+                'item_note': long_text_jde or long_desc or 'No description available',  # Ensure never None
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': long_desc,
@@ -268,7 +269,7 @@ class ExcelPartsService:
             results.append({
                 'symbol_number': str(row['Symbol Number']),
                 'description': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
-                'item_note': long_text_jde or long_desc or '',  # Use Long Text JDE, fallback to Desc1+Desc2
+                'item_note': long_text_jde or long_desc or 'No description available',  # Ensure never None
                 'description_1': str(row['Desc1']) if pd.notna(row['Desc1']) else '',
                 'description_2': str(row['Desc2']) if pd.notna(row['Desc2']) else '',
                 'long_description': long_desc,
