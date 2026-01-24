@@ -134,9 +134,9 @@ def process_image(
                     processed_image = create_ecommerce_card_layout(
                         processed_image,
                         symbol_number=symbol_number,
-                        desc1=desc1 or description,
-                        desc2=desc2,
-                        long_description=long_description or item_note,
+                        desc1=(desc1 or description).rstrip(',').strip() if (desc1 or description) else None,
+                        desc2=desc2.rstrip(',').strip() if desc2 else None,
+                        long_description=long_description,  # Only use if it exists, no fallback
                         part_number=part_number,
                         manufacturer=manufacturer,
                         padding=24

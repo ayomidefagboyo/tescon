@@ -192,7 +192,7 @@ class R2BackgroundWorker:
                         symbol_number=symbol_number,
                         desc1=part_info.get("description_1") or part_info.get("description") or "",
                         desc2=part_info.get("description_2") or "",
-                        long_description=part_info.get("long_description") or "",
+                        long_description=part_info.get("long_text_jde"),  # Only Long Text JDE, no fallback
                         part_number=part_info.get("part_number") or parameters.get("part_number") or symbol_number,
                         manufacturer=part_info.get("manufacturer") or parameters.get("manufacturer"),
                         use_ecommerce_layout=True
