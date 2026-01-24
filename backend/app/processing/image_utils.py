@@ -319,9 +319,9 @@ def create_ecommerce_card_layout(
     # Minimal top padding
     top_padding = max(6, int(img_height * 0.012))
 
-    # Amazon-style font sizes - smaller and more professional
-    LABEL_FONT_SIZE = 32  # Labels (e.g., "SYMBOL NUMBER:")
-    VALUE_FONT_SIZE = 28  # Values/content text
+    # Larger font sizes for better legibility
+    LABEL_FONT_SIZE = 64  # Labels (e.g., "SYMBOL NUMBER:") - increased for legibility
+    VALUE_FONT_SIZE = 56  # Values/content text - increased for legibility
     max_text_width = img_width - (padding * 2)
 
     def wrap_text(text: str, max_width: int, font, draw) -> List[str]:
