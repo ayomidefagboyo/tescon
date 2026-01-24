@@ -310,18 +310,18 @@ def create_ecommerce_card_layout(
     if not lines:
         return framed_image.copy()
 
-    # Brand blue color
-    BRAND_BLUE = (33, 98, 161)  # #2162a1
-
+    # Amazon-style dark gray color for professional look
+    TEXT_COLOR = (15, 17, 17)  # #0F1111 - Amazon's standard text color
+    
     # Calculate dimensions
     img_width, img_height = framed_image.size
 
     # Minimal top padding
     top_padding = max(6, int(img_height * 0.012))
 
-    # Fixed larger font sizes for better readability
-    LABEL_FONT_SIZE = 56  # Labels like "SYMBOL NUMBER:", "LOCATION:", etc. (bigger than values)
-    VALUE_FONT_SIZE = 48  # Values/content text
+    # Amazon-style font sizes - smaller and more professional
+    LABEL_FONT_SIZE = 32  # Labels (e.g., "SYMBOL NUMBER:")
+    VALUE_FONT_SIZE = 28  # Values/content text
     max_text_width = img_width - (padding * 2)
 
     def wrap_text(text: str, max_width: int, font, draw) -> List[str]:
@@ -534,8 +534,8 @@ def create_ecommerce_card_layout(
         total_text_height += max_line_height
         line_heights.append(max_line_height)
 
-    # Add spacing between lines
-    line_spacing = 12
+    # Add spacing between lines - increased for better readability
+    line_spacing = 18  # More spacing for cleaner look
     if drawing_lines:
         total_text_height += (len(drawing_lines) - 1) * line_spacing
 
@@ -574,7 +574,7 @@ def create_ecommerce_card_layout(
                     current_x += (bbox[2] - bbox[0])
                     continue
 
-                draw.text((current_x, current_y), text, fill=BRAND_BLUE, font=font)
+                draw.text((current_x, current_y), text, fill=TEXT_COLOR, font=font)
 
                 # Advance x position for next element
                 bbox = temp_draw.textbbox((0, 0), text, font=font)
