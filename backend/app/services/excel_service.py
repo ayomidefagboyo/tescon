@@ -169,10 +169,11 @@ class ExcelPartsService:
         if part_row.empty:
             return None
 
+
         row = part_row.iloc[0]
 
-        # Get Long Text JDE for item_note
-        long_text_jde = self._safe_get_column(row, 'Long Text JDE')
+        # Get Long Text JDE for item_note - check both column name variations
+        long_text_jde = self._safe_get_column(row, 'Long Text JDE') or self._safe_get_column(row, 'JDE long Text')
         
         # Get long description with fallback (Desc1 + Desc2)
         long_desc = self._get_long_description_with_fallback(row)
@@ -221,8 +222,8 @@ class ExcelPartsService:
 
         results = []
         for _, row in matching_parts.iterrows():
-            # Get Long Text JDE for item_note
-            long_text_jde = self._safe_get_column(row, 'Long Text JDE')
+            # Get Long Text JDE for item_note - check both column name variations
+            long_text_jde = self._safe_get_column(row, 'Long Text JDE') or self._safe_get_column(row, 'JDE long Text')
             
             # Get long description with fallback (Desc1 + Desc2)
             long_desc = self._get_long_description_with_fallback(row)
@@ -262,8 +263,8 @@ class ExcelPartsService:
 
         results = []
         for _, row in parts_subset.iterrows():
-            # Get Long Text JDE for item_note
-            long_text_jde = self._safe_get_column(row, 'Long Text JDE')
+            # Get Long Text JDE for item_note - check both column name variations
+            long_text_jde = self._safe_get_column(row, 'Long Text JDE') or self._safe_get_column(row, 'JDE long Text')
             
             # Get long description with fallback (Desc1 + Desc2)
             long_desc = self._get_long_description_with_fallback(row)
