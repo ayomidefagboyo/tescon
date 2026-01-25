@@ -1,8 +1,12 @@
-"""Batch processing manager for large volume processing."""
+"""Enhanced batch processing manager with intelligent processor selection."""
 import asyncio
 from typing import List, Dict, Optional
 from datetime import datetime
-from app.processing.picwish_processor import process_image
+from app.processing.processor_selector import (
+    get_processor_selector,
+    ProcessorType,
+    process_with_optimal_selection
+)
 from app.processing.image_utils import validate_image
 from app.storage.local_storage import LocalStorage
 from app.api.jobs import job_manager
@@ -11,20 +15,27 @@ from app.utils.filename_parser import parse_filename
 import time
 
 
-class BatchProcessor:
-    """Manages batch processing of images with configurable batch size."""
-    
-    def __init__(self, batch_size: int = 500, max_concurrent: int = 10):
+class EnhancedBatchProcessor:
+    """Enhanced batch processing with intelligent processor selection and optimization."""
+
+    def __init__(self, batch_size: int = 500, max_concurrent: int = 10, priority: str = "balanced"):
         """
-        Initialize batch processor.
-        
+        Initialize enhanced batch processor.
+
         Args:
             batch_size: Number of images to process per batch
-            max_concurrent: Maximum concurrent API requests
+            max_concurrent: Maximum concurrent requests
+            priority: Processing priority ('speed', 'quality', 'cost', 'balanced')
         """
         self.batch_size = batch_size
         self.max_concurrent = max_concurrent
+        self.priority = priority
         self.storage = LocalStorage()
+        self.processor_selector = get_processor_selector()
+
+    def get_processing_recommendations(self, num_images: int) -> Dict:
+        """Get processor recommendations for the batch."""
+        return self.processor_selector.get_recommendations_for_batch(num_images)
     
     async def process_batch(
         self,
@@ -78,18 +89,26 @@ class BatchProcessor:
                     # Parse filename to get part number
                     parsed = parse_filename(filename)
                     
-                    # Process image
+                    # Process image with intelligent processor selection
                     start_time = time.time()
                     format_str = "PNG" if output_format.upper() == "PNG" else "JPEG"
-                    
+
+                    # Set processing requirements
+                    requirements = {
+                        'priority': self.priority,
+                        'batch_size': len(image_data_list),
+                        'budget_limit': 0.05 if self.priority != 'cost' else 0.01
+                    }
+
                     # Run in thread pool to avoid blocking
                     loop = asyncio.get_event_loop()
                     processed_buffer = await loop.run_in_executor(
                         None,
-                        lambda: process_image(
-                            file_bytes, 
-                            format_str, 
-                            white_background,
+                        lambda: process_with_optimal_selection(
+                            file_bytes,
+                            requirements,
+                            output_format=format_str,
+                            white_background=white_background,
                             compression_quality=compression_quality,
                             max_dimension=max_dimension
                         )
@@ -212,4 +231,51 @@ class BatchProcessor:
         
         # Mark job as completed
         job_manager.complete_job(job_id, success=len(all_processed_files) > 0)
+
+
+# Keep original class for backwards compatibility
+class BatchProcessor(EnhancedBatchProcessor):
+    """Backwards compatible batch processor."""
+
+    def __init__(self, batch_size: int = 500, max_concurrent: int = 10):
+        super().__init__(batch_size, max_concurrent, priority="balanced")
+
+
+def create_optimized_processor_for_large_dataset(num_images: int) -> EnhancedBatchProcessor:
+    """Create an optimized processor for large datasets (20k+ images)."""
+
+    # Get recommendations
+    temp_processor = EnhancedBatchProcessor()
+    recommendations = temp_processor.get_processing_recommendations(num_images)
+
+    print(f"🎯 Processing {num_images:,} images - Recommendations:")
+    for priority, rec in recommendations.items():
+        cost = rec['cost_estimate']['total_cost_usd']
+        time_hours = rec['cost_estimate']['estimated_time_hours']
+        print(f"  {priority}: {rec['processor']} - ${cost:.2f}, {time_hours:.1f}h")
+
+    # For large datasets, prioritize cost efficiency
+    optimal_priority = "cost" if num_images > 5000 else "balanced"
+
+    # Auto-select batch size based on dataset size
+    if num_images > 10000:
+        batch_size = 1000  # Large batches for efficiency
+        max_concurrent = 20
+    elif num_images > 1000:
+        batch_size = 500
+        max_concurrent = 15
+    else:
+        batch_size = 100
+        max_concurrent = 10
+
+    processor = EnhancedBatchProcessor(
+        batch_size=batch_size,
+        max_concurrent=max_concurrent,
+        priority=optimal_priority
+    )
+
+    print(f"🚀 Created optimized processor: batch_size={batch_size}, "
+          f"priority={optimal_priority}, concurrent={max_concurrent}")
+
+    return processor
 

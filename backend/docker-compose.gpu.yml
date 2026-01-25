@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  tescon-backend-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # GPU optimization environment variables
+      - CUDA_VISIBLE_DEVICES=0
+      - TORCH_CUDA_ARCH_LIST=6.0 6.1 7.0 7.5 8.0 8.6+PTX
+      - TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1
+
+      # Application environment variables
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_BUCKET_NAME=${CLOUDFLARE_R2_BUCKET_NAME}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - PICWISH_API_KEY=${PICWISH_API_KEY}
+
+      # Enhanced REMBG optimization
+      - REMBG_PREFERRED_MODEL=birefnet-general
+      - PROCESSING_PRIORITY=cost  # For 20k+ image processing
+
+    volumes:
+      - ./uploads:/app/uploads
+      - ./processed:/app/processed
+      - ./logs:/app/logs
+
+    # GPU access (requires nvidia-docker)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Alternative GPU syntax for older Docker versions
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=0
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional monitoring service for GPU usage
+  gpu-monitor:
+    image: nvidia/cuda:11.8-base-ubuntu20.04
+    command: ["watch", "-n", "1", "nvidia-smi"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - monitoring
+
+# Optional network for multi-container setup
+networks:
+  tescon-network:
+    driver: bridge
+
+volumes:
+  model-cache:
+    driver: local
