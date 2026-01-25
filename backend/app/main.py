@@ -76,11 +76,11 @@ async def startup_event():
         print("⚠ Warning: PicWish API key not configured. Set PICWISH_API_KEY environment variable.")
 
     # Load Excel file if it exists
-    excel_file_path = Path("EGTL Dump Total Dump ( sorted).xlsx")
+    excel_file_path = Path(__file__).parent.parent / "egtl_cleaned_OPTIMIZED_20260124_131513.xlsx"
     if excel_file_path.exists():
         try:
             excel_service = get_excel_parts_service()
-            success = excel_service.load_excel_file(str(excel_file_path), sheet_name="Data")
+            success = excel_service.load_excel_file(str(excel_file_path), sheet_name="DATA")
             if success:
                 stats = excel_service.get_stats()
                 print(f"✓ Excel catalog loaded: {stats['total_parts']} parts")
