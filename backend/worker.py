@@ -48,7 +48,7 @@ class R2BackgroundWorker:
         
         # Try to load Excel file if not already loaded
         if self.excel_service.unique_parts is None:
-            excel_file_path = Path("egtl_cleaned_OPTIMIZED_20260124_131513.xlsx")
+            excel_file_path = Path("egtl_filtered_clean.xlsx")
             if excel_file_path.exists():
                 try:
                     print("📂 Loading Excel catalog with JDE data from file...")
