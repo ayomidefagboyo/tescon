@@ -559,6 +559,9 @@ def create_ecommerce_card_layout(
 
         for line_idx, line_elements in enumerate(drawing_lines):
             current_x = padding  # Keep horizontal padding
+            
+            # Calculate baseline offset for this line (use the tallest font as reference)
+            max_line_height = line_heights[line_idx]
 
             for text, font_type in line_elements:
                 if font_type == "label":
@@ -576,10 +579,17 @@ def create_ecommerce_card_layout(
                     current_x += (bbox[2] - bbox[0])
                     continue
 
-                draw.text((current_x, current_y), text, fill=TEXT_COLOR, font=font)
+                # Calculate baseline alignment offset
+                # Get the height of this specific text element
+                bbox = temp_draw.textbbox((0, 0), text, font=font)
+                text_height = bbox[3] - bbox[1]
+                
+                # Align to baseline by offsetting smaller text down
+                y_offset = max_line_height - text_height
+                
+                draw.text((current_x, current_y + y_offset), text, fill=TEXT_COLOR, font=font, anchor="lt")
 
                 # Advance x position for next element
-                bbox = temp_draw.textbbox((0, 0), text, font=font)
                 current_x += (bbox[2] - bbox[0])
 
             current_y += line_heights[line_idx] + line_spacing
