@@ -48,11 +48,11 @@ class R2BackgroundWorker:
         
         # Try to load Excel file if not already loaded
         if self.excel_service.unique_parts is None:
-            excel_file_path = Path("EGTL Dump_with_JDE.xlsx")
+            excel_file_path = Path("egtl_cleaned_OPTIMIZED_20260124_131513.xlsx")
             if excel_file_path.exists():
                 try:
                     print("📂 Loading Excel catalog with JDE data from file...")
-                    success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Data")
+                    success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Sheet1")
                     if success:
                         stats = self.excel_service.get_stats()
                         print(f"✅ Excel catalog loaded: {stats['total_parts']} parts")
