@@ -26,8 +26,23 @@ class ExcelPartsService:
             True if successful, False otherwise
         """
         try:
-            # Read Excel file
-            self.parts_data = pd.read_excel(file_path, sheet_name=sheet_name)
+            # Read Excel file with memory optimization
+            # Specify dtypes to reduce memory usage
+            dtype_spec = {
+                'Symbol Number': 'int64',
+                'Desc1': 'string',
+                'Desc2': 'string',
+                'Location': 'string',
+                'Mfg Name': 'string',
+                'Part No': 'string'
+            }
+            
+            self.parts_data = pd.read_excel(
+                file_path, 
+                sheet_name=sheet_name,
+                dtype=dtype_spec,
+                engine='openpyxl'
+            )
             logger.info(f"Loaded Excel file: {len(self.parts_data)} total rows")
 
             # Process and deduplicate parts
