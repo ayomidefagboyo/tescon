@@ -592,14 +592,18 @@ def create_ecommerce_card_layout(
 
             current_y += line_heights[line_idx] + line_spacing
 
-    # Add border around the entire card
-    border_width = 2
-    border_color = (200, 200, 200)  # Light gray border
-    draw.rectangle(
-        [(0, 0), (img_width - 1, card_height - 1)],
-        outline=border_color,
-        width=border_width
-    )
+    # Add border around just the text area to make it look like a table/column
+    if drawing_lines and text_area_height > 0:
+        border_width = 2
+        border_color = (200, 200, 200)  # Light gray border
+        text_area_start_y = top_padding + img_height
+
+        # Draw border around text area only
+        draw.rectangle(
+            [(0, text_area_start_y), (img_width - 1, card_height - 1)],
+            outline=border_color,
+            width=border_width
+        )
 
     return card_image
 
