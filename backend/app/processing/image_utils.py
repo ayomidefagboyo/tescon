@@ -493,16 +493,24 @@ def create_ecommerce_card_layout(
 
         # Handle regular description lines with word wrapping
         if label and value:
-            # Word wrap the value if it's too long
-            wrapped_lines = wrap_text(value, max_text_width - label_indent_width, value_font, temp_draw)
-            for j, wrapped_value in enumerate(wrapped_lines):
+            # Special handling for LONG DESCRIPTION - put all text in front of prefix
+            if "LONG DESCRIPTION" in label:
+                # For long descriptions, create one continuous line with the label prefix
                 current_line = []
-                if j == 0:  # First line gets the label
-                    current_line.append((label, "label"))
-                else:  # Subsequent lines are indented
-                    current_line.append((f"indent_{label_indent_width}", "indent"))
-                current_line.append((wrapped_value, "value"))
+                current_line.append((label, "label"))
+                current_line.append((value, "value"))
                 drawing_lines.append(current_line)
+            else:
+                # Word wrap the value if it's too long for other labels
+                wrapped_lines = wrap_text(value, max_text_width - label_indent_width, value_font, temp_draw)
+                for j, wrapped_value in enumerate(wrapped_lines):
+                    current_line = []
+                    if j == 0:  # First line gets the label
+                        current_line.append((label, "label"))
+                    else:  # Subsequent lines are indented
+                        current_line.append((f"indent_{label_indent_width}", "indent"))
+                    current_line.append((wrapped_value, "value"))
+                    drawing_lines.append(current_line)
         elif label:
             drawing_lines.append([(label, "label")])
         elif value:
