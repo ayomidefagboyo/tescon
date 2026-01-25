@@ -539,7 +539,9 @@ def create_ecommerce_card_layout(
     if drawing_lines:
         total_text_height += (len(drawing_lines) - 1) * line_spacing
 
-    text_area_height = total_text_height + padding + (padding * 2)  # Extra bottom padding
+    # Add top and bottom padding to text area
+    text_top_padding = padding  # Add padding at top of text area
+    text_area_height = text_top_padding + total_text_height + (padding * 2)  # Top + content + bottom padding
 
     # Create final canvas
     card_height = top_padding + img_height + text_area_height
@@ -553,7 +555,7 @@ def create_ecommerce_card_layout(
 
     if drawing_lines and text_area_height > 0:
         text_area_start_y = top_padding + img_height
-        current_y = text_area_start_y  # No top padding - text starts right after image
+        current_y = text_area_start_y + text_top_padding  # Start with top padding
 
         for line_idx, line_elements in enumerate(drawing_lines):
             current_x = padding  # Keep horizontal padding
