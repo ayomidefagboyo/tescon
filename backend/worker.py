@@ -48,7 +48,7 @@ class R2BackgroundWorker:
         
         # Try to load Excel file if not already loaded
         if self.excel_service.unique_parts is None:
-            excel_file_path = Path("egtl_filtered_clean.xlsx")
+            excel_file_path = Path("egtl_cleaned_OPTIMIZED_20260124_131513.xlsx")
             if excel_file_path.exists():
                 try:
                     print("📂 Loading Excel catalog with JDE data from file...")
@@ -66,7 +66,7 @@ class R2BackgroundWorker:
                 except Exception as e:
                     raise Exception(f"❌ Error loading Excel catalog: {e}")
             else:
-                raise Exception("❌ Excel catalog file not found. Ensure 'EGTL Dump_with_JDE.xlsx' is in the backend directory.")
+                raise Exception("❌ Excel catalog file not found. Ensure 'egtl_cleaned_OPTIMIZED_20260124_131513.xlsx' is in the backend directory.")
         else:
             print("✅ Excel catalog already loaded")
 
