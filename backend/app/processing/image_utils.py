@@ -592,6 +592,15 @@ def create_ecommerce_card_layout(
 
             current_y += line_heights[line_idx] + line_spacing
 
+    # Add border around the entire card
+    border_width = 2
+    border_color = (200, 200, 200)  # Light gray border
+    draw.rectangle(
+        [(0, 0), (img_width - 1, card_height - 1)],
+        outline=border_color,
+        width=border_width
+    )
+
     return card_image
 
 
