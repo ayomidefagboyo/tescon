@@ -52,7 +52,7 @@ class R2BackgroundWorker:
             if excel_file_path.exists():
                 try:
                     print("📂 Loading Excel catalog with JDE data from file...")
-                    success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Sheet1")
+                    success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="DATA")
                     if success:
                         stats = self.excel_service.get_stats()
                         print(f"✅ Excel catalog loaded: {stats['total_parts']} parts")
