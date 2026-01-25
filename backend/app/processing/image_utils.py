@@ -425,7 +425,7 @@ def create_ecommerce_card_layout(
         for pair in pairs:
             if ": " in pair:
                 label, value = pair.split(": ", 1)
-                label = label + ":"
+                label = label + ": "  # Add colon and space
             else:
                 # Handle pairs without colon separator
                 label = ""
