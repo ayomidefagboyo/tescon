@@ -150,7 +150,19 @@ def process_image(
     white_background: bool = True,
     max_retries: int = 3,
     retry_delay: float = 1.0,
-    optimization_level: str = "balanced"  # "fast", "balanced", "quality"
+    optimization_level: str = "balanced",  # "fast", "balanced", "quality"
+    # Text/Layout arguments (matching PicWish processor)
+    description: Optional[str] = None,
+    add_label: bool = True,
+    label_position: str = "bottom-left",
+    item_note: Optional[str] = None,
+    symbol_number: Optional[str] = None,
+    desc1: Optional[str] = None,
+    desc2: Optional[str] = None,
+    long_description: Optional[str] = None,
+    part_number: Optional[str] = None,
+    manufacturer: Optional[str] = None,
+    use_ecommerce_layout: bool = False
 ) -> BytesIO:
     """
     Enhanced image processing with optimal model selection and GPU acceleration.
@@ -162,6 +174,17 @@ def process_image(
         max_retries: Maximum number of retry attempts
         retry_delay: Initial retry delay in seconds
         optimization_level: Processing optimization ("fast", "balanced", "quality")
+        description: Text to display in label
+        add_label: Whether to add a text label
+        label_position: Position of the label
+        item_note: Alternative text source
+        symbol_number: Part symbol number (for e-commerce layout)
+        desc1: Primary description (e-commerce)
+        desc2: Secondary description (e-commerce)
+        long_description: Detailed description (e-commerce)
+        part_number: Manufacturer part number (e-commerce)
+        manufacturer: Manufacturer name (e-commerce)
+        use_ecommerce_layout: Whether to use the full e-commerce card layout
 
     Returns:
         BytesIO buffer with processed image
@@ -212,6 +235,34 @@ def process_image(
             # Enhanced post-processing
             if white_background:
                 processed_image = composite_white_background(processed_image)
+
+            # Add text label or e-commerce layout (feature parity with PicWish)
+            if use_ecommerce_layout:
+                # Listing-style card: include requested fields when available
+                from app.processing.image_utils import create_ecommerce_card_layout
+                processed_image = create_ecommerce_card_layout(
+                    processed_image,
+                    symbol_number=symbol_number,
+                    desc1=(desc1 or description).rstrip(',').strip() if (desc1 or description) else None,
+                    desc2=desc2.rstrip(',').strip() if desc2 else None,
+                    long_description=long_description,  # Only use if it exists, no fallback
+                    part_number=part_number,
+                    manufacturer=manufacturer,
+                    padding=24
+                )
+            elif add_label and (item_note or description):
+                # Fallback: overlay a single combined text block
+                from app.processing.image_utils import add_text_label
+                processed_image = add_text_label(
+                    processed_image,
+                    text=item_note or description or "",
+                    position=label_position,
+                    font_size=None,  # Auto-calculate
+                    text_color=(0, 0, 0),  # Black text
+                    background_color=(255, 255, 255, 220),  # Semi-transparent white background
+                    padding=8,
+                    margin=15
+                )
 
             # Performance logging
             processing_time = (time.time() - start_time) * 1000
