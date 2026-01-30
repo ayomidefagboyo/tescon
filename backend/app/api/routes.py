@@ -12,8 +12,7 @@ from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from app.models import PartInfo, ProcessPartResponse, JobResponse, JobStatus, JobStatusResponse
-from app.processing.processor_selector import process_with_optimal_selection as process_image
-from app.processing.picwish_processor import check_api_available
+from app.processing.rembg_processor import process_image
 from app.processing.image_utils import validate_image
 from app.processing.batch_manager import BatchProcessor
 from app.storage.local_storage import LocalStorage
@@ -57,8 +56,7 @@ async def process_single_image(
     
     # Process image
     start_time = time.time()
-    api_available = check_api_available()
-    
+
     try:
         output_format = "PNG" if format.upper() == "PNG" else "JPEG"
         processed_buffer = process_image(
@@ -209,10 +207,8 @@ async def process_bulk_job(
     max_dimension: int = 2048
 ):
     """Process bulk images in background with batching support."""
-    api_available = check_api_available()
-    
-    # Log API availability at start
-    log_gpu_metrics(gpu_available=False)  # API-based, no GPU
+    # Log processing start
+    log_gpu_metrics(gpu_available=False)  # Enhanced REMBG processing
     
     # Get batch size from environment (default: 500 for large volumes)
     batch_size = int(os.getenv("BATCH_SIZE", "500"))
@@ -378,7 +374,7 @@ async def process_part_images_async(
     Returns job ID immediately so users can continue with other parts.
 
     Background processing steps:
-    1. Background removal using PicWish API
+    1. Background removal using Enhanced REMBG (Kaggle)
     2. Add white background
     3. Add description label overlay
     4. Save to Cloudflare R2
@@ -863,7 +859,7 @@ async def debug_environment():
         "CLOUDFLARE_ACCESS_KEY_ID": os.getenv("CLOUDFLARE_ACCESS_KEY_ID"),
         "CLOUDFLARE_SECRET_ACCESS_KEY": os.getenv("CLOUDFLARE_SECRET_ACCESS_KEY"),
         "CLOUDFLARE_BUCKET_NAME": os.getenv("CLOUDFLARE_BUCKET_NAME"),
-        "PICWISH_API_KEY": os.getenv("PICWISH_API_KEY")
+        "KAGGLE_USERNAME": os.getenv("KAGGLE_USERNAME")
     }
 
     # Test R2 service initialization

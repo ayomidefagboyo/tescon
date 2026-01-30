@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 from services.cloudflare_r2 import get_r2_storage
 from services.excel_service import get_excel_parts_service
 from services.parts_tracker import get_parts_tracker
-from processing.processor_selector import process_with_optimal_selection as process_image
+from processing.rembg_processor import process_image
 from processing.image_utils import validate_image
 
 
@@ -175,7 +175,7 @@ class R2BackgroundWorker:
                         print(f"    ❌ Invalid image: {error_msg}")
                         continue
 
-                    # Process image with PicWish
+                    # Process image with Enhanced REMBG
                     view_num = view_nums[idx] if idx < len(view_nums) else idx + 1
                     output_format = "PNG" if parameters.get("format", "PNG").upper() == "PNG" else "JPEG"
 

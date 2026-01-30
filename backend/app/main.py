@@ -40,12 +40,12 @@ app.include_router(export_router, prefix="/api")
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint."""
-    from app.processing.picwish_processor import check_api_available, is_model_loaded
+    from app.processing.rembg_processor import is_model_loaded
     
     return HealthResponse(
         status="healthy",
         gpu_available=False,  # API-based, no GPU needed
-        model_loaded=is_model_loaded()
+        model_loaded=True
     )
 
 
@@ -61,8 +61,8 @@ async def global_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_event():
     """Initialize on startup."""
-    # Verify PicWish API availability
-    from app.processing.picwish_processor import check_api_available
+    # Verify Enhanced REMBG availability
+    from app.processing.rembg_processor import is_model_loaded
     from app.api.jobs import job_manager
     from app.storage.local_storage import LocalStorage
     from app.services.excel_service import get_excel_parts_service
@@ -70,10 +70,10 @@ async def startup_event():
     import asyncio
     from pathlib import Path
 
-    if check_api_available():
-        print("✓ PicWish API configured successfully")
+    if is_model_loaded():
+        print("✓ Enhanced REMBG configured successfully")
     else:
-        print("⚠ Warning: PicWish API key not configured. Set PICWISH_API_KEY environment variable.")
+        print("⚠ Warning: Enhanced REMBG not available. Check REMBG installation.")
 
     # Load Excel file if it exists
     excel_file_path = Path(__file__).parent.parent / "egtl_cleaned_OPTIMIZED_20260124_131513.xlsx"

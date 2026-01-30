@@ -2,11 +2,7 @@
 import asyncio
 from typing import List, Dict, Optional
 from datetime import datetime
-from app.processing.processor_selector import (
-    get_processor_selector,
-    ProcessorType,
-    process_with_optimal_selection
-)
+from app.processing.rembg_processor import process_image
 from app.processing.image_utils import validate_image
 from app.storage.local_storage import LocalStorage
 from app.api.jobs import job_manager
@@ -31,11 +27,11 @@ class EnhancedBatchProcessor:
         self.max_concurrent = max_concurrent
         self.priority = priority
         self.storage = LocalStorage()
-        self.processor_selector = get_processor_selector()
+        # Using Enhanced REMBG only
 
     def get_processing_recommendations(self, num_images: int) -> Dict:
         """Get processor recommendations for the batch."""
-        return self.processor_selector.get_recommendations_for_batch(num_images)
+        return {"processor": "Enhanced REMBG", "cost_per_image": 0.002, "estimated_total": num_images * 0.002}
     
     async def process_batch(
         self,
@@ -93,20 +89,12 @@ class EnhancedBatchProcessor:
                     start_time = time.time()
                     format_str = "PNG" if output_format.upper() == "PNG" else "JPEG"
 
-                    # Set processing requirements
-                    requirements = {
-                        'priority': self.priority,
-                        'batch_size': len(image_data_list),
-                        'budget_limit': 0.05 if self.priority != 'cost' else 0.01
-                    }
-
-                    # Run in thread pool to avoid blocking
+                    # Process with Enhanced REMBG only
                     loop = asyncio.get_event_loop()
                     processed_buffer = await loop.run_in_executor(
                         None,
-                        lambda: process_with_optimal_selection(
+                        lambda: process_image(
                             file_bytes,
-                            requirements,
                             output_format=format_str,
                             white_background=white_background,
                             compression_quality=compression_quality,
