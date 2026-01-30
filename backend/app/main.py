@@ -109,3 +109,7 @@ async def startup_event():
 
     asyncio.create_task(cleanup_task())
 
+    # Start Kaggle batch processing service
+    from app.services.kaggle_batch_service import start_kaggle_batch_service
+    asyncio.create_task(start_kaggle_batch_service())
+

@@ -150,6 +150,8 @@ def process_image(
     white_background: bool = True,
     max_retries: int = 3,
     retry_delay: float = 1.0,
+    compression_quality: int = 85,  # Match PicWish parameter
+    max_dimension: int = None,      # Match PicWish parameter
     optimization_level: str = "balanced",  # "fast", "balanced", "quality"
     # Text/Layout arguments (matching PicWish processor)
     description: Optional[str] = None,
@@ -173,6 +175,8 @@ def process_image(
         white_background: Whether to composite onto white background
         max_retries: Maximum number of retry attempts
         retry_delay: Initial retry delay in seconds
+        compression_quality: JPEG compression quality (85 default)
+        max_dimension: Maximum dimension for resizing (None = no resize)
         optimization_level: Processing optimization ("fast", "balanced", "quality")
         description: Text to display in label
         add_label: Whether to add a text label
@@ -264,14 +268,22 @@ def process_image(
                     margin=15
                 )
 
+            # Apply compression if specified (matching PicWish behavior)
+            if compression_quality < 95 or max_dimension:
+                from app.utils.image_compressor import compress_image
+                processed_image = compress_image(
+                    processed_image,
+                    quality=compression_quality,
+                    max_dimension=max_dimension
+                )
+
             # Performance logging
             processing_time = (time.time() - start_time) * 1000
             if processing_time < 1000:  # Log fast processing
                 print(f"⚡ Fast processing: {processing_time:.0f}ms ({_current_model})")
 
-            # Convert to requested format with optimization
-            quality = 95 if optimization_level == "quality" else 85
-            return convert_format(processed_image, output_format, quality=quality)
+            # Convert to requested format (matching PicWish behavior)
+            return convert_format(processed_image, output_format, quality=compression_quality)
 
         except torch.cuda.OutOfMemoryError as e:
             print(f"🚨 GPU OOM, falling back to CPU for this image")
@@ -291,7 +303,17 @@ def process_image(
                         processed_image = Image.open(BytesIO(output_bytes))
                         if white_background:
                             processed_image = composite_white_background(processed_image)
-                        return convert_format(processed_image, output_format)
+
+                        # Apply compression if specified (matching PicWish behavior)
+                        if compression_quality < 95 or max_dimension:
+                            from app.utils.image_compressor import compress_image
+                            processed_image = compress_image(
+                                processed_image,
+                                quality=compression_quality,
+                                max_dimension=max_dimension
+                            )
+
+                        return convert_format(processed_image, output_format, quality=compression_quality)
                 except Exception:
                     pass
 
@@ -322,6 +344,8 @@ def process_images_batch(
     output_format: str = "PNG",
     white_background: bool = True,
     batch_size: Optional[int] = None,
+    compression_quality: int = 85,  # Match PicWish parameter
+    max_dimension: int = None,      # Match PicWish parameter
     optimization_level: str = "balanced",
     progress_callback: Optional[callable] = None
 ) -> List[Optional[BytesIO]]:
@@ -333,6 +357,8 @@ def process_images_batch(
         output_format: Output format ("PNG" or "JPEG")
         white_background: Whether to composite onto white background
         batch_size: Batch size for memory management (None = auto-detect)
+        compression_quality: JPEG compression quality (85 default)
+        max_dimension: Maximum dimension for resizing (None = no resize)
         optimization_level: Processing optimization level
         progress_callback: Optional callback for progress tracking
 
@@ -391,6 +417,8 @@ def process_images_batch(
                     image_bytes,
                     output_format,
                     white_background,
+                    compression_quality=compression_quality,
+                    max_dimension=max_dimension,
                     optimization_level=optimization_level
                 )
                 batch_results.append(result)

@@ -38,7 +38,9 @@ storage = LocalStorage(
 async def process_single_image(
     file: UploadFile = File(...),
     format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
-    white_background: bool = Query(True)
+    white_background: bool = Query(True),
+    compression_quality: int = Query(85, ge=70, le=100),
+    max_dimension: int = Query(2048, ge=800, le=4096)
 ):
     """
     Process a single image synchronously.
@@ -59,7 +61,13 @@ async def process_single_image(
     
     try:
         output_format = "PNG" if format.upper() == "PNG" else "JPEG"
-        processed_buffer = process_image(file_bytes, output_format, white_background)
+        processed_buffer = process_image(
+            file_bytes,
+            output_format=output_format,
+            white_background=white_background,
+            compression_quality=compression_quality,
+            max_dimension=max_dimension
+        )
         
         processing_time_ms = (time.time() - start_time) * 1000
         
