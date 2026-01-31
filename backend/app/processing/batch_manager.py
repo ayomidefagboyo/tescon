@@ -2,7 +2,7 @@
 import asyncio
 from typing import List, Dict, Optional
 from datetime import datetime
-from app.processing.rembg_processor import process_image
+from app.processing.lightweight_processor import process_image
 from app.processing.image_utils import validate_image
 from app.storage.local_storage import LocalStorage
 from app.api.jobs import job_manager

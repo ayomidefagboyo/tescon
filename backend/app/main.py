@@ -40,7 +40,7 @@ app.include_router(export_router, prefix="/api")
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint."""
-    from app.processing.rembg_processor import is_model_loaded
+    from app.processing.lightweight_processor import is_model_loaded
     
     return HealthResponse(
         status="healthy",
@@ -62,7 +62,7 @@ async def global_exception_handler(request, exc):
 async def startup_event():
     """Initialize on startup."""
     # Verify Enhanced REMBG availability
-    from app.processing.rembg_processor import is_model_loaded
+    from app.processing.lightweight_processor import is_model_loaded
     from app.api.jobs import job_manager
     from app.storage.local_storage import LocalStorage
     from app.services.excel_service import get_excel_parts_service
@@ -71,9 +71,10 @@ async def startup_event():
     from pathlib import Path
 
     if is_model_loaded():
-        print("✓ Enhanced REMBG configured successfully")
+        print("✓ Lightweight processor configured successfully")
+        print("✓ All processing will be handled via Kaggle Enhanced REMBG")
     else:
-        print("⚠ Warning: Enhanced REMBG not available. Check REMBG installation.")
+        print("⚠ Warning: Processor not available.")
 
     # Load Excel file if it exists
     excel_file_path = Path(__file__).parent.parent / "egtl_cleaned_OPTIMIZED_20260124_131513.xlsx"

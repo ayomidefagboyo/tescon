@@ -19,7 +19,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 from services.cloudflare_r2 import get_r2_storage
 from services.excel_service import get_excel_parts_service
 from services.parts_tracker import get_parts_tracker
-from processing.rembg_processor import process_image
+# Enhanced REMBG processing happens in Kaggle, not locally
+# Worker manages R2 queue and triggers Kaggle processing
 from processing.image_utils import validate_image
 
 
@@ -175,37 +176,9 @@ class R2BackgroundWorker:
                         print(f"    ❌ Invalid image: {error_msg}")
                         continue
 
-                    # Process image with Enhanced REMBG
-                    view_num = view_nums[idx] if idx < len(view_nums) else idx + 1
-                    output_format = "PNG" if parameters.get("format", "PNG").upper() == "PNG" else "JPEG"
-
-                    processed_buffer = process_image(
-                        file_bytes,
-                        output_format=output_format,
-                        white_background=parameters.get("white_background", True),
-                        compression_quality=parameters.get("compression_quality", 85),
-                        max_dimension=parameters.get("max_dimension", 2048),
-                        description=description if parameters.get("add_label", True) else None,
-                        add_label=parameters.get("add_label", True),
-                        label_position=parameters.get("label_position", "bottom-left"),
-                        item_note=part_info.get("item_note") or part_info.get("combined_description"),
-                        symbol_number=symbol_number,
-                        desc1=part_info.get("description_1") or part_info.get("description") or "",
-                        desc2=part_info.get("description_2") or "",
-                        long_description=part_info.get("long_text_jde"),  # Only Long Text JDE, no fallback
-                        part_number=part_info.get("part_number") or parameters.get("part_number") or symbol_number,
-                        manufacturer=part_info.get("manufacturer") or parameters.get("manufacturer"),
-                        use_ecommerce_layout=True
-                    )
-
-                    # Generate filename
-                    safe_description = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in description)
-                    safe_description = safe_description.replace(' ', '_')[:50]
-                    ext = ".jpg" if output_format.upper() in ["JPEG", "JPG"] else ".png"
-                    filename = f"{symbol_number}_{view_num}_{safe_description}{ext}"
-
-                    processed_bytes = processed_buffer.read()
-                    processed_files.append((filename, processed_bytes))
+                    # Note: Actual Enhanced REMBG processing happens in Kaggle
+                    # This worker just manages the queue - processing is triggered by Kaggle batch service
+                    print(f"    📝 Job validated: {symbol_number} - processing will be handled by Kaggle")
                     print(f"    ✅ Processed: {filename}")
 
                 except Exception as e:

@@ -321,7 +321,7 @@ class JobManager:
             # Import processing functions here to avoid circular imports
             from app.services.cloudflare_r2 import get_r2_storage
             from app.services.excel_service import get_excel_parts_service
-            from app.processing.rembg_processor import process_image
+            from app.processing.lightweight_processor import process_image
             from app.processing.image_utils import validate_image
             from app.services.parts_tracker import get_parts_tracker
 

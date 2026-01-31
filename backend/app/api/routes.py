@@ -12,7 +12,7 @@ from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from app.models import PartInfo, ProcessPartResponse, JobResponse, JobStatus, JobStatusResponse
-from app.processing.rembg_processor import process_image
+from app.processing.lightweight_processor import process_image
 from app.processing.image_utils import validate_image
 from app.processing.batch_manager import BatchProcessor
 from app.storage.local_storage import LocalStorage
