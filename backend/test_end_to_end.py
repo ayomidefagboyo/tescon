@@ -72,7 +72,7 @@ class EndToEndTester:
         # Load Excel file
         excel_file_path = Path("egtl_cleaned_OPTIMIZED_20260124_131513.xlsx")
         if excel_file_path.exists():
-            success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="DATA")
+            success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Sheet1")
             if success:
                 stats = self.excel_service.get_stats()
                 self.log(f"✅ Excel loaded: {stats['total_parts']} parts", "setup")

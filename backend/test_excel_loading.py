@@ -16,7 +16,7 @@ def test_excel_loading():
 
         # Test loading the new Excel file
         print("📂 Loading egtl_cleaned_OPTIMIZED_20260124_131513.xlsx...")
-        success = excel_service.load_excel_file('egtl_filtered_clean.xlsx', sheet_name='DATA')
+        success = excel_service.load_excel_file('egtl_filtered_clean.xlsx', sheet_name='Sheet1')
 
         if success:
             stats = excel_service.get_stats()

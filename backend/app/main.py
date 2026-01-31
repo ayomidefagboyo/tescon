@@ -77,11 +77,11 @@ async def startup_event():
         print("⚠ Warning: Processor not available.")
 
     # Load Excel file if it exists
-    excel_file_path = Path(__file__).parent.parent / "egtl_cleaned_OPTIMIZED_20260124_131513.xlsx"
+    excel_file_path = Path(__file__).parent.parent / "EGTL_FINAL_23033_CLEANED.xlsx"
     if excel_file_path.exists():
         try:
             excel_service = get_excel_parts_service()
-            success = excel_service.load_excel_file(str(excel_file_path), sheet_name="DATA")
+            success = excel_service.load_excel_file(str(excel_file_path), sheet_name="Sheet1")
             if success:
                 stats = excel_service.get_stats()
                 print(f"✓ Excel catalog loaded: {stats['total_parts']} parts")

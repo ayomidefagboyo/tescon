@@ -23,7 +23,7 @@ def clean_excel_file():
 
         # Load only the required columns to avoid memory issues
         print("📋 Loading only essential columns...")
-        df = pd.read_excel(input_file, sheet_name='DATA', usecols=required_columns)
+        df = pd.read_excel(input_file, sheet_name='Sheet1', usecols=required_columns)
 
         print(f"✅ Loaded {len(df)} rows with {len(df.columns)} columns")
         print(f"📊 Columns: {list(df.columns)}")
@@ -84,7 +84,7 @@ def clean_excel_file():
 
         # Save the cleaned file
         print(f"\n💾 Saving cleaned file as {output_file}...")
-        df_filtered.to_excel(output_file, sheet_name='DATA', index=False, engine='openpyxl')
+        df_filtered.to_excel(output_file, sheet_name='Sheet1', index=False, engine='openpyxl')
 
         # Check file sizes
         import os
