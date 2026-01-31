@@ -396,6 +396,23 @@ async def process_part_images_async(
             detail=f"Part {symbol_number} has already been processed. Use the tracking dashboard to see results."
         )
 
+    # Get part info from Excel catalog
+    excel_service = get_excel_parts_service()
+    part_info = excel_service.get_part_info(symbol_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
+        )
+
+    # Extract part info for job metadata
+    description = part_info.get("description", "")
+    desc1 = part_info.get("desc1", "")
+    desc2 = part_info.get("desc2", "")
+    long_desc = part_info.get("long_text_desc", "")
+    item_note = part_info.get("item_note", "")
+    location = part_info.get("location", "")
+
     # Check if part is currently being processed (has active jobs)
     # Get recent jobs for this part number to prevent concurrent processing
     job_manager_instance = job_manager
