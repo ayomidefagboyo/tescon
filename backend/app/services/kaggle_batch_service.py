@@ -128,13 +128,13 @@ class KaggleBatchService:
         metadata = {
             "id": f"{self.notebook_username}/{self.notebook_slug}",
             "title": "Daily Enhanced REMBG Processor",
-            "code_file": "enhanced_rembg_batch_processor.py",
+            "code_file": "enhanced_rembg_batch_processor.ipynb",
             "language": "python",
             "kernel_type": "notebook",
             "is_private": "true",
             "enable_gpu": "false",
+            "enable_tpu": "false",
             "enable_internet": "true",
-            "enable_external_data_sources": "false",
             "dataset_sources": [],
             "competition_sources": [],
             "kernel_sources": [],
@@ -404,6 +404,34 @@ except Exception as e:
 
         return json.dumps(metadata, indent=2), code
 
+    def create_notebook_from_code(self, python_code: str) -> str:
+        """Convert Python code to Jupyter notebook format."""
+        notebook = {
+            "cells": [
+                {
+                    "cell_type": "code",
+                    "execution_count": None,
+                    "metadata": {},
+                    "outputs": [],
+                    "source": python_code.split('\n')
+                }
+            ],
+            "metadata": {
+                "kernelspec": {
+                    "display_name": "Python 3",
+                    "language": "python",
+                    "name": "python3"
+                },
+                "language_info": {
+                    "name": "python",
+                    "version": "3.8.5"
+                }
+            },
+            "nbformat": 4,
+            "nbformat_minor": 4
+        }
+        return json.dumps(notebook, indent=2)
+
     async def trigger_batch_processing(self, jobs: List[Dict[str, Any]]) -> bool:
         """Trigger Kaggle processing for a batch of jobs."""
         if not jobs:
@@ -421,7 +449,8 @@ except Exception as e:
                 temp_path = Path(temp_dir)
 
                 (temp_path / "kernel-metadata.json").write_text(metadata)
-                (temp_path / "enhanced_rembg_batch_processor.py").write_text(code)
+                notebook = self.create_notebook_from_code(code)
+                (temp_path / "enhanced_rembg_batch_processor.ipynb").write_text(notebook)
 
                 result = subprocess.run([
                     self.kaggle_cli, 'kernels', 'push',
