@@ -148,8 +148,26 @@ class KaggleBatchService:
 # Jobs: {len(jobs)}
 # Triggered: {datetime.now().isoformat()}
 
-!pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-!pip install rembg opencv-python-headless pillow boto3
+# Optimize dependency installation - avoid re-downloading if already available
+try:
+    import torch
+    print("✅ torch already available")
+except ImportError:
+    print("📦 Installing torch...")
+    !pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+try:
+    import rembg
+    print("✅ rembg already available")
+except ImportError:
+    print("📦 Installing rembg...")
+    !pip install rembg opencv-python-headless
+
+# Always ensure boto3 is available (lightweight)
+try:
+    import boto3
+except ImportError:
+    !pip install boto3 pillow
 
 import os
 import sys
@@ -282,25 +300,8 @@ def process_job_batch():
                     print(f"    ❌ Failed: {{e}}")
 
             if processed_files:
-                # Create ZIP for this job
-                print(f"  📦 Creating ZIP...")
-
-                zip_filename = f"processed_{{job_id}}.zip"
-                zip_path = f"/kaggle/working/{{zip_filename}}"
-
-                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for pf in processed_files:
-                        zip_internal_path = f"{{symbol_number}}/{{pf['filename']}}"
-                        zipf.writestr(zip_internal_path, pf['bytes'])
-
-                # Upload ZIP
-                with open(zip_path, 'rb') as f:
-                    r2.put_object(
-                        Bucket=R2_BUCKET,
-                        Key=f"processed_images/{{job_id}}/{{zip_filename}}",
-                        Body=f.read(),
-                        ContentType='application/zip'
-                    )
+                # Images already uploaded individually to R2 - no ZIP creation needed
+                print(f"  ✅ All {{len(processed_files)}} images uploaded directly to R2")
 
                 # Mark job complete
                 job_data['status'] = 'completed'
