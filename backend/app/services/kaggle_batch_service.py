@@ -127,7 +127,7 @@ class KaggleBatchService:
 
         metadata = {
             "id": f"{self.notebook_username}/{self.notebook_slug}",
-            "title": f"Enhanced REMBG Batch Processor - {batch_id}",
+            "title": "Daily Enhanced REMBG Processor",
             "code_file": "enhanced_rembg_batch_processor.py",
             "language": "python",
             "kernel_type": "notebook",
