@@ -80,6 +80,19 @@ def setup_logging(log_dir: str = "logs", log_level: str = "INFO"):
 logger = setup_logging()
 
 
+def setup_logger(name: str = "tescon") -> logging.Logger:
+    """
+    Setup and return a logger instance.
+
+    Args:
+        name: Logger name
+
+    Returns:
+        Logger instance
+    """
+    return logging.getLogger(name)
+
+
 def log_image_processing(
     image_filename: str,
     job_id: Optional[str] = None,
