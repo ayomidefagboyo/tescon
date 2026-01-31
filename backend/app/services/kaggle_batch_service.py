@@ -241,10 +241,10 @@ def process_job_batch():
             symbol_number = job_data.get('symbol_number', 'unknown')
             raw_files = job_data.get('raw_file_paths', [])
             params = job_data.get('parameters', {{}})
+            part_info = job_data.get('part_info', {{}})
 
-            # Get part description (would need Excel lookup in production)
-            # For now, use a placeholder - this should be enhanced to lookup from Excel
-            description = f"Part_{{symbol_number}}"
+            # Get desc1 from Excel catalog data included in job
+            description = part_info.get('desc1') or part_info.get('description') or f"Part_{{symbol_number}}"
 
             print(f"🔖 Symbol: {{symbol_number}}")
             print(f"📁 Files: {{len(raw_files)}}")

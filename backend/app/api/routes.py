@@ -455,6 +455,14 @@ async def process_part_images_async(
         "job_id": job_id,
         "symbol_number": symbol_number,
         "raw_file_paths": raw_file_paths,
+        "part_info": {
+            "description": description,
+            "desc1": desc1,
+            "desc2": desc2,
+            "long_description": long_desc,
+            "item_note": item_note,
+            "location": location
+        },
         "parameters": {
             "view_numbers": view_numbers,
             "format": format,
