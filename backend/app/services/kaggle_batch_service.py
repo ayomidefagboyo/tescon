@@ -242,8 +242,13 @@ def process_job_batch():
             raw_files = job_data.get('raw_file_paths', [])
             params = job_data.get('parameters', {{}})
 
+            # Get part description (would need Excel lookup in production)
+            # For now, use a placeholder - this should be enhanced to lookup from Excel
+            description = f"Part_{{symbol_number}}"
+
             print(f"🔖 Symbol: {{symbol_number}}")
             print(f"📁 Files: {{len(raw_files)}}")
+            print(f"📝 Description: {{description}}")
 
             processed_files = []
 
@@ -276,9 +281,21 @@ def process_job_batch():
                     img.save(output_buffer, format='PNG', optimize=True)
                     processed_bytes = output_buffer.getvalue()
 
-                    # Generate output filename
-                    output_filename = filename.rsplit('.', 1)[0] + '.png'
-                    output_key = f"processed_images/{{job_id}}/{{symbol_number}}/{{output_filename}}"
+                    # Generate filename: SymbolNumber_ViewNumber_Description.png
+                    # Extract view number from filename or use index
+                    view_num = file_idx
+                    if '_' in filename:
+                        parts = filename.split('_')
+                        if len(parts) >= 2 and parts[1].isdigit():
+                            view_num = int(parts[1])
+
+                    # Use description from job processing (already sanitized above)
+                    safe_description = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in description)
+                    safe_description = safe_description.replace(' ', '_')[:50]  # Limit length
+
+                    # Generate filename: SymbolNumber_ViewNumber_Description.png
+                    output_filename = f"{{symbol_number}}_{{view_num}}_{{safe_description}}.png"
+                    output_key = f"parts/{{symbol_number}}/{{output_filename}}"
 
                     # Upload processed image
                     r2.put_object(
