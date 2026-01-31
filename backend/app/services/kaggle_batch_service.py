@@ -436,11 +436,17 @@ except Exception as e:
                     logger.info(f"Batch {batch_id} triggered successfully ({len(jobs)} jobs)")
                     return True
                 else:
-                    logger.error(f"Batch trigger failed: {result.stderr}")
+                    logger.error(f"Batch trigger failed:")
+                    logger.error(f"Return code: {result.returncode}")
+                    logger.error(f"STDOUT: {result.stdout}")
+                    logger.error(f"STDERR: {result.stderr}")
                     return False
 
         except Exception as e:
             logger.error(f"Error triggering batch {batch_id}: {e}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
     async def cleanup_old_notebooks(self):
