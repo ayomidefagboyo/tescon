@@ -143,6 +143,12 @@ class KaggleBatchService:
 
         render_webhook = os.getenv('RENDER_WEBHOOK_URL', '')
 
+        # Get R2 credentials from environment
+        r2_endpoint = os.getenv('CLOUDFLARE_ACCOUNT_ID', '')
+        r2_access_key = os.getenv('CLOUDFLARE_ACCESS_KEY_ID', '')
+        r2_secret_key = os.getenv('CLOUDFLARE_SECRET_ACCESS_KEY', '')
+        r2_bucket = os.getenv('CLOUDFLARE_BUCKET_NAME', '')
+
         code = f'''# Enhanced REMBG Batch Processor
 # Batch ID: {batch_id}
 # Jobs: {len(jobs)}
@@ -181,7 +187,7 @@ from datetime import datetime
 from PIL import Image
 from io import BytesIO
 from rembg import remove, new_session
-from kaggle_secrets import UserSecretsClient
+# from kaggle_secrets import UserSecretsClient  # No longer needed - using embedded credentials
 
 print("🚀 Enhanced REMBG Batch Processor")
 print(f"📦 Batch ID: {batch_id}")
@@ -189,18 +195,15 @@ print(f"📋 Processing {len(jobs)} jobs")
 print("💰 Saving massive costs vs PicWish API!")
 print("=" * 60)
 
-# Get R2 credentials
-user_secrets = UserSecretsClient()
+# R2 credentials (embedded for reliability)
+R2_ENDPOINT = "https://{r2_endpoint}.r2.cloudflarestorage.com"
+R2_ACCESS_KEY = "{r2_access_key}"
+R2_SECRET_KEY = "{r2_secret_key}"
+R2_BUCKET = "{r2_bucket}"
 
-try:
-    R2_ENDPOINT = f"https://{{user_secrets.get_secret('R2_ENDPOINT')}}"
-    R2_ACCESS_KEY = user_secrets.get_secret('R2_ACCESS_KEY')
-    R2_SECRET_KEY = user_secrets.get_secret('R2_SECRET_KEY')
-    R2_BUCKET = user_secrets.get_secret('R2_BUCKET')
-    print("✅ R2 credentials loaded")
-except Exception as e:
-    print(f"❌ Error loading secrets: {{e}}")
-    sys.exit(1)
+print("✅ R2 credentials configured")
+print(f"📡 Endpoint: {{R2_ENDPOINT}}")
+print(f"🪣 Bucket: {{R2_BUCKET}}")
 
 # Initialize R2 and REMBG
 r2 = boto3.client('s3',
