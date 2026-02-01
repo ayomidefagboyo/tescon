@@ -111,6 +111,13 @@ async def startup_event():
     asyncio.create_task(cleanup_task())
 
     # Start Kaggle batch processing service
-    from app.services.kaggle_batch_service import start_kaggle_batch_service
-    asyncio.create_task(start_kaggle_batch_service())
+    try:
+        from app.services.kaggle_batch_service import start_kaggle_batch_service
+        print("📡 Starting Kaggle batch processing service...")
+        asyncio.create_task(start_kaggle_batch_service())
+        print("✓ Kaggle batch service task created successfully")
+    except Exception as e:
+        print(f"❌ Error starting Kaggle batch service: {e}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
 
