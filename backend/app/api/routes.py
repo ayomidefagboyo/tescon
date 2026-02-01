@@ -371,15 +371,12 @@ async def process_part_images_async(
 ):
     """
     Queue part images for background processing.
-    Returns job ID immediately so users can continue with other parts.
+    Returns immediately so users can continue with other parts.
 
     Background processing steps:
-    1. Background removal using Enhanced REMBG (Kaggle)
-    2. Add white background
-    3. Add description label overlay
-    4. Save to Cloudflare R2
-
-    Supports variable number of images (1-10).
+    1. Upload images to R2
+    2. Add to daily batch job
+    3. Process at 7 PM daily
     """
     # Quick validation
     if not files or len(files) == 0:
@@ -413,130 +410,157 @@ async def process_part_images_async(
     item_note = part_info.get("item_note", "")
     location = part_info.get("location", "")
 
-    # Check if part is currently being processed (has active jobs)
-    # Get recent jobs for this part number to prevent concurrent processing
-    job_manager_instance = job_manager
-    recent_jobs = []
-    try:
-        conn = sqlite3.connect(job_manager_instance.db_path)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT status FROM jobs
-            WHERE job_data LIKE ?
-            AND status IN ('queued', 'processing')
-            AND datetime(created_at) > datetime('now', '-1 hour')
-        """, (f'%"symbol_number": "{symbol_number}"%',))
-        recent_jobs = cursor.fetchall()
-        conn.close()
-    except Exception:
-        pass  # If check fails, allow upload (fail-open)
+    # Read files into memory (fast, happens before return)
+    file_data = []
+    for file in files:
+        content = await file.read()
+        file_data.append({
+            'content': content,
+            'filename': file.filename,
+            'content_type': file.content_type
+        })
 
-    if recent_jobs:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Part {symbol_number} is currently being processed. Please wait for completion."
-        )
-
-    # Use daily batch job ID (all uploads today go to same job)
+    # Use daily batch job ID
     from datetime import datetime
     job_id = f"job_daily_{datetime.now().strftime('%Y%m%d')}"
 
-    # Upload raw images directly to R2 for reliability
-    drive_storage = get_r2_storage()
-    if not drive_storage:
-        raise HTTPException(status_code=500, detail="Storage service unavailable")
-
-    raw_file_paths = []
-    for i, file in enumerate(files):
-        content = await file.read()
-        # Store in R2 under raw/{symbol_number}/ folder for better organization
-        # Use timestamp to make filenames unique within the day
-        timestamp = datetime.now().strftime('%H%M%S')
-        r2_key = f"raw/{symbol_number}/{job_id}_{timestamp}_{i+1:02d}_{file.filename}"
-
-        try:
-            drive_storage.s3_client.put_object(
-                Bucket=drive_storage.bucket_name,
-                Key=r2_key,
-                Body=content,
-                ContentType=file.content_type or "image/jpeg"
-            )
-            raw_file_paths.append({
-                "filename": file.filename,
-                "r2_key": r2_key,
-                "content_type": file.content_type
-            })
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}: {str(e)}")
-
-    # Create new part entry
-    new_part = {
-        "symbol_number": symbol_number,
-        "raw_file_paths": raw_file_paths,
-        "part_info": {
-            "description": description,
-            "desc1": desc1,
-            "desc2": desc2,
-            "long_description": long_desc,
-            "item_note": item_note,
-            "location": location
-        },
-        "parameters": {
-            "view_numbers": view_numbers,
-            "format": format,
-            "white_background": white_background,
-            "compression_quality": compression_quality,
-            "max_dimension": max_dimension,
-            "add_label": add_label,
-            "label_position": label_position
-        },
-        "uploaded_at": datetime.now().isoformat()
-    }
-
-    # Try to load existing daily job or create new one
-    job_key = f"jobs/queued/{job_id}.json"
-    try:
-        # Try to get existing job
-        response = drive_storage.s3_client.get_object(
-            Bucket=drive_storage.bucket_name,
-            Key=job_key
+    # Start background upload task (don't wait for it)
+    import asyncio
+    asyncio.create_task(
+        upload_to_daily_job_background(
+            job_id=job_id,
+            symbol_number=symbol_number,
+            file_data=file_data,
+            description=description,
+            desc1=desc1,
+            desc2=desc2,
+            long_desc=long_desc,
+            item_note=item_note,
+            location=location,
+            view_numbers=view_numbers,
+            format=format,
+            white_background=white_background,
+            compression_quality=compression_quality,
+            max_dimension=max_dimension,
+            add_label=add_label,
+            label_position=label_position
         )
-        job_metadata = json.loads(response['Body'].read().decode('utf-8'))
-        
-        # Add new part to existing job
-        if 'parts' not in job_metadata:
-            job_metadata['parts'] = []
-        job_metadata['parts'].append(new_part)
-        job_metadata['updated_at'] = datetime.now().isoformat()
-        
-    except drive_storage.s3_client.exceptions.NoSuchKey:
-        # Create new daily job
-        job_metadata = {
-            "job_id": job_id,
-            "status": "queued",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "parts": [new_part]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load existing job: {str(e)}")
+    )
 
-    # Upload updated job metadata to R2
-    try:
-        drive_storage.s3_client.put_object(
-            Bucket=drive_storage.bucket_name,
-            Key=job_key,
-            Body=json.dumps(job_metadata, indent=2),
-            ContentType="application/json"
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to queue job: {str(e)}")
-
+    # Return immediately - user can continue to next part
     return JobResponse(
         job_id=job_id,
         status="queued",
-        message=f"Part {symbol_number} processing queued. Use /jobs/{job_id}/status to check progress."
+        message=f"Part {symbol_number} queued for processing. Upload continuing in background. You can add more parts now!"
     )
+
+
+async def upload_to_daily_job_background(
+    job_id: str,
+    symbol_number: str,
+    file_data: list,
+    description: str,
+    desc1: str,
+    desc2: str,
+    long_desc: str,
+    item_note: str,
+    location: str,
+    view_numbers: Optional[str],
+    format: str,
+    white_background: bool,
+    compression_quality: int,
+    max_dimension: int,
+    add_label: bool,
+    label_position: str
+):
+    """Background task to upload images and update daily job."""
+    try:
+        from datetime import datetime
+        import json # Added import for json
+        
+        # Upload raw images directly to R2 for reliability
+        drive_storage = get_r2_storage()
+        if not drive_storage:
+            print(f"❌ Storage unavailable for {symbol_number}")
+            return
+
+        raw_file_paths = []
+        timestamp = datetime.now().strftime('%H%M%S')
+        
+        for i, file_info in enumerate(file_data):
+            # Store in R2 under raw/{symbol_number}/ folder
+            r2_key = f"raw/{symbol_number}/{job_id}_{timestamp}_{i+1:02d}_{file_info['filename']}"
+
+            try:
+                drive_storage.s3_client.put_object(
+                    Bucket=drive_storage.bucket_name,
+                    Key=r2_key,
+                    Body=file_info['content'],
+                    ContentType=file_info['content_type'] or "image/jpeg"
+                )
+                raw_file_paths.append({
+                    "filename": file_info['filename'],
+                    "r2_key": r2_key,
+                    "content_type": file_info['content_type']
+                })
+                print(f"✅ Uploaded {file_info['filename']} for {symbol_number}")
+            except Exception as e:
+                print(f"❌ Failed to upload {file_info['filename']}: {e}")
+
+        if not raw_file_paths:
+            print(f"❌ No files uploaded for {symbol_number}")
+            return
+
+        # Create new part entry
+        new_part = {
+            "symbol_number": symbol_number,
+            "raw_file_paths": raw_file_paths,
+            "uploaded_at": datetime.now().isoformat()
+        }
+
+        # Try to load existing daily job or create new one
+        job_key = f"jobs/queued/{job_id}.json"
+        try:
+            # Try to get existing job
+            response = drive_storage.s3_client.get_object(
+                Bucket=drive_storage.bucket_name,
+                Key=job_key
+            )
+            job_metadata = json.loads(response['Body'].read().decode('utf-8'))
+            
+            # Add new part to existing job
+            if 'parts' not in job_metadata:
+                job_metadata['parts'] = []
+            job_metadata['parts'].append(new_part)
+            job_metadata['updated_at'] = datetime.now().isoformat()
+            
+        except drive_storage.s3_client.exceptions.NoSuchKey:
+            # Create new daily job
+            job_metadata = {
+                "job_id": job_id,
+                "status": "queued",
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+                "parts": [new_part]
+            }
+        except Exception as e:
+            print(f"❌ Failed to load job: {e}")
+            return
+
+        # Upload updated job metadata to R2
+        try:
+            drive_storage.s3_client.put_object(
+                Bucket=drive_storage.bucket_name,
+                Key=job_key,
+                Body=json.dumps(job_metadata, indent=2),
+                ContentType="application/json"
+            )
+            print(f"✅ Added {symbol_number} to daily job {job_id}")
+        except Exception as e:
+            print(f"❌ Failed to update job: {e}")
+            
+    except Exception as e:
+        print(f"❌ Background upload failed for {symbol_number}: {e}")
 
 
 @router.post("/process/part", response_model=ProcessPartResponse)
