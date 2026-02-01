@@ -20,7 +20,43 @@ services:
         value: 500
       - key: MAX_CONCURRENT
         value: 10
+      - key: KAGGLE_USERNAME
+        value: ayomidefagboyo
+      - key: KAGGLE_KEY
+        value: 186dd890471bb52257dd5c1e5354fcd7
+      - key: CLOUDFLARE_ACCOUNT_ID
+        value: 1c53aea24561b07a82241cbbdafdd753
+      - key: CLOUDFLARE_ACCESS_KEY_ID
+        value: 737bb1704aa4d0c57ed52f593ba0fc0e
+      - key: CLOUDFLARE_SECRET_ACCESS_KEY
+        value: f8aa8d180dea21296bfd9fb938a759a1ffd6d5c3282490c3bd03aeccefefa7b4
+      - key: CLOUDFLARE_BUCKET_NAME
+        value: tescon-images
     disk:
       name: tescon-storage
       mountPath: /opt/render/project/src
       sizeGB: 1
+
+  - type: worker
+    name: kaggle-worker
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python kaggle_worker.py
+    envVars:
+      - key: KAGGLE_USERNAME
+        value: ayomidefagboyo
+      - key: KAGGLE_KEY
+        value: 186dd890471bb52257dd5c1e5354fcd7
+      - key: KAGGLE_AUTO_TRIGGER_ENABLED
+        value: "true"
+      - key: KAGGLE_STRATEGY
+        value: immediate
+      - key: CLOUDFLARE_ACCOUNT_ID
+        value: 1c53aea24561b07a82241cbbdafdd753
+      - key: CLOUDFLARE_ACCESS_KEY_ID
+        value: 737bb1704aa4d0c57ed52f593ba0fc0e
+      - key: CLOUDFLARE_SECRET_ACCESS_KEY
+        value: f8aa8d180dea21296bfd9fb938a759a1ffd6d5c3282490c3bd03aeccefefa7b4
+      - key: CLOUDFLARE_BUCKET_NAME
+        value: tescon-images
