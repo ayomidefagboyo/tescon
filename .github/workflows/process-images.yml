@@ -104,37 +104,54 @@ jobs:
                       Bucket=R2_BUCKET,
                       Key=f"jobs/queued/{JOB_ID}.json"
                   )
-                  return json.loads(response['Body'].read().decode('utf-8'))
+                  job_data = json.loads(response['Body'].read().decode('utf-8'))
+                  
+                  # Support both old single-part and new multi-part format
+                  if 'parts' not in job_data and 'symbol_number' in job_data:
+                      # Convert old format to new format
+                      job_data['parts'] = [{
+                          'symbol_number': job_data['symbol_number'],
+                          'raw_file_paths': job_data.get('raw_file_paths', [])
+                      }]
+                  
+                  return job_data
               except Exception as e:
                   print(f"❌ Failed to download job metadata: {e}")
                   sys.exit(1)
 
           def download_images(job_data):
-              """Download raw images from R2."""
-              images = []
-              raw_paths = job_data.get('raw_file_paths', [])
+              """Download raw images from R2 for all parts."""
+              all_images = []
+              parts = job_data.get('parts', [])
               
-              print(f"📥 Downloading {len(raw_paths)} images...")
+              print(f"📥 Downloading images for {len(parts)} parts...")
               
-              for file_info in raw_paths:
-                  try:
-                      r2_key = file_info.get('r2_key')
-                      filename = file_info.get('filename')
-                      
-                      response = r2.get_object(Bucket=R2_BUCKET, Key=r2_key)
-                      image_bytes = response['Body'].read()
-                      
-                      images.append({
-                          'filename': filename,
-                          'bytes': image_bytes,
-                          'r2_key': r2_key
-                      })
-                      
-                      print(f"  ✅ {filename}")
-                  except Exception as e:
-                      print(f"  ❌ Failed to download {filename}: {e}")
+              for part in parts:
+                  symbol_number = part.get('symbol_number')
+                  raw_paths = part.get('raw_file_paths', [])
+                  
+                  print(f"  Part {symbol_number}: {len(raw_paths)} images")
+                  
+                  for file_info in raw_paths:
+                      try:
+                          r2_key = file_info.get('r2_key')
+                          filename = file_info.get('filename')
+                          
+                          response = r2.get_object(Bucket=R2_BUCKET, Key=r2_key)
+                          image_bytes = response['Body'].read()
+                          
+                          all_images.append({
+                              'filename': filename,
+                              'bytes': image_bytes,
+                              'r2_key': r2_key,
+                              'symbol_number': symbol_number  # Track which part this belongs to
+                          })
+                          
+                          print(f"    ✅ {filename}")
+                      except Exception as e:
+                          print(f"    ❌ Failed to download {filename}: {e}")
               
-              return images
+              return all_images
 
           def load_excel_metadata():
               """Load Excel metadata if available."""
@@ -151,75 +168,83 @@ jobs:
               return None
 
           def process_images(images, job_data, excel_service):
-              """Process images with rembg."""
-              print(f"🎨 Processing {len(images)} images...")
+              """Process images with rembg - handles multiple parts."""
+              print(f"🎨 Processing {len(images)} images across multiple parts...")
               
               # Initialize processor
               initialize_processor()
               
-              symbol_number = job_data.get('symbol_number', 'unknown')
               processed_files = []
               successful = 0
               failed = 0
               
-              for i, img_data in enumerate(images):
-                  try:
-                      filename = img_data['filename']
-                      print(f"  [{i+1}/{len(images)}] Processing {filename}...")
-                      
-                      # Get part info from Excel
-                      part_info = None
-                      if excel_service:
-                          part_info = excel_service.get_part_info(symbol_number)
-                      
-                      # Process image with full e-commerce layout (PNG for best quality)
-                      processed_buffer = process_image(
-                          img_data['bytes'],
-                          output_format='PNG',
-                          white_background=True,
-                          use_ecommerce_layout=True,
-                          symbol_number=symbol_number,
-                          desc1=part_info.get('description_1') if part_info else None,
-                          desc2=part_info.get('description_2') if part_info else None,
-                          long_description=part_info.get('item_note') if part_info else None,
-                          part_number=part_info.get('part_number') if part_info else None,
-                          manufacturer=part_info.get('manufacturer') if part_info else None,
-                          compression_quality=95
-                      )
-                      
-                      # Generate proper filename with part info
-                      if part_info:
-                          # Format: {symbol_number}_{view_number}_{description}.jpg
-                          desc = part_info.get('description_1', 'part')
-                          # Clean description for filename (remove special chars)
-                          clean_desc = ''.join(c if c.isalnum() or c in (' ', '_') else '_' for c in desc)
-                          clean_desc = '_'.join(clean_desc.split())[:50]  # Limit length
-                          output_filename = f"{symbol_number}_{i+1}_{clean_desc}.png"
-                      else:
-                          output_filename = f"{symbol_number}_{i+1}.png"
-                      
-                      r2_key = f"parts/{symbol_number}/{output_filename}"
-                      
-                      r2.put_object(
-                          Bucket=R2_BUCKET,
-                          Key=r2_key,
-                          Body=processed_buffer.read(),
-                          ContentType='image/png'
-                      )
-                      
-                      processed_files.append({
-                          'filename': output_filename,
-                          'r2_key': r2_key
-                      })
-                      
-                      successful += 1
-                      print(f"    ✅ Uploaded to {r2_key}")
-                      
-                  except Exception as e:
-                      failed += 1
-                      print(f"    ❌ Failed: {e}")
-                      import traceback
-                      traceback.print_exc()
+              # Group images by symbol number
+              from collections import defaultdict
+              images_by_part = defaultdict(list)
+              for img in images:
+                  images_by_part[img['symbol_number']].append(img)
+              
+              print(f"Processing {len(images_by_part)} different parts")
+              
+              for symbol_number, part_images in images_by_part.items():
+                  print(f"\n📦 Part {symbol_number}: {len(part_images)} images")
+                  
+                  for i, img_data in enumerate(part_images):
+                      try:
+                          filename = img_data['filename']
+                          print(f"  [{i+1}/{len(part_images)}] Processing {filename}...")
+                          
+                          # Get part info from Excel
+                          part_info = None
+                          if excel_service:
+                              part_info = excel_service.get_part_info(symbol_number)
+                          
+                          # Process image with full e-commerce layout (PNG for best quality)
+                          processed_buffer = process_image(
+                              img_data['bytes'],
+                              output_format='PNG',
+                              white_background=True,
+                              use_ecommerce_layout=True,
+                              symbol_number=symbol_number,
+                              desc1=part_info.get('description_1') if part_info else None,
+                              desc2=part_info.get('description_2') if part_info else None,
+                              long_description=part_info.get('item_note') if part_info else None,
+                              part_number=part_info.get('part_number') if part_info else None,
+                              manufacturer=part_info.get('manufacturer') if part_info else None,
+                              compression_quality=95
+                          )
+                          
+                          # Generate proper filename with part info
+                          if part_info:
+                              desc = part_info.get('description_1', 'part')
+                              clean_desc = ''.join(c if c.isalnum() or c in (' ', '_') else '_' for c in desc)
+                              clean_desc = '_'.join(clean_desc.split())[:50]
+                              output_filename = f"{symbol_number}_{i+1}_{clean_desc}.png"
+                          else:
+                              output_filename = f"{symbol_number}_{i+1}.png"
+                          
+                          r2_key = f"parts/{symbol_number}/{output_filename}"
+                          
+                          r2.put_object(
+                              Bucket=R2_BUCKET,
+                              Key=r2_key,
+                              Body=processed_buffer.read(),
+                              ContentType='image/png'
+                          )
+                          
+                          processed_files.append({
+                              'filename': output_filename,
+                              'r2_key': r2_key
+                          })
+                          
+                          successful += 1
+                          print(f"    ✅ Uploaded to {r2_key}")
+                          
+                      except Exception as e:
+                          failed += 1
+                          print(f"    ❌ Failed: {e}")
+                          import traceback
+                          traceback.print_exc()
               
               return processed_files, successful, failed
 
