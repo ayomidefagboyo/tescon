@@ -72,7 +72,7 @@ async def startup_event():
 
     if is_model_loaded():
         print("✓ Lightweight processor configured successfully")
-        print("✓ All processing will be handled via Kaggle Enhanced REMBG")
+        print("✓ All processing will be handled via GitHub Actions")
     else:
         print("⚠ Warning: Processor not available.")
 
@@ -110,7 +110,8 @@ async def startup_event():
 
     asyncio.create_task(cleanup_task())
 
-    # NOTE: Kaggle batch processing now runs as a separate Render Background Worker
-    # See kaggle_worker.py - this prevents asyncio.create_task silent failures
-    print("ℹ️  Kaggle batch processing handled by separate background worker service")
+    # Start GitHub Actions trigger service (runs in background)
+    from app.services.github_trigger_service import start_github_trigger_service
+    asyncio.create_task(start_github_trigger_service())
+    print("✓ GitHub Actions trigger service started")
 

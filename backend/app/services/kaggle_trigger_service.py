@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 from app.services.cloudflare_r2 import get_r2_storage
+from app.services.github_actions_service import get_github_actions_service
 from app.logging import setup_logger
 
 logger = setup_logger("kaggle_trigger")
@@ -25,6 +26,12 @@ class KaggleTriggerService:
         self.notebook_username = os.getenv('KAGGLE_USERNAME', 'ayomidefagboyo')
         self.notebook_slug = os.getenv('KAGGLE_NOTEBOOK_SLUG', 'daily-enhanced-rembg-processor')
 
+        # GitHub Actions service
+        self.github_actions = get_github_actions_service()
+        
+        # Processing strategy: 'github_actions', 'kaggle', or 'both'
+        self.processing_strategy = os.getenv('PROCESSING_STRATEGY', 'github_actions')
+
         # Track processed jobs
         self.processed_jobs = set()
         self.running = False
@@ -34,7 +41,7 @@ class KaggleTriggerService:
         self.job_age_threshold = int(os.getenv('KAGGLE_JOB_AGE_THRESHOLD', '120'))  # 2 minutes
         self.enabled = os.getenv('KAGGLE_AUTO_TRIGGER_ENABLED', 'false').lower() == 'true'
 
-        logger.info(f"Kaggle trigger service initialized (enabled: {self.enabled})")
+        logger.info(f"Trigger service initialized (enabled: {self.enabled}, strategy: {self.processing_strategy})")
 
     def is_kaggle_available(self) -> bool:
         """Check if Kaggle CLI is available and authenticated."""
@@ -293,6 +300,47 @@ download_and_process()'''
 
         return json.dumps(metadata, indent=2), code
 
+    async def trigger_job(self, job_id: str) -> bool:
+        """
+        Trigger processing for a job using configured strategy.
+        
+        Strategy options:
+        - 'github_actions': Try GitHub Actions only
+        - 'kaggle': Try Kaggle only  
+        - 'both': Try GitHub Actions first, fallback to Kaggle
+        
+        Args:
+            job_id: Job ID to process
+            
+        Returns:
+            True if triggered successfully
+        """
+        logger.info(f"Triggering job {job_id} with strategy: {self.processing_strategy}")
+        
+        # Try GitHub Actions
+        if self.processing_strategy in ['github_actions', 'both']:
+            if self.github_actions.enabled:
+                try:
+                    run_id = await self.github_actions.trigger_workflow(job_id)
+                    if run_id:
+                        logger.info(f"✅ GitHub Actions triggered for job {job_id} (run: {run_id})")
+                        self.processed_jobs.add(job_id)
+                        return True
+                    else:
+                        logger.warning(f"GitHub Actions trigger failed for job {job_id}")
+                except Exception as e:
+                    logger.error(f"GitHub Actions error for job {job_id}: {e}")
+            else:
+                logger.warning("GitHub Actions not configured")
+        
+        # Fallback to Kaggle or if Kaggle-only strategy
+        if self.processing_strategy in ['kaggle', 'both']:
+            logger.info(f"Attempting Kaggle fallback for job {job_id}")
+            return await self.trigger_kaggle_job(job_id)
+        
+        logger.error(f"All processing methods failed for job {job_id}")
+        return False
+
     async def trigger_kaggle_job(self, job_id: str) -> bool:
         """Trigger Kaggle processing for a specific job."""
         try:
@@ -354,7 +402,7 @@ download_and_process()'''
                             break
 
                         job_id = job['job_id']
-                        success = await self.trigger_kaggle_job(job_id)
+                        success = await self.trigger_job(job_id)
 
                         if success:
                             logger.info(f"Job {job_id} triggered successfully")
