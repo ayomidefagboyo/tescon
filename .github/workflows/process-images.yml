@@ -172,7 +172,7 @@ jobs:
                       if excel_service:
                           part_info = excel_service.get_part_info(symbol_number)
                       
-                      # Process image
+                      # Process image with full e-commerce layout
                       processed_buffer = process_image(
                           img_data['bytes'],
                           output_format='JPEG',
