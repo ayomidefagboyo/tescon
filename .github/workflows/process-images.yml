@@ -172,10 +172,10 @@ jobs:
                       if excel_service:
                           part_info = excel_service.get_part_info(symbol_number)
                       
-                      # Process image with full e-commerce layout
+                      # Process image with full e-commerce layout (PNG for best quality)
                       processed_buffer = process_image(
                           img_data['bytes'],
-                          output_format='JPEG',
+                          output_format='PNG',
                           white_background=True,
                           use_ecommerce_layout=True,
                           symbol_number=symbol_number,
@@ -194,9 +194,9 @@ jobs:
                           # Clean description for filename (remove special chars)
                           clean_desc = ''.join(c if c.isalnum() or c in (' ', '_') else '_' for c in desc)
                           clean_desc = '_'.join(clean_desc.split())[:50]  # Limit length
-                          output_filename = f"{symbol_number}_{i+1}_{clean_desc}.jpg"
+                          output_filename = f"{symbol_number}_{i+1}_{clean_desc}.png"
                       else:
-                          output_filename = f"{symbol_number}_{i+1}.jpg"
+                          output_filename = f"{symbol_number}_{i+1}.png"
                       
                       r2_key = f"parts/{symbol_number}/{output_filename}"
                       
@@ -204,7 +204,7 @@ jobs:
                           Bucket=R2_BUCKET,
                           Key=r2_key,
                           Body=processed_buffer.read(),
-                          ContentType='image/jpeg'
+                          ContentType='image/png'
                       )
                       
                       processed_files.append({
