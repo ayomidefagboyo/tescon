@@ -437,9 +437,9 @@ async def process_part_images_async(
             detail=f"Part {symbol_number} is currently being processed. Please wait for completion."
         )
 
-    # Generate job ID first for R2 folder structure
-    import uuid
-    job_id = str(uuid.uuid4())
+    # Use daily batch job ID (all uploads today go to same job)
+    from datetime import datetime
+    job_id = f"job_daily_{datetime.now().strftime('%Y%m%d')}"
 
     # Upload raw images directly to R2 for reliability
     drive_storage = get_r2_storage()
@@ -450,7 +450,9 @@ async def process_part_images_async(
     for i, file in enumerate(files):
         content = await file.read()
         # Store in R2 under raw/{symbol_number}/ folder for better organization
-        r2_key = f"raw/{symbol_number}/{job_id}_{i+1:02d}_{file.filename}"
+        # Use timestamp to make filenames unique within the day
+        timestamp = datetime.now().strftime('%H%M%S')
+        r2_key = f"raw/{symbol_number}/{job_id}_{timestamp}_{i+1:02d}_{file.filename}"
 
         try:
             drive_storage.s3_client.put_object(
@@ -467,9 +469,8 @@ async def process_part_images_async(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to upload {file.filename}: {str(e)}")
 
-    # Create job metadata for R2 background worker
-    job_metadata = {
-        "job_id": job_id,
+    # Create new part entry
+    new_part = {
         "symbol_number": symbol_number,
         "raw_file_paths": raw_file_paths,
         "part_info": {
@@ -489,13 +490,39 @@ async def process_part_images_async(
             "add_label": add_label,
             "label_position": label_position
         },
-        "status": "queued",
-        "created_at": datetime.now().isoformat()
+        "uploaded_at": datetime.now().isoformat()
     }
 
-    # Upload job metadata to R2 for worker to process
+    # Try to load existing daily job or create new one
+    job_key = f"jobs/queued/{job_id}.json"
     try:
-        job_key = f"jobs/queued/{job_id}.json"
+        # Try to get existing job
+        response = drive_storage.s3_client.get_object(
+            Bucket=drive_storage.bucket_name,
+            Key=job_key
+        )
+        job_metadata = json.loads(response['Body'].read().decode('utf-8'))
+        
+        # Add new part to existing job
+        if 'parts' not in job_metadata:
+            job_metadata['parts'] = []
+        job_metadata['parts'].append(new_part)
+        job_metadata['updated_at'] = datetime.now().isoformat()
+        
+    except drive_storage.s3_client.exceptions.NoSuchKey:
+        # Create new daily job
+        job_metadata = {
+            "job_id": job_id,
+            "status": "queued",
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "parts": [new_part]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load existing job: {str(e)}")
+
+    # Upload updated job metadata to R2
+    try:
         drive_storage.s3_client.put_object(
             Bucket=drive_storage.bucket_name,
             Key=job_key,
