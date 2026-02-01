@@ -77,41 +77,35 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       return;
     }
 
-    setProcessing(true);
-    setError(null);
-
-    try {
-      // Upload for background processing - user can continue immediately
-      await processPartImagesAsync(
-        files,
-        partInfo.symbol_number,
-        undefined, // Auto-assign view numbers 1, 2, 3...
-        "PNG",
-        true, // White background
-        85, // Compression quality
-        2048, // Max dimension
-        true, // Add label
-        "bottom-left" // Label position
-      );
-
-      // Show success notification
-      setProcessing(false);
-      setCurrentStep("success-notification");
-
-      // Auto-reset to start immediately after brief notification
-      setTimeout(() => {
-        handleStartOver();
-      }, 1500);
-
-    } catch (err: any) {
-      setProcessing(false);
-      const errorMessage = err.response?.data?.detail || err.message || "Processing failed";
-      setError(errorMessage);
-
+    // Don't wait for upload - fire and forget!
+    processPartImagesAsync(
+      files,
+      partInfo.symbol_number,
+      undefined, // Auto-assign view numbers 1, 2, 3...
+      "PNG",
+      true, // White background
+      85, // Compression quality
+      2048, // Max dimension
+      true, // Add label
+      "bottom-left" // Label position
+    ).catch((err: any) => {
+      // Log error but don't block user
+      console.error("Background upload error:", err);
+      // Optionally, you could still show a transient error notification if needed
+      // setError("Background processing failed. Please check console for details.");
       if (onError) {
+        const errorMessage = err.response?.data?.detail || err.message || "Background processing failed";
         onError(errorMessage);
       }
-    }
+    });
+
+    // Show success notification immediately
+    setCurrentStep("success-notification");
+
+    // Auto-reset to start for next part
+    setTimeout(() => {
+      handleStartOver();
+    }, 1500);
   };
 
   // Reset workflow
