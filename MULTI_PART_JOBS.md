@@ -18,12 +18,14 @@ The system now supports processing multiple parts (symbol numbers) in a single d
       "symbol_number": "58018612",
       "raw_file_paths": [
         {
-          "filename": "image1.jpg",
-          "r2_key": "raw/job_daily_20260201/58018612/image1.jpg"
+          "filename": "IMG_1234.jpg",
+          "r2_key": "raw/58018612/job_uuid_01_IMG_1234.jpg",
+          "content_type": "image/jpeg"
         },
         {
-          "filename": "image2.jpg",
-          "r2_key": "raw/job_daily_20260201/58018612/image2.jpg"
+          "filename": "IMG_1235.jpg",
+          "r2_key": "raw/58018612/job_uuid_02_IMG_1235.jpg",
+          "content_type": "image/jpeg"
         }
       ]
     },
@@ -31,8 +33,9 @@ The system now supports processing multiple parts (symbol numbers) in a single d
       "symbol_number": "26062392",
       "raw_file_paths": [
         {
-          "filename": "image1.jpg",
-          "r2_key": "raw/job_daily_20260201/26062392/image1.jpg"
+          "filename": "IMG_5678.jpg",
+          "r2_key": "raw/26062392/job_uuid_03_IMG_5678.jpg",
+          "content_type": "image/jpeg"
         }
       ]
     }
@@ -51,8 +54,9 @@ The system now supports processing multiple parts (symbol numbers) in a single d
   "status": "queued",
   "raw_file_paths": [
     {
-      "filename": "image1.jpg",
-      "r2_key": "raw/job_20260201_123456/58018612/image1.jpg"
+      "filename": "IMG_1234.jpg",
+      "r2_key": "raw/58018612/job_uuid_01_IMG_1234.jpg",
+      "content_type": "image/jpeg"
     }
   ]
 }
