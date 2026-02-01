@@ -184,11 +184,20 @@ jobs:
                           long_description=part_info.get('item_note') if part_info else None,
                           part_number=part_info.get('part_number') if part_info else None,
                           manufacturer=part_info.get('manufacturer') if part_info else None,
-                          compression_quality=85
+                          compression_quality=95
                       )
                       
-                      # Upload to R2
-                      output_filename = Path(filename).stem + '.jpg'
+                      # Generate proper filename with part info
+                      if part_info:
+                          # Format: {symbol_number}_{view_number}_{description}.jpg
+                          desc = part_info.get('description_1', 'part')
+                          # Clean description for filename (remove special chars)
+                          clean_desc = ''.join(c if c.isalnum() or c in (' ', '_') else '_' for c in desc)
+                          clean_desc = '_'.join(clean_desc.split())[:50]  # Limit length
+                          output_filename = f"{symbol_number}_{i+1}_{clean_desc}.jpg"
+                      else:
+                          output_filename = f"{symbol_number}_{i+1}.jpg"
+                      
                       r2_key = f"parts/{symbol_number}/{output_filename}"
                       
                       r2.put_object(
@@ -209,6 +218,8 @@ jobs:
                   except Exception as e:
                       failed += 1
                       print(f"    ❌ Failed: {e}")
+                      import traceback
+                      traceback.print_exc()
               
               return processed_files, successful, failed
 
