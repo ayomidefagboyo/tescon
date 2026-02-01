@@ -118,16 +118,44 @@ class GitHubTriggerService:
             return False
 
     async def run_background_service(self):
-        """Main background service loop."""
+        """Main background service loop - runs at 7 PM daily."""
         if not self.enabled:
             logger.info("GitHub trigger service disabled")
             return
 
         logger.info("Starting GitHub Actions trigger service")
+        logger.info("Scheduled to run daily at 7:00 PM")
         self.running = True
 
         while self.running:
             try:
+                from datetime import datetime, time, timedelta
+                
+                # Get current time
+                now = datetime.now()
+                
+                # Target time: 7:00 PM today
+                target_time = now.replace(hour=19, minute=0, second=0, microsecond=0)
+                
+                # If it's already past 7 PM today, schedule for tomorrow
+                if now >= target_time:
+                    target_time += timedelta(days=1)
+                
+                # Calculate seconds until next run
+                seconds_until_run = (target_time - now).total_seconds()
+                
+                logger.info(f"Next processing scheduled for: {target_time.strftime('%Y-%m-%d %I:%M %p')}")
+                logger.info(f"Time until next run: {seconds_until_run / 3600:.1f} hours")
+                
+                # Wait until target time
+                await asyncio.sleep(seconds_until_run)
+                
+                if not self.running:
+                    break
+                
+                # Run processing at 7 PM
+                logger.info("🕖 7:00 PM - Starting daily batch processing")
+                
                 # Check for new jobs
                 new_jobs = await self.check_for_new_jobs()
 
@@ -148,13 +176,14 @@ class GitHubTriggerService:
 
                         # Wait between jobs to avoid rate limits
                         await asyncio.sleep(10)
-
-                # Wait for next check
-                await asyncio.sleep(self.check_interval)
+                    
+                    logger.info(f"✅ Daily batch processing complete - processed {len(new_jobs)} jobs")
+                else:
+                    logger.info("No jobs to process today")
 
             except Exception as e:
                 logger.error(f"Error in background service: {e}")
-                await asyncio.sleep(60)  # Wait before retry
+                await asyncio.sleep(3600)  # Wait 1 hour before retry on error
 
     def stop(self):
         """Stop the background service."""
