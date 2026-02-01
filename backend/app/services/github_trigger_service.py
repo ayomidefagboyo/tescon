@@ -28,12 +28,13 @@ class GitHubTriggerService:
         self.processed_jobs = set()
         self.running = False
 
-        # Auto-trigger settings
-        self.check_interval = int(os.getenv('GITHUB_CHECK_INTERVAL', '300'))  # 5 minutes
-        self.job_age_threshold = int(os.getenv('GITHUB_JOB_AGE_THRESHOLD', '120'))  # 2 minutes
+        # Daily batch processing settings
+        self.check_interval = int(os.getenv('GITHUB_CHECK_INTERVAL', '86400'))  # 24 hours (once per day)
+        self.job_age_threshold = int(os.getenv('GITHUB_JOB_AGE_THRESHOLD', '3600'))  # 1 hour minimum age
         self.enabled = os.getenv('GITHUB_AUTO_TRIGGER_ENABLED', 'true').lower() == 'true'
 
         logger.info(f"GitHub trigger service initialized (enabled: {self.enabled})")
+        logger.info(f"Running in DAILY BATCH mode - processes jobs once per day")
 
     async def check_for_new_jobs(self) -> List[Dict[str, Any]]:
         """Check R2 for jobs ready for processing."""
