@@ -77,6 +77,12 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       return;
     }
 
+    // Prevent double-clicks
+    if (processing) {
+      return;
+    }
+    setProcessing(true);
+
     // Don't wait for upload - fire and forget!
     processPartImagesAsync(
       files,
@@ -279,7 +285,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
         <button
           className="btn-primary"
           onClick={handleProcessImages}
-          disabled={!partInfo}
+          disabled={!partInfo || processing}
         >
           Process Images
           <ChevronRight size={16} />
