@@ -76,28 +76,16 @@ class KaggleBatchService:
                 if job_id in self.processed_jobs:
                     continue
 
-                # Check job age based on strategy
-                job_age_seconds = (now - obj['LastModified'].replace(tzinfo=None)).total_seconds()
+                # Process all jobs in queue - no age threshold needed
+                logger.debug(f"Found job {job_id} - adding to ready queue")
 
-                logger.debug(f"Job {job_id}: age {job_age_seconds:.0f}s, threshold {self.job_age_threshold}s")
+                job_data = self._get_job_data(key, job_id, 0)  # Age doesn't matter
+                if job_data:
+                    ready_jobs.append(job_data)
+                    logger.debug(f"Added job {job_id} to ready queue")
 
-                if self.strategy == 'batch_daily':
-                    # For daily batch, collect all jobs from the day
-                    if job_age_seconds > 300:  # At least 5 minutes old
-                        ready_jobs.append(self._get_job_data(key, job_id, job_age_seconds))
-
-                elif self.strategy == 'batch_hourly':
-                    # For hourly batch, collect jobs older than threshold
-                    if job_age_seconds > self.job_age_threshold:
-                        ready_jobs.append(self._get_job_data(key, job_id, job_age_seconds))
-
-                else:  # immediate
-                    if job_age_seconds > self.job_age_threshold:
-                        ready_jobs.append(self._get_job_data(key, job_id, job_age_seconds))
-                        logger.debug(f"Added job {job_id} to ready queue")
+                    if self.strategy == 'immediate':
                         break  # Only process one job at a time for immediate mode
-                    else:
-                        logger.debug(f"Job {job_id} not ready yet (age: {job_age_seconds:.0f}s < threshold: {self.job_age_threshold}s)")
 
             # Limit batch size
             if len(ready_jobs) > self.max_jobs_per_batch:
