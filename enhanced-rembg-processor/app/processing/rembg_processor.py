@@ -13,8 +13,8 @@ from app.processing.image_utils import composite_white_background, convert_forma
 _sessions: Dict[str, Optional[object]] = {}
 _session_lock = threading.Lock()
 
-# Enhanced model configuration - BiRefNet for better quality
-_primary_model = "birefnet-general"  # Best quality for general use
+# Enhanced model configuration - Silueta for e-commerce products
+_primary_model = "silueta"  # Best for products/e-commerce
 _fallback_model = "isnet-general-use"  # Fast fallback
 _current_model = None
 
