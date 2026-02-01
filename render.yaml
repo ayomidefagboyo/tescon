@@ -42,7 +42,7 @@ services:
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: python test_worker.py
+    startCommand: python simple_kaggle_worker.py
     envVars:
       - key: KAGGLE_USERNAME
         value: ayomidefagboyo
