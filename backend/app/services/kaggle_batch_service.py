@@ -566,8 +566,15 @@ def get_kaggle_batch_service() -> KaggleBatchService:
 
 async def start_kaggle_batch_service():
     """Start the Kaggle batch service."""
-    service = get_kaggle_batch_service()
-    await service.run_batch_service()
+    try:
+        service = get_kaggle_batch_service()
+        logger.info("🚀 Kaggle batch service starting...")
+        await service.run_batch_service()
+    except Exception as e:
+        logger.error(f"❌ Kaggle batch service crashed: {e}")
+        import traceback
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        # Don't re-raise to avoid crashing the main app
 
 def stop_kaggle_batch_service():
     """Stop the Kaggle batch service."""
