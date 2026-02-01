@@ -35,6 +35,7 @@ class KaggleBatchService:
         if self.strategy == 'batch_daily':
             self.check_interval = 3600 * 24  # Check once daily
             self.process_at_hour = int(os.getenv('KAGGLE_DAILY_HOUR', '18'))  # 6 PM default
+            self.job_age_threshold = 300  # 5 minutes minimum age for daily batch
         elif self.strategy == 'batch_hourly':
             self.check_interval = 3600  # Check every hour
             self.job_age_threshold = 1800  # 30 minutes
