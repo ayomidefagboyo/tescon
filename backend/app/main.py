@@ -110,7 +110,12 @@ async def startup_event():
 
     asyncio.create_task(cleanup_task())
 
-    # NOTE: Processing now handled by separate Render Background Worker
-    # See simple_kaggle_worker.py - this prevents startup failures from missing dependencies
-    print("ℹ️  Image processing handled by separate background worker service")
+    # Start GitHub Actions trigger service (runs in background)
+    try:
+        from app.services.github_trigger_service import start_github_trigger_service
+        asyncio.create_task(start_github_trigger_service())
+        print("✓ GitHub Actions trigger service started")
+    except Exception as e:
+        print(f"⚠️ GitHub Actions service failed to start: {e}")
+        print("ℹ️ Processing may need to be triggered manually")
 
