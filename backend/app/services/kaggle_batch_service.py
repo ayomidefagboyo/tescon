@@ -52,12 +52,16 @@ class KaggleBatchService:
         """Get jobs that are ready for batch processing."""
         try:
             if not self.r2_storage:
+                logger.warning("R2 storage not configured")
                 return []
 
             response = self.r2_storage.s3_client.list_objects_v2(
                 Bucket=self.r2_storage.bucket_name,
                 Prefix='jobs/queued/'
             )
+
+            total_objects = len(response.get('Contents', []))
+            logger.debug(f"Found {total_objects} objects in jobs/queued/")
 
             ready_jobs = []
             now = datetime.now()
@@ -74,6 +78,8 @@ class KaggleBatchService:
                 # Check job age based on strategy
                 job_age_seconds = (now - obj['LastModified'].replace(tzinfo=None)).total_seconds()
 
+                logger.debug(f"Job {job_id}: age {job_age_seconds:.0f}s, threshold {self.job_age_threshold}s")
+
                 if self.strategy == 'batch_daily':
                     # For daily batch, collect all jobs from the day
                     if job_age_seconds > 300:  # At least 5 minutes old
@@ -87,7 +93,10 @@ class KaggleBatchService:
                 else:  # immediate
                     if job_age_seconds > self.job_age_threshold:
                         ready_jobs.append(self._get_job_data(key, job_id, job_age_seconds))
+                        logger.debug(f"Added job {job_id} to ready queue")
                         break  # Only process one job at a time for immediate mode
+                    else:
+                        logger.debug(f"Job {job_id} not ready yet (age: {job_age_seconds:.0f}s < threshold: {self.job_age_threshold}s)")
 
             # Limit batch size
             if len(ready_jobs) > self.max_jobs_per_batch:
@@ -527,9 +536,11 @@ except Exception as e:
                             logger.info(f"Batch processing triggered for {len(ready_jobs)} jobs")
                         else:
                             logger.error(f"Failed to trigger batch processing")
+                    else:
+                        logger.debug(f"No jobs ready for processing (strategy: {self.strategy}, threshold: {self.job_age_threshold}s)")
 
-                        # Cleanup old notebooks
-                        await self.cleanup_old_notebooks()
+                    # Always cleanup old notebooks
+                    await self.cleanup_old_notebooks()
 
                 # Wait for next check
                 await asyncio.sleep(self.check_interval)
