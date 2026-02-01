@@ -57,7 +57,7 @@ class GitHubActionsService:
             url = f"{self.base_url}/actions/workflows/{self.workflow_file}/dispatches"
             
             payload = {
-                "ref": "main",
+                "ref": "master",  # Branch to run workflow on
                 "inputs": {
                     "job_id": job_id
                 }
