@@ -114,7 +114,7 @@ To process a specific job before 7 PM:
 
 ```
 🚀 GitHub Actions Processing - Job: job_daily_20260201
-💰 Saving $6,900 vs PicWish API
+💰 Saving $4.95 vs PicWish API (900 images × 0.5 credits × $0.011)
 
 📥 Downloading images for 300 parts...
   Part 58018612: 3 images
@@ -148,8 +148,39 @@ Processing 300 different parts
    ✅ Successful: 900
    ❌ Failed: 0
    ⏱️  Time: 14.5 min
-   💰 Saved: $9,000.00 vs PicWish
+   💰 Saved: $4.95 vs PicWish (0.5 credits/image × $0.011)
 ```
+
+## Cost Comparison
+
+### PicWish API Pricing
+- **Rate:** $0.011 per credit
+- **Background Removal:** 0.5 credits per image
+- **Effective cost:** $0.0055 per image ($0.011 × 0.5)
+- **Package:** 30,000 credits for $319.95
+
+### Your GitHub Actions Solution
+
+#### Per Batch (900 images):
+- **PicWish Cost:** 900 images × 0.5 credits × $0.011 = **$4.95**
+- **GitHub Actions Cost:** **$0.00** (within free tier)
+- **Savings per batch:** **$4.95**
+
+#### Monthly (30 batches):
+- **PicWish Cost:** 27,000 images × 0.5 credits × $0.011 = **$148.50**
+- **GitHub Actions Cost:** **$0.00** (450 min/month well within 2,000 min free tier)
+- **Monthly savings:** **$148.50**
+
+#### Yearly:
+- **PicWish Cost:** 324,000 images × 0.5 credits × $0.011 = **$1,782.00**
+- **GitHub Actions Cost:** **$0.00**
+- **Annual savings:** **$1,782.00**
+
+### ROI Summary
+✅ **100% cost savings** on image processing  
+✅ **Zero infrastructure costs** (using free tier)  
+✅ **Scalable** up to 2,000 minutes/month free  
+✅ **No per-image fees** regardless of volume
 
 ## Benefits
 

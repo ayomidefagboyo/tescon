@@ -9,10 +9,10 @@ interface StepByStepWorkflowProps {
   onError?: (error: string) => void;
 }
 
-type WorkflowStep = "upload" | "part-number" | "review" | "processing" | "success-notification" | "complete";
+type WorkflowStep = "part-number" | "upload" | "review" | "processing" | "success-notification" | "complete";
 
 export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>("upload");
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>("part-number");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [partNumber, setPartNumber] = useState("");
   const [partInfo, setPartInfo] = useState<PartInfo | null>(null);
@@ -43,7 +43,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       setError("Please upload exactly 3 images before proceeding");
       return;
     }
-    setCurrentStep("part-number");
+    setCurrentStep("review");
     setError(null);
   };
 
@@ -57,7 +57,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
     try {
       const info = await getPartInfo(partNumber.trim());
       setPartInfo(info);
-      setCurrentStep("review");
+      setCurrentStep("upload");
       setError(null);
     } catch (err: any) {
       if (err.response?.status === 404) {
@@ -116,7 +116,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   // Reset workflow
   const handleStartOver = () => {
-    setCurrentStep("upload");
+    setCurrentStep("part-number");
     setFiles([]);
     setPartNumber("");
     setPartInfo(null);
@@ -145,8 +145,8 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   const renderStepIndicator = () => {
     const steps = [
-      { key: "upload", label: "Upload Photos", icon: Upload },
       { key: "part-number", label: "Symbol Number", icon: Search },
+      { key: "upload", label: "Upload Photos", icon: Upload },
       { key: "review", label: "Review", icon: Image },
     ];
 
@@ -174,8 +174,14 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   const renderUploadStep = () => (
     <div className="step-content">
-      <h2>Step 1: Upload Part Photos</h2>
+      <h2>Step 2: Upload Part Photos</h2>
       <p>Take exactly 3 clear photos of the part from different angles</p>
+
+      {partInfo && (
+        <div className="part-info-banner">
+          <strong>Processing:</strong> {partInfo.symbol_number} - {partInfo.description}
+        </div>
+      )}
 
       <UploadZone
         onFilesSelected={handleFilesSelected}
@@ -189,11 +195,18 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
       <div className="step-actions">
         <button
+          className="btn-secondary"
+          onClick={() => setCurrentStep("part-number")}
+        >
+          <ChevronLeft size={16} />
+          Back
+        </button>
+        <button
           className="btn-primary"
           onClick={handleUploadNext}
           disabled={files.length < 2 || files.length > 4}
         >
-          Next: Enter Symbol Number
+          Next: Review
           <ChevronRight size={16} />
         </button>
       </div>
@@ -202,8 +215,8 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
   const renderPartNumberStep = () => (
     <div className="step-content">
-      <h2>Step 2: Enter Symbol Number</h2>
-      <p>Enter the symbol number to look up description and details</p>
+      <h2>Step 1: Enter Symbol Number</h2>
+      <p>Enter the symbol number to check for duplicates and look up part details</p>
 
       <div className="part-number-input">
         <label htmlFor="part-number">Symbol Number</label>
@@ -222,18 +235,11 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
 
       <div className="step-actions">
         <button
-          className="btn-secondary"
-          onClick={() => setCurrentStep("upload")}
-        >
-          <ChevronLeft size={16} />
-          Back
-        </button>
-        <button
           className="btn-primary"
           onClick={handlePartNumberNext}
           disabled={!partNumber.trim()}
         >
-          Look Up Part Info
+          Check Part & Continue
           <ChevronRight size={16} />
         </button>
       </div>
@@ -277,7 +283,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       <div className="step-actions">
         <button
           className="btn-secondary"
-          onClick={() => setCurrentStep("part-number")}
+          onClick={() => setCurrentStep("upload")}
         >
           <ChevronLeft size={16} />
           Back
@@ -355,8 +361,8 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
     <div className="step-workflow">
       {currentStep !== "complete" && renderStepIndicator()}
 
-      {currentStep === "upload" && renderUploadStep()}
       {currentStep === "part-number" && renderPartNumberStep()}
+      {currentStep === "upload" && renderUploadStep()}
       {currentStep === "review" && renderReviewStep()}
       {currentStep === "success-notification" && renderSuccessNotification()}
       {currentStep === "complete" && renderCompleteStep()}
@@ -581,6 +587,28 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
         .part-number-input input:focus {
           outline: none;
           border-color: #007bff;
+        }
+
+        .part-info-banner {
+          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+          border-left: 4px solid #007bff;
+          border-radius: 8px;
+          padding: 12px 16px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          color: #1565c0;
+        }
+
+        .part-info-banner strong {
+          font-weight: 600;
+          margin-right: 8px;
+        }
+
+        @media (min-width: 768px) {
+          .part-info-banner {
+            padding: 16px 20px;
+            font-size: 16px;
+          }
         }
 
         .part-info-card {

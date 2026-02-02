@@ -32,38 +32,39 @@ The tool offers two ways to process images:
 
 ## 📸 Simple Workflow Guide
 
-### Step 1: Select "Simple" Mode
+### Step 1: Enter Symbol Number
 - Click the **"Simple"** button at the top of the page
-
-### Step 2: Enter Symbol Number
 - Type the symbol number in the search box
-- Select from autocomplete suggestions (if available)
-- System will show part information:
-  - Description
-  - Location
-  - Item Note (if available)
+- Click **"Check Part & Continue"**
+- System will:
+  - **Check if the part has already been processed** (prevents duplicates)
+  - Look up part information from the catalog
+  - Display description, location, and notes
 
-### Step 3: Upload Images
+**Why this step is first:** This prevents you from taking pictures of parts that have already been processed!
+
+### Step 2: Upload Images
+- After part lookup succeeds, you'll see the part information banner
 - Drag & drop 1-10 images
 - Or click to browse and select
 - View numbers are auto-assigned (1, 2, 3...)
 - You can manually adjust view numbers if needed
 
-### Step 4: Process
+### Step 3: Review & Process
+- Review part information and uploaded images
 - Click **"Process Images"**
 - System will:
-  - Check for duplicates in Google Drive
   - Process images with background removal
   - Add text labels with part description
   - Save to Google Drive in symbol number folders
 
-### Step 5: Access Results
+### Step 4: Access Results
 - Images are automatically saved to Google Drive
 - Organized in folders by symbol number
 - Filenames: `PartNumber_ViewNumber_Description.jpg`
 - Access via Google Drive link provided
 
-**Note**: If duplicates are detected, you'll see a warning. Use different view numbers or delete existing images first.
+**Note**: If duplicates are detected in Step 1, you'll see a warning and won't be able to proceed. This saves you from taking unnecessary pictures!
 
 ---
 
