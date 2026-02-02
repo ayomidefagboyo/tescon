@@ -150,9 +150,10 @@ export const PartsTrackingDashboard: React.FC = () => {
     },
     tabsContainer: {
       display: 'flex',
+      flexWrap: 'wrap' as const,
+      gap: mobileSpacing.xs,
       borderBottom: `2px solid ${colors.neutral[200]}`,
       marginBottom: mobileSpacing.lg,
-      overflowX: 'auto' as const,
     },
     tab: {
       padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
@@ -192,6 +193,9 @@ export const PartsTrackingDashboard: React.FC = () => {
     partsList: {
       display: 'grid',
       gap: mobileSpacing.md,
+      maxHeight: 'calc(100vh - 500px)',
+      overflowY: 'auto' as const,
+      overflowX: 'hidden' as const,
     },
     partCard: {
       backgroundColor: colors.background.main,
