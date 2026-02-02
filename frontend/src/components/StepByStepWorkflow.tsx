@@ -180,7 +180,7 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
       <UploadZone
         onFilesSelected={handleFilesSelected}
         multiple={true}
-        maxFiles={4}
+        maxFiles={3}
         disabled={processing}
         compact={files.length > 0}
       />
