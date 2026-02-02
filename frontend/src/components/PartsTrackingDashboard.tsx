@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
 import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, Search } from "lucide-react";
-import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, resetPartStatus as apiResetPartStatus } from "../services/api";
+import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus } from "../services/api";
 
 interface ProgressStats {
   total_parts: number;
   processed_count: number;
   failed_count: number;
+  queued_count: number;
   remaining_count: number;
   progress_percentage: number;
   success_rate: number;
@@ -17,23 +18,25 @@ interface TrackerData {
   progress: ProgressStats;
   processed_parts: string[];
   failed_parts: { [key: string]: string };
+  queued_parts: string[];
   remaining_parts: string[];
 }
 
 export const PartsTrackingDashboard: React.FC = () => {
   const [trackerData, setTrackerData] = useState<TrackerData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'processed' | 'failed' | 'remaining'>('overview');
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'processed' | 'failed' | 'queued' | 'remaining'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchTrackerData = async () => {
     setRefreshing(true);
     try {
-      const [progress, processed, failed, remaining] = await Promise.all([
+      const [progress, processed, failed, queued, remaining] = await Promise.all([
         getTrackerProgress(),
         getProcessedParts(),
         getFailedParts(),
+        getQueuedParts(),
         getRemainingParts()
       ]);
 
@@ -41,6 +44,7 @@ export const PartsTrackingDashboard: React.FC = () => {
         progress: progress.progress,
         processed_parts: processed.processed_parts,
         failed_parts: failed.failed_parts,
+        queued_parts: queued.queued_parts,
         remaining_parts: remaining.remaining_parts
       });
     } catch (error) {
@@ -262,7 +266,7 @@ export const PartsTrackingDashboard: React.FC = () => {
     );
   }
 
-  const { progress, processed_parts, failed_parts, remaining_parts } = trackerData;
+  const { progress, processed_parts, failed_parts, queued_parts, remaining_parts } = trackerData;
 
   const getStatusBadgeStyle = (status: string) => {
     const baseStyle = styles.statusBadge;
@@ -334,6 +338,25 @@ export const PartsTrackingDashboard: React.FC = () => {
                   >
                     Reset Status
                   </button>
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      case 'queued':
+        const filteredQueued = filterParts(queued_parts, searchQuery);
+        return (
+          <div style={styles.partsList}>
+            {filteredQueued.length === 0 ? (
+              <p style={{ textAlign: 'center', color: colors.text.secondary }}>No queued parts found</p>
+            ) : (
+              filteredQueued.map(partNumber => (
+                <div key={partNumber} style={styles.partCard}>
+                  <div style={styles.partHeader}>
+                    <div style={styles.partNumber}>{partNumber}</div>
+                    <div style={getStatusBadgeStyle('queued')}>Queued</div>
+                  </div>
                 </div>
               ))
             )}
@@ -455,6 +478,7 @@ export const PartsTrackingDashboard: React.FC = () => {
         {[
           { key: 'overview', label: 'Overview' },
           { key: 'processed', label: `Processed (${progress.processed_count})` },
+          { key: 'queued', label: `Queued (${progress.queued_count})` },
           { key: 'failed', label: `Failed (${progress.failed_count})` },
           { key: 'remaining', label: `Remaining (${progress.remaining_count})` },
         ].map(tab => (

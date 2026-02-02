@@ -15,6 +15,7 @@ class PartsTracker:
         self.tracker_file = Path(tracker_file)
         self.processed_parts: Set[str] = set()
         self.failed_parts: Dict[str, str] = {}  # symbol_number -> error_reason
+        self.queued_parts: Set[str] = set()     # Parts uploaded and queued for processing
         self.part_stats: Dict[str, Dict] = {}   # symbol_number -> stats
         self.total_parts = 0
         self.load_tracker()
@@ -27,9 +28,10 @@ class PartsTracker:
                     data = json.load(f)
                     self.processed_parts = set(data.get('processed_parts', []))
                     self.failed_parts = data.get('failed_parts', {})
+                    self.queued_parts = set(data.get('queued_parts', []))
                     self.part_stats = data.get('part_stats', {})
                     self.total_parts = data.get('total_parts', 0)
-                    logger.info(f"Loaded tracker: {len(self.processed_parts)} processed, {len(self.failed_parts)} failed")
+                    logger.info(f"Loaded tracker: {len(self.processed_parts)} processed, {len(self.failed_parts)} failed, {len(self.queued_parts)} queued")
             except Exception as e:
                 logger.error(f"Failed to load tracker file: {e}")
 
@@ -39,6 +41,7 @@ class PartsTracker:
             data = {
                 'processed_parts': list(self.processed_parts),
                 'failed_parts': self.failed_parts,
+                'queued_parts': list(self.queued_parts),
                 'part_stats': self.part_stats,
                 'total_parts': self.total_parts,
                 'last_updated': datetime.now().isoformat()
@@ -53,6 +56,26 @@ class PartsTracker:
         self.total_parts = total
         self.save_tracker()
 
+    def mark_part_queued(self, symbol_number: str, image_count: int):
+        """
+        Mark a part as queued for processing.
+
+        Args:
+            symbol_number: The part number
+            image_count: Number of images uploaded
+        """
+        self.queued_parts.add(symbol_number)
+
+        # Update stats
+        self.part_stats[symbol_number] = {
+            'status': 'queued',
+            'image_count': image_count,
+            'queued_at': datetime.now().isoformat()
+        }
+
+        self.save_tracker()
+        logger.info(f"Part {symbol_number} marked as queued with {image_count} images")
+
     def mark_part_processed(self, symbol_number: str, image_count: int, processing_time: float = None):
         """
         Mark a part as successfully processed.
@@ -64,7 +87,8 @@ class PartsTracker:
         """
         self.processed_parts.add(symbol_number)
 
-        # Remove from failed if it was there
+        # Remove from queued and failed if it was there
+        self.queued_parts.discard(symbol_number)
         if symbol_number in self.failed_parts:
             del self.failed_parts[symbol_number]
 
@@ -89,8 +113,9 @@ class PartsTracker:
         """
         self.failed_parts[symbol_number] = error_reason
 
-        # Remove from processed if it was there
+        # Remove from processed and queued if it was there
         self.processed_parts.discard(symbol_number)
+        self.queued_parts.discard(symbol_number)
 
         # Update stats
         self.part_stats[symbol_number] = {
@@ -101,6 +126,10 @@ class PartsTracker:
 
         self.save_tracker()
         logger.warning(f"Part {symbol_number} marked as failed: {error_reason}")
+
+    def is_part_queued(self, symbol_number: str) -> bool:
+        """Check if a part is queued for processing."""
+        return symbol_number in self.queued_parts
 
     def is_part_processed(self, symbol_number: str) -> bool:
         """Check if a part has been processed."""
@@ -114,7 +143,8 @@ class PartsTracker:
         """Get overall progress statistics."""
         processed_count = len(self.processed_parts)
         failed_count = len(self.failed_parts)
-        remaining_count = max(0, self.total_parts - processed_count - failed_count)
+        queued_count = len(self.queued_parts)
+        remaining_count = max(0, self.total_parts - processed_count - failed_count - queued_count)
 
         progress_percentage = 0
         if self.total_parts > 0:
@@ -124,10 +154,15 @@ class PartsTracker:
             'total_parts': self.total_parts,
             'processed_count': processed_count,
             'failed_count': failed_count,
+            'queued_count': queued_count,
             'remaining_count': remaining_count,
             'progress_percentage': round(progress_percentage, 2),
             'success_rate': round((processed_count / max(1, processed_count + failed_count)) * 100, 2)
         }
+
+    def get_queued_parts(self) -> List[str]:
+        """Get list of queued part numbers."""
+        return list(self.queued_parts)
 
     def get_processed_parts(self) -> List[str]:
         """Get list of processed part numbers."""
@@ -148,8 +183,8 @@ class PartsTracker:
             List of unprocessed part numbers
         """
         all_parts_set = set(all_parts)
-        processed_and_failed = self.processed_parts.union(set(self.failed_parts.keys()))
-        return list(all_parts_set - processed_and_failed)
+        processed_queued_and_failed = self.processed_parts.union(self.queued_parts).union(set(self.failed_parts.keys()))
+        return list(all_parts_set - processed_queued_and_failed)
 
     def get_part_status(self, symbol_number: str) -> Optional[Dict]:
         """
@@ -165,12 +200,13 @@ class PartsTracker:
 
     def reset_part(self, symbol_number: str):
         """
-        Reset a part's status (remove from processed/failed).
+        Reset a part's status (remove from processed/failed/queued).
 
         Args:
             symbol_number: The part number to reset
         """
         self.processed_parts.discard(symbol_number)
+        self.queued_parts.discard(symbol_number)
         if symbol_number in self.failed_parts:
             del self.failed_parts[symbol_number]
         if symbol_number in self.part_stats:
@@ -183,6 +219,7 @@ class PartsTracker:
         """Reset all tracking data."""
         self.processed_parts.clear()
         self.failed_parts.clear()
+        self.queued_parts.clear()
         self.part_stats.clear()
         self.total_parts = 0
         self.save_tracker()

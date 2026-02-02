@@ -477,6 +477,10 @@ async def process_part_images_async(
             'content_type': file.content_type
         })
 
+    # Mark part as queued in tracker (for dashboard visibility)
+    tracker = get_parts_tracker()
+    tracker.mark_part_queued(symbol_number, len(file_data))
+
     # Use daily batch job ID
     from datetime import datetime
     job_id = f"job_daily_{datetime.now().strftime('%Y%m%d')}"
@@ -930,6 +934,18 @@ async def get_remaining_parts():
     return {
         "remaining_parts": remaining_parts[:100],  # Limit to first 100
         "total_remaining": len(remaining_parts)
+    }
+
+
+@router.get("/tracker/parts/queued")
+async def get_queued_parts():
+    """Get list of parts that are queued for processing."""
+    tracker = get_parts_tracker()
+    queued_parts = tracker.get_queued_parts()
+
+    return {
+        "queued_parts": queued_parts,
+        "count": len(queued_parts)
     }
 
 

@@ -18,7 +18,7 @@ const api = axios.create({
  */
 export async function healthCheck(): Promise<{ status: string; gpu_available: boolean; model_loaded: boolean }> {
   // Health endpoint is at root level, not /api/health
-  const healthUrl = import.meta.env.VITE_API_URL 
+  const healthUrl = import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL.replace('/api', '')}/health`
     : "/health";
   const response = await axios.get(healthUrl);
@@ -151,6 +151,11 @@ export async function getFailedParts(): Promise<any> {
 
 export async function getRemainingParts(): Promise<any> {
   const response = await api.get('/tracker/parts/remaining');
+  return response.data;
+}
+
+export async function getQueuedParts(): Promise<any> {
+  const response = await api.get('/tracker/parts/queued');
   return response.data;
 }
 
