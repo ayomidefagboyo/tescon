@@ -392,6 +392,30 @@ async def process_part_images_async(
             status_code=409,
             detail=f"Part {symbol_number} has already been processed. Use the tracking dashboard to see results."
         )
+    
+    # Also check R2 storage for processed images
+    drive_storage = get_r2_storage()
+    if drive_storage:
+        try:
+            # Check if processed images exist in R2
+            prefix = f"parts/{symbol_number}/"
+            response = drive_storage.s3_client.list_objects_v2(
+                Bucket=drive_storage.bucket_name,
+                Prefix=prefix,
+                MaxKeys=1
+            )
+            if 'Contents' in response and len(response['Contents']) > 0:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Part {symbol_number} already has processed images in storage. Please use a different symbol number or delete existing images first."
+                )
+        except drive_storage.s3_client.exceptions.NoSuchKey:
+            pass  # No existing images, OK to proceed
+        except HTTPException:
+            raise  # Re-raise our 409 error
+        except Exception as e:
+            # Log but don't block upload if check fails
+            print(f"⚠️  Could not check for duplicates: {e}")
 
     # Get part info from Excel catalog
     excel_service = get_excel_parts_service()
