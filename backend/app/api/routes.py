@@ -309,7 +309,6 @@ async def get_part_info(symbol_number: str):
     Used for autocomplete/search in frontend.
     """
     excel_service = get_excel_parts_service()
-    tracker = get_parts_tracker()
 
     if excel_service.unique_parts is None:
         raise HTTPException(
@@ -317,28 +316,34 @@ async def get_part_info(symbol_number: str):
             detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
         )
 
-    # Check if part is already processed
-    part_status = tracker.get_part_status(symbol_number)
-    if part_status and part_status.get('status') == 'completed':
-        raise HTTPException(
-            status_code=409,
-            detail=f"Symbol number '{symbol_number}' has already been processed"
-        )
-    
-    # Check R2 storage for processed images (most reliable check)
+    # Check R2 storage for existing images (both raw and processed)
     drive_storage = get_r2_storage()
     if drive_storage:
         try:
-            prefix = f"parts/{symbol_number}/"
-            response = drive_storage.s3_client.list_objects_v2(
+            # Check for processed images in parts/ folder
+            parts_prefix = f"parts/{symbol_number}/"
+            parts_response = drive_storage.s3_client.list_objects_v2(
                 Bucket=drive_storage.bucket_name,
-                Prefix=prefix,
+                Prefix=parts_prefix,
                 MaxKeys=1
             )
-            if 'Contents' in response and len(response['Contents']) > 0:
+            if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
                 raise HTTPException(
                     status_code=409,
                     detail=f"Symbol number '{symbol_number}' has already been processed. Processed images exist in storage."
+                )
+            
+            # Check for raw images in raw/ folder (uploaded but not yet processed)
+            raw_prefix = f"raw/{symbol_number}/"
+            raw_response = drive_storage.s3_client.list_objects_v2(
+                Bucket=drive_storage.bucket_name,
+                Prefix=raw_prefix,
+                MaxKeys=1
+            )
+            if 'Contents' in raw_response and len(raw_response['Contents']) > 0:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Symbol number '{symbol_number}' has already been uploaded and is queued for processing. Please check the tracking dashboard."
                 )
         except drive_storage.s3_client.exceptions.NoSuchKey:
             pass  # No existing images, OK to proceed
@@ -408,29 +413,34 @@ async def process_part_images_async(
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
 
-    # Check if this part has already been processed or is in progress
-    tracker = get_parts_tracker()
-    if tracker.is_part_processed(symbol_number):
-        raise HTTPException(
-            status_code=409,
-            detail=f"Part {symbol_number} has already been processed. Use the tracking dashboard to see results."
-        )
-    
-    # Also check R2 storage for processed images
+    # Check R2 storage for existing images (both raw and processed)
     drive_storage = get_r2_storage()
     if drive_storage:
         try:
-            # Check if processed images exist in R2
-            prefix = f"parts/{symbol_number}/"
-            response = drive_storage.s3_client.list_objects_v2(
+            # Check for processed images in parts/ folder
+            parts_prefix = f"parts/{symbol_number}/"
+            parts_response = drive_storage.s3_client.list_objects_v2(
                 Bucket=drive_storage.bucket_name,
-                Prefix=prefix,
+                Prefix=parts_prefix,
                 MaxKeys=1
             )
-            if 'Contents' in response and len(response['Contents']) > 0:
+            if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
                 raise HTTPException(
                     status_code=409,
                     detail=f"Part {symbol_number} already has processed images in storage. Please use a different symbol number or delete existing images first."
+                )
+            
+            # Check for raw images in raw/ folder (uploaded but not yet processed)
+            raw_prefix = f"raw/{symbol_number}/"
+            raw_response = drive_storage.s3_client.list_objects_v2(
+                Bucket=drive_storage.bucket_name,
+                Prefix=raw_prefix,
+                MaxKeys=1
+            )
+            if 'Contents' in raw_response and len(raw_response['Contents']) > 0:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Part {symbol_number} has already been uploaded and is queued for processing. Please check the tracking dashboard or wait for processing to complete."
                 )
         except drive_storage.s3_client.exceptions.NoSuchKey:
             pass  # No existing images, OK to proceed
