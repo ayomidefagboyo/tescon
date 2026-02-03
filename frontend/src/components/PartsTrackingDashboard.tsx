@@ -662,7 +662,7 @@ export const PartsTrackingDashboard: React.FC = () => {
             {/* Stats Grid - 2 per row */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(2, 1fr)',
               gap: spacing.lg,
               marginBottom: spacing.lg
             }}>
