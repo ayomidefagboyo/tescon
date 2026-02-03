@@ -1,0 +1,381 @@
+[{"stream_name":"stderr","time":8.657377326,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":8.657425905,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":9.790079933,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":9.790118427,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":9.790124131,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":9.790143484,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":10.578531854,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":10.578568065,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":10.578574159,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":10.578578588,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":15.123373025,"data":"Collecting numpy\u003c2.0.0\n"}
+,{"stream_name":"stdout","time":15.178889675,"data":"  Downloading numpy-1.26.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (61 kB)\n"}
+,{"stream_name":"stdout","time":15.206653816,"data":"     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.0/61.0 kB 2.1 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":15.242901815,"data":"Downloading numpy-1.26.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (18.0 MB)\n"}
+,{"stream_name":"stdout","time":15.326450899,"data":"Collecting numpy\u003c2.0.0\n"}
+,{"stream_name":"stdout","time":15.326490363,"data":"  Downloading numpy-1.26.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (61 kB)\n"}
+,{"stream_name":"stdout","time":15.326496399,"data":"     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.0/61.0 kB 2.1 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":15.326501468,"data":"Downloading numpy-1.26.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (18.0 MB)\n"}
+,{"stream_name":"stdout","time":15.446026666,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.0/18.0 MB 84.2 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":15.648679907,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.0/18.0 MB 84.2 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":17.830131107,"data":"Installing collected packages: numpy\n"}
+,{"stream_name":"stdout","time":17.830410122,"data":"  Attempting uninstall: numpy\n"}
+,{"stream_name":"stdout","time":17.856437536,"data":"    Found existing installation: numpy 2.0.2\n"}
+,{"stream_name":"stdout","time":18.03250953,"data":"    Uninstalling numpy-2.0.2:\n"}
+,{"stream_name":"stdout","time":18.034384598,"data":"Installing collected packages: numpy\n"}
+,{"stream_name":"stdout","time":18.034424634,"data":"  Attempting uninstall: numpy\n"}
+,{"stream_name":"stdout","time":18.034459365,"data":"    Found existing installation: numpy 2.0.2\n"}
+,{"stream_name":"stdout","time":18.235650474,"data":"    Uninstalling numpy-2.0.2:\n"}
+,{"stream_name":"stdout","time":19.487121516,"data":"      Successfully uninstalled numpy-2.0.2\n"}
+,{"stream_name":"stdout","time":19.689853393,"data":"      Successfully uninstalled numpy-2.0.2\n"}
+,{"stream_name":"stdout","time":22.439926308,"data":"Successfully installed numpy-1.26.4\n"}
+,{"stream_name":"stderr","time":22.440121531,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":22.440176289,"data":"bigframes 2.26.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":22.440184043,"data":"cesium 0.12.4 requires numpy\u003c3.0,\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440189714,"data":"google-colab 1.0.0 requires google-auth==2.38.0, but you have google-auth 2.47.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440194272,"data":"google-colab 1.0.0 requires jupyter-server==2.14.0, but you have jupyter-server 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440198933,"data":"google-colab 1.0.0 requires requests==2.32.4, but you have requests 2.32.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440203749,"data":"dopamine-rl 4.1.2 requires gymnasium\u003e=1.0.0, but you have gymnasium 0.29.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440208396,"data":"jaxlib 0.7.2 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440213168,"data":"thinc 8.3.6 requires numpy\u003c3.0.0,\u003e=2.0.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440218137,"data":"opencv-contrib-python 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.44022307,"data":"opencv-python 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.44022784,"data":"jax 0.7.2 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440232384,"data":"cudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440243272,"data":"gradio 5.49.1 requires pydantic\u003c2.12,\u003e=2.0, but you have pydantic 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440246656,"data":"bigframes 2.26.0 requires rich\u003c14,\u003e=12.4.4, but you have rich 14.2.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440250024,"data":"opencv-python-headless 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440253315,"data":"pytensor 2.35.1 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440256608,"data":"fastai 2.8.4 requires fastcore\u003c1.9,\u003e=1.8.0, but you have fastcore 1.11.3 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.440260917,"data":"pylibcudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.64305759,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":22.643092632,"data":"bigframes 2.26.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":22.643098951,"data":"cesium 0.12.4 requires numpy\u003c3.0,\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643104458,"data":"google-colab 1.0.0 requires google-auth==2.38.0, but you have google-auth 2.47.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643109796,"data":"google-colab 1.0.0 requires jupyter-server==2.14.0, but you have jupyter-server 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643114333,"data":"google-colab 1.0.0 requires requests==2.32.4, but you have requests 2.32.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643120059,"data":"dopamine-rl 4.1.2 requires gymnasium\u003e=1.0.0, but you have gymnasium 0.29.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643124993,"data":"jaxlib 0.7.2 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643129593,"data":"thinc 8.3.6 requires numpy\u003c3.0.0,\u003e=2.0.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643134454,"data":"opencv-contrib-python 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643140076,"data":"opencv-python 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643145632,"data":"jax 0.7.2 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643150421,"data":"cudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643155796,"data":"gradio 5.49.1 requires pydantic\u003c2.12,\u003e=2.0, but you have pydantic 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643160697,"data":"bigframes 2.26.0 requires rich\u003c14,\u003e=12.4.4, but you have rich 14.2.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643165789,"data":"opencv-python-headless 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.64317089,"data":"pytensor 2.35.1 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643175511,"data":"fastai 2.8.4 requires fastcore\u003c1.9,\u003e=1.8.0, but you have fastcore 1.11.3 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643181802,"data":"pylibcudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643186896,"data":"\n"}
+,{"stream_name":"stderr","time":22.643191802,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":22.643196999,"data":"bigframes 2.26.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":22.64320177,"data":"cesium 0.12.4 requires numpy\u003c3.0,\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643220614,"data":"google-colab 1.0.0 requires google-auth==2.38.0, but you have google-auth 2.47.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643226123,"data":"google-colab 1.0.0 requires jupyter-server==2.14.0, but you have jupyter-server 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643230656,"data":"google-colab 1.0.0 requires requests==2.32.4, but you have requests 2.32.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643235219,"data":"dopamine-rl 4.1.2 requires gymnasium\u003e=1.0.0, but you have gymnasium 0.29.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643239816,"data":"jaxlib 0.7.2 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643244486,"data":"thinc 8.3.6 requires numpy\u003c3.0.0,\u003e=2.0.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643249979,"data":"opencv-contrib-python 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.64325522,"data":"opencv-python 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.64326042,"data":"jax 0.7.2 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643265259,"data":"cudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643270328,"data":"gradio 5.49.1 requires pydantic\u003c2.12,\u003e=2.0, but you have pydantic 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643275006,"data":"bigframes 2.26.0 requires rich\u003c14,\u003e=12.4.4, but you have rich 14.2.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643280076,"data":"opencv-python-headless 4.12.0.88 requires numpy\u003c2.3.0,\u003e=2; python_version \u003e= \"3.9\", but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643285451,"data":"pytensor 2.35.1 requires numpy\u003e=2.0, but you have numpy 1.26.4 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643289996,"data":"fastai 2.8.4 requires fastcore\u003c1.9,\u003e=1.8.0, but you have fastcore 1.11.3 which is incompatible.\n"}
+,{"stream_name":"stderr","time":22.643295184,"data":"pylibcudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":22.644093321,"data":"Successfully installed numpy-1.26.4\n"}
+,{"stream_name":"stdout","time":24.114425099,"data":"Collecting rembg==2.0.61\n"}
+,{"stream_name":"stdout","time":24.170926364,"data":"  Downloading rembg-2.0.61-py3-none-any.whl.metadata (18 kB)\n"}
+,{"stream_name":"stdout","time":24.198258717,"data":"Requirement already satisfied: jsonschema in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (4.25.1)\n"}
+,{"stream_name":"stdout","time":24.206025842,"data":"Requirement already satisfied: numpy in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (1.26.4)\n"}
+,{"stream_name":"stdout","time":24.207862338,"data":"Requirement already satisfied: opencv-python-headless in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (4.12.0.88)\n"}
+,{"stream_name":"stdout","time":24.209571347,"data":"Requirement already satisfied: pillow in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (11.3.0)\n"}
+,{"stream_name":"stdout","time":24.211289091,"data":"Requirement already satisfied: pooch in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (1.8.2)\n"}
+,{"stream_name":"stdout","time":24.263213519,"data":"Collecting pymatting (from rembg==2.0.61)\n"}
+,{"stream_name":"stdout","time":24.277855729,"data":"  Downloading pymatting-1.1.15-py3-none-any.whl.metadata (8.7 kB)\n"}
+,{"stream_name":"stdout","time":24.302854147,"data":"Requirement already satisfied: scikit-image in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (0.25.2)\n"}
+,{"stream_name":"stdout","time":24.311340376,"data":"Requirement already satisfied: scipy in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (1.15.3)\n"}
+,{"stream_name":"stdout","time":24.317277113,"data":"Requirement already satisfied: tqdm in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (4.67.1)\n"}
+,{"stream_name":"stdout","time":24.317687057,"data":"Collecting rembg==2.0.61\n"}
+,{"stream_name":"stdout","time":24.317704345,"data":"  Downloading rembg-2.0.61-py3-none-any.whl.metadata (18 kB)\n"}
+,{"stream_name":"stdout","time":24.317709935,"data":"Requirement already satisfied: jsonschema in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (4.25.1)\n"}
+,{"stream_name":"stdout","time":24.317714903,"data":"Requirement already satisfied: numpy in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (1.26.4)\n"}
+,{"stream_name":"stdout","time":24.317719649,"data":"Requirement already satisfied: opencv-python-headless in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (4.12.0.88)\n"}
+,{"stream_name":"stdout","time":24.317724455,"data":"Requirement already satisfied: pillow in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (11.3.0)\n"}
+,{"stream_name":"stdout","time":24.317728855,"data":"Requirement already satisfied: pooch in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (1.8.2)\n"}
+,{"stream_name":"stdout","time":24.317733267,"data":"Collecting pymatting (from rembg==2.0.61)\n"}
+,{"stream_name":"stdout","time":24.317737567,"data":"  Downloading pymatting-1.1.15-py3-none-any.whl.metadata (8.7 kB)\n"}
+,{"stream_name":"stdout","time":24.317741865,"data":"Requirement already satisfied: scikit-image in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (0.25.2)\n"}
+,{"stream_name":"stdout","time":24.317746513,"data":"Requirement already satisfied: scipy in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (1.15.3)\n"}
+,{"stream_name":"stdout","time":24.323564654,"data":"Requirement already satisfied: attrs\u003e=22.2.0 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (25.4.0)\n"}
+,{"stream_name":"stdout","time":24.32486547,"data":"Requirement already satisfied: jsonschema-specifications\u003e=2023.03.6 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (2025.9.1)\n"}
+,{"stream_name":"stdout","time":24.326454879,"data":"Requirement already satisfied: referencing\u003e=0.28.4 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (0.37.0)\n"}
+,{"stream_name":"stdout","time":24.327961656,"data":"Requirement already satisfied: rpds-py\u003e=0.7.1 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (0.27.1)\n"}
+,{"stream_name":"stdout","time":24.520136047,"data":"Requirement already satisfied: tqdm in /usr/local/lib/python3.12/dist-packages (from rembg==2.0.61) (4.67.1)\n"}
+,{"stream_name":"stdout","time":24.520181364,"data":"Requirement already satisfied: attrs\u003e=22.2.0 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (25.4.0)\n"}
+,{"stream_name":"stdout","time":24.520188795,"data":"Requirement already satisfied: jsonschema-specifications\u003e=2023.03.6 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (2025.9.1)\n"}
+,{"stream_name":"stdout","time":24.520212998,"data":"Requirement already satisfied: referencing\u003e=0.28.4 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (0.37.0)\n"}
+,{"stream_name":"stdout","time":24.520218141,"data":"Requirement already satisfied: rpds-py\u003e=0.7.1 in /usr/local/lib/python3.12/dist-packages (from jsonschema-\u003erembg==2.0.61) (0.27.1)\n"}
+,{"stream_name":"stdout","time":24.907660928,"data":"Collecting numpy (from rembg==2.0.61)\n"}
+,{"stream_name":"stdout","time":24.923236218,"data":"  Downloading numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)\n"}
+,{"stream_name":"stdout","time":24.952868521,"data":"     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.0/62.0 kB 2.0 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":24.977013127,"data":"Requirement already satisfied: platformdirs\u003e=2.5.0 in /usr/local/lib/python3.12/dist-packages (from pooch-\u003erembg==2.0.61) (4.5.1)\n"}
+,{"stream_name":"stdout","time":24.97852962,"data":"Requirement already satisfied: packaging\u003e=20.0 in /usr/local/lib/python3.12/dist-packages (from pooch-\u003erembg==2.0.61) (26.0rc2)\n"}
+,{"stream_name":"stdout","time":24.980147636,"data":"Requirement already satisfied: requests\u003e=2.19.0 in /usr/local/lib/python3.12/dist-packages (from pooch-\u003erembg==2.0.61) (2.32.5)\n"}
+,{"stream_name":"stdout","time":24.996773759,"data":"Requirement already satisfied: numba\u003e=0.60.0 in /usr/local/lib/python3.12/dist-packages (from pymatting-\u003erembg==2.0.61) (0.60.0)\n"}
+,{"stream_name":"stdout","time":25.059858479,"data":"Requirement already satisfied: networkx\u003e=3.0 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (3.5)\n"}
+,{"stream_name":"stdout","time":25.063068491,"data":"Requirement already satisfied: imageio!=2.35.0,\u003e=2.33 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (2.37.0)\n"}
+,{"stream_name":"stdout","time":25.066602355,"data":"Requirement already satisfied: tifffile\u003e=2022.8.12 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (2025.10.16)\n"}
+,{"stream_name":"stdout","time":25.06911457,"data":"Requirement already satisfied: lazy-loader\u003e=0.4 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (0.4)\n"}
+,{"stream_name":"stdout","time":25.102787941,"data":"Requirement already satisfied: llvmlite\u003c0.44,\u003e=0.43.0dev0 in /usr/local/lib/python3.12/dist-packages (from numba\u003e=0.60.0-\u003epymatting-\u003erembg==2.0.61) (0.43.0)\n"}
+,{"stream_name":"stdout","time":25.11071769,"data":"Collecting numpy (from rembg==2.0.61)\n"}
+,{"stream_name":"stdout","time":25.110755629,"data":"  Downloading numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)\n"}
+,{"stream_name":"stdout","time":25.11076281,"data":"     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.0/62.0 kB 2.0 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.110769883,"data":"Requirement already satisfied: platformdirs\u003e=2.5.0 in /usr/local/lib/python3.12/dist-packages (from pooch-\u003erembg==2.0.61) (4.5.1)\n"}
+,{"stream_name":"stdout","time":25.110775463,"data":"Requirement already satisfied: packaging\u003e=20.0 in /usr/local/lib/python3.12/dist-packages (from pooch-\u003erembg==2.0.61) (26.0rc2)\n"}
+,{"stream_name":"stdout","time":25.110780252,"data":"Requirement already satisfied: requests\u003e=2.19.0 in /usr/local/lib/python3.12/dist-packages (from pooch-\u003erembg==2.0.61) (2.32.5)\n"}
+,{"stream_name":"stdout","time":25.110811321,"data":"Requirement already satisfied: numba\u003e=0.60.0 in /usr/local/lib/python3.12/dist-packages (from pymatting-\u003erembg==2.0.61) (0.60.0)\n"}
+,{"stream_name":"stdout","time":25.110815072,"data":"Requirement already satisfied: networkx\u003e=3.0 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (3.5)\n"}
+,{"stream_name":"stdout","time":25.110818446,"data":"Requirement already satisfied: imageio!=2.35.0,\u003e=2.33 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (2.37.0)\n"}
+,{"stream_name":"stdout","time":25.1108217,"data":"Requirement already satisfied: tifffile\u003e=2022.8.12 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (2025.10.16)\n"}
+,{"stream_name":"stdout","time":25.110824983,"data":"Requirement already satisfied: lazy-loader\u003e=0.4 in /usr/local/lib/python3.12/dist-packages (from scikit-image-\u003erembg==2.0.61) (0.4)\n"}
+,{"stream_name":"stdout","time":25.110828199,"data":"Requirement already satisfied: llvmlite\u003c0.44,\u003e=0.43.0dev0 in /usr/local/lib/python3.12/dist-packages (from numba\u003e=0.60.0-\u003epymatting-\u003erembg==2.0.61) (0.43.0)\n"}
+,{"stream_name":"stdout","time":25.141041489,"data":"  Downloading numpy-2.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (60 kB)\n"}
+,{"stream_name":"stdout","time":25.15970192,"data":"     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.9/60.9 kB 3.3 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.184984215,"data":"Requirement already satisfied: typing-extensions\u003e=4.4.0 in /usr/local/lib/python3.12/dist-packages (from referencing\u003e=0.28.4-\u003ejsonschema-\u003erembg==2.0.61) (4.15.0)\n"}
+,{"stream_name":"stdout","time":25.190776347,"data":"Requirement already satisfied: charset_normalizer\u003c4,\u003e=2 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (3.4.4)\n"}
+,{"stream_name":"stdout","time":25.192897602,"data":"Requirement already satisfied: idna\u003c4,\u003e=2.5 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (3.11)\n"}
+,{"stream_name":"stdout","time":25.194589719,"data":"Requirement already satisfied: urllib3\u003c3,\u003e=1.21.1 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (2.6.3)\n"}
+,{"stream_name":"stdout","time":25.196078263,"data":"Requirement already satisfied: certifi\u003e=2017.4.17 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (2026.1.4)\n"}
+,{"stream_name":"stdout","time":25.242688657,"data":"Downloading rembg-2.0.61-py3-none-any.whl (40 kB)\n"}
+,{"stream_name":"stdout","time":25.262798856,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.5/40.5 kB 1.8 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.277421169,"data":"Downloading pymatting-1.1.15-py3-none-any.whl (54 kB)\n"}
+,{"stream_name":"stdout","time":25.29667262,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 54.9/54.9 kB 2.8 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.312568408,"data":"Downloading numpy-2.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (19.2 MB)\n"}
+,{"stream_name":"stdout","time":25.343820032,"data":"  Downloading numpy-2.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (60 kB)\n"}
+,{"stream_name":"stdout","time":25.343840789,"data":"     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.9/60.9 kB 3.3 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.34385399,"data":"Requirement already satisfied: typing-extensions\u003e=4.4.0 in /usr/local/lib/python3.12/dist-packages (from referencing\u003e=0.28.4-\u003ejsonschema-\u003erembg==2.0.61) (4.15.0)\n"}
+,{"stream_name":"stdout","time":25.343858772,"data":"Requirement already satisfied: charset_normalizer\u003c4,\u003e=2 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (3.4.4)\n"}
+,{"stream_name":"stdout","time":25.343862428,"data":"Requirement already satisfied: idna\u003c4,\u003e=2.5 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (3.11)\n"}
+,{"stream_name":"stdout","time":25.343865814,"data":"Requirement already satisfied: urllib3\u003c3,\u003e=1.21.1 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (2.6.3)\n"}
+,{"stream_name":"stdout","time":25.343869202,"data":"Requirement already satisfied: certifi\u003e=2017.4.17 in /usr/local/lib/python3.12/dist-packages (from requests\u003e=2.19.0-\u003epooch-\u003erembg==2.0.61) (2026.1.4)\n"}
+,{"stream_name":"stdout","time":25.343872474,"data":"Downloading rembg-2.0.61-py3-none-any.whl (40 kB)\n"}
+,{"stream_name":"stdout","time":25.343875475,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.5/40.5 kB 1.8 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.343878854,"data":"Downloading pymatting-1.1.15-py3-none-any.whl (54 kB)\n"}
+,{"stream_name":"stdout","time":25.343882004,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 54.9/54.9 kB 2.8 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.343885586,"data":"Downloading numpy-2.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (19.2 MB)\n"}
+,{"stream_name":"stdout","time":25.503123195,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.2/19.2 MB 94.1 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":25.705582374,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.2/19.2 MB 94.1 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":27.969900063,"data":"Installing collected packages: numpy, pymatting, rembg\n"}
+,{"stream_name":"stdout","time":27.970222114,"data":"  Attempting uninstall: numpy\n"}
+,{"stream_name":"stdout","time":27.985123423,"data":"    Found existing installation: numpy 1.26.4\n"}
+,{"stream_name":"stdout","time":28.045292473,"data":"    Uninstalling numpy-1.26.4:\n"}
+,{"stream_name":"stdout","time":28.059072715,"data":"      Successfully uninstalled numpy-1.26.4\n"}
+,{"stream_name":"stdout","time":28.172485783,"data":"Installing collected packages: numpy, pymatting, rembg\n"}
+,{"stream_name":"stdout","time":28.172518247,"data":"  Attempting uninstall: numpy\n"}
+,{"stream_name":"stdout","time":28.172523618,"data":"    Found existing installation: numpy 1.26.4\n"}
+,{"stream_name":"stdout","time":28.17252814,"data":"    Uninstalling numpy-1.26.4:\n"}
+,{"stream_name":"stdout","time":28.172532714,"data":"      Successfully uninstalled numpy-1.26.4\n"}
+,{"stream_name":"stderr","time":31.064367863,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":31.064421153,"data":"bigframes 2.26.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":31.064428187,"data":"google-colab 1.0.0 requires google-auth==2.38.0, but you have google-auth 2.47.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.06443275,"data":"google-colab 1.0.0 requires jupyter-server==2.14.0, but you have jupyter-server 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.064443321,"data":"google-colab 1.0.0 requires requests==2.32.4, but you have requests 2.32.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.064447835,"data":"dopamine-rl 4.1.2 requires gymnasium\u003e=1.0.0, but you have gymnasium 0.29.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.064452518,"data":"cudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.064604778,"data":"gradio 5.49.1 requires pydantic\u003c2.12,\u003e=2.0, but you have pydantic 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stdout","time":31.065063024,"data":"Successfully installed numpy-2.0.2 pymatting-1.1.15 rembg-2.0.61\n"}
+,{"stream_name":"stderr","time":31.065093993,"data":"bigframes 2.26.0 requires rich\u003c14,\u003e=12.4.4, but you have rich 14.2.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.065101155,"data":"fastai 2.8.4 requires fastcore\u003c1.9,\u003e=1.8.0, but you have fastcore 1.11.3 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.06510659,"data":"pylibcudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267613458,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":31.267657873,"data":"bigframes 2.26.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":31.267664561,"data":"google-colab 1.0.0 requires google-auth==2.38.0, but you have google-auth 2.47.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.26766972,"data":"google-colab 1.0.0 requires jupyter-server==2.14.0, but you have jupyter-server 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267674685,"data":"google-colab 1.0.0 requires requests==2.32.4, but you have requests 2.32.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267679531,"data":"dopamine-rl 4.1.2 requires gymnasium\u003e=1.0.0, but you have gymnasium 0.29.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267684561,"data":"cudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267690068,"data":"gradio 5.49.1 requires pydantic\u003c2.12,\u003e=2.0, but you have pydantic 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267694995,"data":"bigframes 2.26.0 requires rich\u003c14,\u003e=12.4.4, but you have rich 14.2.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.26770002,"data":"fastai 2.8.4 requires fastcore\u003c1.9,\u003e=1.8.0, but you have fastcore 1.11.3 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267705347,"data":"pylibcudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267710965,"data":"\n"}
+,{"stream_name":"stderr","time":31.267729663,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":31.267735131,"data":"bigframes 2.26.0 requires google-cloud-bigquery-storage\u003c3.0.0,\u003e=2.30.0, which is not installed.\n"}
+,{"stream_name":"stderr","time":31.267740273,"data":"google-colab 1.0.0 requires google-auth==2.38.0, but you have google-auth 2.47.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267745186,"data":"google-colab 1.0.0 requires jupyter-server==2.14.0, but you have jupyter-server 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267750021,"data":"google-colab 1.0.0 requires requests==2.32.4, but you have requests 2.32.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267754735,"data":"dopamine-rl 4.1.2 requires gymnasium\u003e=1.0.0, but you have gymnasium 0.29.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267760826,"data":"cudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267766409,"data":"gradio 5.49.1 requires pydantic\u003c2.12,\u003e=2.0, but you have pydantic 2.12.5 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267771481,"data":"bigframes 2.26.0 requires rich\u003c14,\u003e=12.4.4, but you have rich 14.2.0 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267776358,"data":"fastai 2.8.4 requires fastcore\u003c1.9,\u003e=1.8.0, but you have fastcore 1.11.3 which is incompatible.\n"}
+,{"stream_name":"stderr","time":31.267781277,"data":"pylibcudf-cu12 25.6.0 requires pyarrow\u003c20.0.0a0,\u003e=14.0.0; platform_machine == \"x86_64\", but you have pyarrow 22.0.0 which is incompatible.\n"}
+,{"stream_name":"stdout","time":31.268951345,"data":"Successfully installed numpy-2.0.2 pymatting-1.1.15 rembg-2.0.61\n"}
+,{"stream_name":"stdout","time":32.875924708,"data":"Collecting onnxruntime\n"}
+,{"stream_name":"stdout","time":32.920067195,"data":"  Downloading onnxruntime-1.23.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (5.1 kB)\n"}
+,{"stream_name":"stdout","time":33.007054742,"data":"Collecting coloredlogs (from onnxruntime)\n"}
+,{"stream_name":"stdout","time":33.02150989,"data":"  Downloading coloredlogs-15.0.1-py2.py3-none-any.whl.metadata (12 kB)\n"}
+,{"stream_name":"stdout","time":33.039110877,"data":"Requirement already satisfied: flatbuffers in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (25.9.23)\n"}
+,{"stream_name":"stdout","time":33.047633968,"data":"Requirement already satisfied: numpy\u003e=1.21.6 in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (2.0.2)\n"}
+,{"stream_name":"stdout","time":33.04923075,"data":"Requirement already satisfied: packaging in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (26.0rc2)\n"}
+,{"stream_name":"stdout","time":33.050786606,"data":"Requirement already satisfied: protobuf in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (5.29.5)\n"}
+,{"stream_name":"stdout","time":33.052649235,"data":"Requirement already satisfied: sympy in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (1.13.3)\n"}
+,{"stream_name":"stdout","time":33.078954314,"data":"Collecting onnxruntime\n"}
+,{"stream_name":"stdout","time":33.079010199,"data":"  Downloading onnxruntime-1.23.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (5.1 kB)\n"}
+,{"stream_name":"stdout","time":33.079016968,"data":"Collecting coloredlogs (from onnxruntime)\n"}
+,{"stream_name":"stdout","time":33.079025462,"data":"  Downloading coloredlogs-15.0.1-py2.py3-none-any.whl.metadata (12 kB)\n"}
+,{"stream_name":"stdout","time":33.079049575,"data":"Requirement already satisfied: flatbuffers in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (25.9.23)\n"}
+,{"stream_name":"stdout","time":33.079053177,"data":"Requirement already satisfied: numpy\u003e=1.21.6 in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (2.0.2)\n"}
+,{"stream_name":"stdout","time":33.07905671,"data":"Requirement already satisfied: packaging in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (26.0rc2)\n"}
+,{"stream_name":"stdout","time":33.079059744,"data":"Requirement already satisfied: protobuf in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (5.29.5)\n"}
+,{"stream_name":"stdout","time":33.079062652,"data":"Requirement already satisfied: sympy in /usr/local/lib/python3.12/dist-packages (from onnxruntime) (1.13.3)\n"}
+,{"stream_name":"stdout","time":33.139170892,"data":"Collecting humanfriendly\u003e=9.1 (from coloredlogs-\u003eonnxruntime)\n"}
+,{"stream_name":"stdout","time":33.154037846,"data":"  Downloading humanfriendly-10.0-py2.py3-none-any.whl.metadata (9.2 kB)\n"}
+,{"stream_name":"stdout","time":33.177462272,"data":"Requirement already satisfied: mpmath\u003c1.4,\u003e=1.1.0 in /usr/local/lib/python3.12/dist-packages (from sympy-\u003eonnxruntime) (1.3.0)\n"}
+,{"stream_name":"stdout","time":33.198524745,"data":"Downloading onnxruntime-1.23.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (17.4 MB)\n"}
+,{"stream_name":"stdout","time":33.343099047,"data":"Collecting humanfriendly\u003e=9.1 (from coloredlogs-\u003eonnxruntime)\n"}
+,{"stream_name":"stdout","time":33.343129202,"data":"  Downloading humanfriendly-10.0-py2.py3-none-any.whl.metadata (9.2 kB)\n"}
+,{"stream_name":"stdout","time":33.343135313,"data":"Requirement already satisfied: mpmath\u003c1.4,\u003e=1.1.0 in /usr/local/lib/python3.12/dist-packages (from sympy-\u003eonnxruntime) (1.3.0)\n"}
+,{"stream_name":"stdout","time":33.343142806,"data":"Downloading onnxruntime-1.23.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (17.4 MB)\n"}
+,{"stream_name":"stdout","time":33.416443326,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 17.4/17.4 MB 90.4 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":33.431166203,"data":"Downloading coloredlogs-15.0.1-py2.py3-none-any.whl (46 kB)\n"}
+,{"stream_name":"stdout","time":33.447270836,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.0/46.0 kB 2.7 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":33.461775534,"data":"Downloading humanfriendly-10.0-py2.py3-none-any.whl (86 kB)\n"}
+,{"stream_name":"stdout","time":33.480309073,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 86.8/86.8 kB 4.8 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":33.622019779,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 17.4/17.4 MB 90.4 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":33.622062629,"data":"Downloading coloredlogs-15.0.1-py2.py3-none-any.whl (46 kB)\n"}
+,{"stream_name":"stdout","time":33.622068726,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.0/46.0 kB 2.7 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":33.622073658,"data":"Downloading humanfriendly-10.0-py2.py3-none-any.whl (86 kB)\n"}
+,{"stream_name":"stdout","time":33.622078255,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 86.8/86.8 kB 4.8 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":36.024161132,"data":"Installing collected packages: humanfriendly, coloredlogs, onnxruntime\n"}
+,{"stream_name":"stdout","time":36.227364235,"data":"Installing collected packages: humanfriendly, coloredlogs, onnxruntime\n"}
+,{"stream_name":"stdout","time":37.458492471,"data":"Successfully installed coloredlogs-15.0.1 humanfriendly-10.0 onnxruntime-1.23.2\n"}
+,{"stream_name":"stdout","time":37.661160593,"data":"Successfully installed coloredlogs-15.0.1 humanfriendly-10.0 onnxruntime-1.23.2\n"}
+,{"stream_name":"stdout","time":38.865883279,"data":"Requirement already satisfied: boto3 in /usr/local/lib/python3.12/dist-packages (1.42.27)\n"}
+,{"stream_name":"stdout","time":38.869157622,"data":"Requirement already satisfied: botocore\u003c1.43.0,\u003e=1.42.27 in /usr/local/lib/python3.12/dist-packages (from boto3) (1.42.27)\n"}
+,{"stream_name":"stdout","time":38.870782245,"data":"Requirement already satisfied: jmespath\u003c2.0.0,\u003e=0.7.1 in /usr/local/lib/python3.12/dist-packages (from boto3) (1.0.1)\n"}
+,{"stream_name":"stdout","time":38.872021973,"data":"Requirement already satisfied: s3transfer\u003c0.17.0,\u003e=0.16.0 in /usr/local/lib/python3.12/dist-packages (from boto3) (0.16.0)\n"}
+,{"stream_name":"stdout","time":38.876489079,"data":"Requirement already satisfied: python-dateutil\u003c3.0.0,\u003e=2.1 in /usr/local/lib/python3.12/dist-packages (from botocore\u003c1.43.0,\u003e=1.42.27-\u003eboto3) (2.9.0.post0)\n"}
+,{"stream_name":"stdout","time":38.878796722,"data":"Requirement already satisfied: urllib3!=2.2.0,\u003c3,\u003e=1.25.4 in /usr/local/lib/python3.12/dist-packages (from botocore\u003c1.43.0,\u003e=1.42.27-\u003eboto3) (2.6.3)\n"}
+,{"stream_name":"stdout","time":38.884286213,"data":"Requirement already satisfied: six\u003e=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil\u003c3.0.0,\u003e=2.1-\u003ebotocore\u003c1.43.0,\u003e=1.42.27-\u003eboto3) (1.17.0)\n"}
+,{"stream_name":"stdout","time":39.069017393,"data":"Requirement already satisfied: boto3 in /usr/local/lib/python3.12/dist-packages (1.42.27)\n"}
+,{"stream_name":"stdout","time":39.069052844,"data":"Requirement already satisfied: botocore\u003c1.43.0,\u003e=1.42.27 in /usr/local/lib/python3.12/dist-packages (from boto3) (1.42.27)\n"}
+,{"stream_name":"stdout","time":39.06905935,"data":"Requirement already satisfied: jmespath\u003c2.0.0,\u003e=0.7.1 in /usr/local/lib/python3.12/dist-packages (from boto3) (1.0.1)\n"}
+,{"stream_name":"stdout","time":39.069064692,"data":"Requirement already satisfied: s3transfer\u003c0.17.0,\u003e=0.16.0 in /usr/local/lib/python3.12/dist-packages (from boto3) (0.16.0)\n"}
+,{"stream_name":"stdout","time":39.069069552,"data":"Requirement already satisfied: python-dateutil\u003c3.0.0,\u003e=2.1 in /usr/local/lib/python3.12/dist-packages (from botocore\u003c1.43.0,\u003e=1.42.27-\u003eboto3) (2.9.0.post0)\n"}
+,{"stream_name":"stdout","time":39.069074614,"data":"Requirement already satisfied: urllib3!=2.2.0,\u003c3,\u003e=1.25.4 in /usr/local/lib/python3.12/dist-packages (from botocore\u003c1.43.0,\u003e=1.42.27-\u003eboto3) (2.6.3)\n"}
+,{"stream_name":"stdout","time":39.069080519,"data":"Requirement already satisfied: six\u003e=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil\u003c3.0.0,\u003e=2.1-\u003ebotocore\u003c1.43.0,\u003e=1.42.27-\u003eboto3) (1.17.0)\n"}
+,{"stream_name":"stdout","time":42.565995928,"data":"Requirement already satisfied: requests in /usr/local/lib/python3.12/dist-packages (2.32.5)\n"}
+,{"stream_name":"stdout","time":42.572805976,"data":"Requirement already satisfied: charset_normalizer\u003c4,\u003e=2 in /usr/local/lib/python3.12/dist-packages (from requests) (3.4.4)\n"}
+,{"stream_name":"stdout","time":42.574756274,"data":"Requirement already satisfied: idna\u003c4,\u003e=2.5 in /usr/local/lib/python3.12/dist-packages (from requests) (3.11)\n"}
+,{"stream_name":"stdout","time":42.576802676,"data":"Requirement already satisfied: urllib3\u003c3,\u003e=1.21.1 in /usr/local/lib/python3.12/dist-packages (from requests) (2.6.3)\n"}
+,{"stream_name":"stdout","time":42.578521282,"data":"Requirement already satisfied: certifi\u003e=2017.4.17 in /usr/local/lib/python3.12/dist-packages (from requests) (2026.1.4)\n"}
+,{"stream_name":"stdout","time":42.771226008,"data":"Requirement already satisfied: requests in /usr/local/lib/python3.12/dist-packages (2.32.5)\n"}
+,{"stream_name":"stdout","time":42.77125409,"data":"Requirement already satisfied: charset_normalizer\u003c4,\u003e=2 in /usr/local/lib/python3.12/dist-packages (from requests) (3.4.4)\n"}
+,{"stream_name":"stdout","time":42.771260871,"data":"Requirement already satisfied: idna\u003c4,\u003e=2.5 in /usr/local/lib/python3.12/dist-packages (from requests) (3.11)\n"}
+,{"stream_name":"stdout","time":42.771266232,"data":"Requirement already satisfied: urllib3\u003c3,\u003e=1.21.1 in /usr/local/lib/python3.12/dist-packages (from requests) (2.6.3)\n"}
+,{"stream_name":"stdout","time":42.771271723,"data":"Requirement already satisfied: certifi\u003e=2017.4.17 in /usr/local/lib/python3.12/dist-packages (from requests) (2026.1.4)\n"}
+,{"stream_name":"stdout","time":46.265390454,"data":"Requirement already satisfied: pandas in /usr/local/lib/python3.12/dist-packages (2.2.2)\n"}
+,{"stream_name":"stdout","time":46.286075086,"data":"Requirement already satisfied: numpy\u003e=1.26.0 in /usr/local/lib/python3.12/dist-packages (from pandas) (2.0.2)\n"}
+,{"stream_name":"stdout","time":46.288058739,"data":"Requirement already satisfied: python-dateutil\u003e=2.8.2 in /usr/local/lib/python3.12/dist-packages (from pandas) (2.9.0.post0)\n"}
+,{"stream_name":"stdout","time":46.290970037,"data":"Requirement already satisfied: pytz\u003e=2020.1 in /usr/local/lib/python3.12/dist-packages (from pandas) (2025.2)\n"}
+,{"stream_name":"stdout","time":46.292482061,"data":"Requirement already satisfied: tzdata\u003e=2022.7 in /usr/local/lib/python3.12/dist-packages (from pandas) (2025.2)\n"}
+,{"stream_name":"stdout","time":46.303743849,"data":"Requirement already satisfied: six\u003e=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil\u003e=2.8.2-\u003epandas) (1.17.0)\n"}
+,{"stream_name":"stdout","time":46.46811379,"data":"Requirement already satisfied: pandas in /usr/local/lib/python3.12/dist-packages (2.2.2)\n"}
+,{"stream_name":"stdout","time":46.468160102,"data":"Requirement already satisfied: numpy\u003e=1.26.0 in /usr/local/lib/python3.12/dist-packages (from pandas) (2.0.2)\n"}
+,{"stream_name":"stdout","time":46.468167308,"data":"Requirement already satisfied: python-dateutil\u003e=2.8.2 in /usr/local/lib/python3.12/dist-packages (from pandas) (2.9.0.post0)\n"}
+,{"stream_name":"stdout","time":46.468174113,"data":"Requirement already satisfied: pytz\u003e=2020.1 in /usr/local/lib/python3.12/dist-packages (from pandas) (2025.2)\n"}
+,{"stream_name":"stdout","time":46.468182932,"data":"Requirement already satisfied: tzdata\u003e=2022.7 in /usr/local/lib/python3.12/dist-packages (from pandas) (2025.2)\n"}
+,{"stream_name":"stdout","time":46.468187286,"data":"Requirement already satisfied: six\u003e=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil\u003e=2.8.2-\u003epandas) (1.17.0)\n"}
+,{"stream_name":"stdout","time":49.912975977,"data":"Requirement already satisfied: openpyxl in /usr/local/lib/python3.12/dist-packages (3.1.5)\n"}
+,{"stream_name":"stdout","time":49.914790556,"data":"Requirement already satisfied: et-xmlfile in /usr/local/lib/python3.12/dist-packages (from openpyxl) (2.0.0)\n"}
+,{"stream_name":"stdout","time":50.115492253,"data":"Requirement already satisfied: openpyxl in /usr/local/lib/python3.12/dist-packages (3.1.5)\n"}
+,{"stream_name":"stdout","time":50.115529872,"data":"Requirement already satisfied: et-xmlfile in /usr/local/lib/python3.12/dist-packages (from openpyxl) (2.0.0)\n"}
+,{"stream_name":"stdout","time":52.662353444,"data":"⚙️ Setting up environment...\n"}
+,{"stream_name":"stdout","time":52.662392646,"data":"✅ Found input dataset at /kaggle/input/enhanced-rembg-processor\n"}
+,{"stream_name":"stdout","time":52.662402523,"data":"✅ Copied egtl.xlsx to working directory\n"}
+,{"stream_name":"stdout","time":52.662405895,"data":"✅ Copied 'app' folder to working directory\n"}
+,{"stream_name":"stdout","time":52.662409094,"data":"✅ Added /kaggle/working to sys.path\n"}
+,{"stream_name":"stdout","time":109.460086282,"data":"🚀 Enhanced REMBG Daily Processor starting...\n"}
+,{"stream_name":"stdout","time":109.460128349,"data":"💰 Saving $6,900 vs PicWish API\n"}
+,{"stream_name":"stdout","time":109.460135747,"data":"✅ Internet verification run\n"}
+,{"stream_name":"stdout","time":109.84932953,"data":"✅ Secrets loaded successfully\n"}
+,{"stream_name":"stdout","time":109.849364663,"data":"✅ Internet access confirmd\n"}
+,{"stream_name":"stdout","time":110.396559695,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":110.396610072,"data":"🚀 ENHANCED REMBG DAILY PROCESSING\n"}
+,{"stream_name":"stdout","time":110.39661632,"data":"💼 Job ID: 84130406\n"}
+,{"stream_name":"stdout","time":110.396620393,"data":"💰 Saving $6,900 vs PicWish API\n"}
+,{"stream_name":"stdout","time":110.396624699,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":110.396628976,"data":"📥 Downloading images for job: 84130406\n"}
+,{"stream_name":"stdout","time":110.396632831,"data":"   Targeting specific symbol folder: raw/84130406/\n"}
+,{"stream_name":"stderr","time":111.780512065,"data":"Downloading data from 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx' to file '/root/.u2net/isnet-general-use.onnx'.\n"}
+,{"stream_name":"stderr","time":111.780545917,"data":"\n"}
+,{"stream_name":"stderr","time":111.78055316,"data":"Downloading data from 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx' to file '/root/.u2net/isnet-general-use.onnx'.\n"}
+,{"stream_name":"stdout","time":111.980813119,"data":"✅ Downloaded 3 images\n"}
+,{"stream_name":"stdout","time":111.98085626,"data":"🎨 Processing 3 images...\n"}
+,{"stream_name":"stdout","time":111.980866258,"data":"🔧 Initializing Enhanced REMBG...\n"}
+,{"stream_name":"stdout","time":111.980870461,"data":"🚀 Initializing enhanced rembg with model: isnet-general-use, device: cpu\n"}
+,{"stream_name":"stderr","time":112.142871338,"data":"\r  0%|                                               | 0.00/179M [00:00\u003c?, ?B/s]\n"}
+,{"stream_name":"stderr","time":112.244448724,"data":"\r  0%|                                               | 0.00/179M [00:00\u003c?, ?B/s]\r  1%|▏                                      | 983k/179M [00:00\u003c00:18, 9.79MB/s]\n"}
+,{"stream_name":"stderr","time":112.344143394,"data":"\r  1%|▏                                      | 983k/179M [00:00\u003c00:18, 9.79MB/s]\r  2%|▌                                     | 2.74M/179M [00:00\u003c00:12, 14.3MB/s]\n"}
+,{"stream_name":"stderr","time":112.444551399,"data":"\r  2%|▌                                     | 2.74M/179M [00:00\u003c00:12, 14.3MB/s]\r  3%|█▏                                    | 5.41M/179M [00:00\u003c00:08, 20.0MB/s]\n"}
+,{"stream_name":"stderr","time":112.544389682,"data":"\r  3%|█▏                                    | 5.41M/179M [00:00\u003c00:08, 20.0MB/s]\r  5%|██                                    | 9.41M/179M [00:00\u003c00:06, 27.9MB/s]\n"}
+,{"stream_name":"stderr","time":112.644429492,"data":"\r  5%|██                                    | 9.41M/179M [00:00\u003c00:06, 27.9MB/s]\r  9%|███▎                                  | 15.6M/179M [00:00\u003c00:04, 40.0MB/s]\n"}
+,{"stream_name":"stderr","time":112.744614781,"data":"\r  9%|███▎                                  | 15.6M/179M [00:00\u003c00:04, 40.0MB/s]\r 13%|████▊                                 | 22.6M/179M [00:00\u003c00:03, 50.4MB/s]\n"}
+,{"stream_name":"stderr","time":112.844417431,"data":"\r 13%|████▊                                 | 22.6M/179M [00:00\u003c00:03, 50.4MB/s]\r 17%|██████▎                               | 29.7M/179M [00:00\u003c00:02, 56.9MB/s]\n"}
+,{"stream_name":"stderr","time":112.944524375,"data":"\r 17%|██████▎                               | 29.7M/179M [00:00\u003c00:02, 56.9MB/s]\r 21%|███████▊                              | 36.7M/179M [00:00\u003c00:02, 61.1MB/s]\n"}
+,{"stream_name":"stderr","time":113.044474108,"data":"\r 21%|███████▊                              | 36.7M/179M [00:00\u003c00:02, 61.1MB/s]\r 24%|█████████▎                            | 43.7M/179M [00:00\u003c00:02, 63.9MB/s]\n"}
+,{"stream_name":"stderr","time":113.144543705,"data":"\r 24%|█████████▎                            | 43.7M/179M [00:00\u003c00:02, 63.9MB/s]\r 28%|██████████▊                           | 50.6M/179M [00:01\u003c00:01, 65.6MB/s]\n"}
+,{"stream_name":"stderr","time":113.244703057,"data":"\r 28%|██████████▊                           | 50.6M/179M [00:01\u003c00:01, 65.6MB/s]\r 32%|████████████▎                         | 57.6M/179M [00:01\u003c00:01, 67.0MB/s]\n"}
+,{"stream_name":"stderr","time":113.34450574,"data":"\r 32%|████████████▎                         | 57.6M/179M [00:01\u003c00:01, 67.0MB/s]\r 36%|█████████████▋                        | 64.6M/179M [00:01\u003c00:01, 67.8MB/s]\n"}
+,{"stream_name":"stderr","time":113.44459956,"data":"\r 36%|█████████████▋                        | 64.6M/179M [00:01\u003c00:01, 67.8MB/s]\r 40%|███████████████▎                      | 71.9M/179M [00:01\u003c00:01, 69.3MB/s]\n"}
+,{"stream_name":"stderr","time":113.544496075,"data":"\r 40%|███████████████▎                      | 71.9M/179M [00:01\u003c00:01, 69.3MB/s]\r 44%|████████████████▊                     | 79.0M/179M [00:01\u003c00:01, 69.9MB/s]\n"}
+,{"stream_name":"stderr","time":113.644464633,"data":"\r 44%|████████████████▊                     | 79.0M/179M [00:01\u003c00:01, 69.9MB/s]\r 48%|██████████████████▎                   | 86.1M/179M [00:01\u003c00:01, 70.3MB/s]\n"}
+,{"stream_name":"stderr","time":113.744563553,"data":"\r 48%|██████████████████▎                   | 86.1M/179M [00:01\u003c00:01, 70.3MB/s]\r 52%|███████████████████▊                  | 93.3M/179M [00:01\u003c00:01, 70.6MB/s]\n"}
+,{"stream_name":"stderr","time":113.847422524,"data":"\r 52%|███████████████████▊                  | 93.3M/179M [00:01\u003c00:01, 70.6MB/s]\r 56%|█████████████████████▉                 | 100M/179M [00:01\u003c00:01, 70.1MB/s]\n"}
+,{"stream_name":"stderr","time":113.94721708,"data":"\r 56%|█████████████████████▉                 | 100M/179M [00:01\u003c00:01, 70.1MB/s]\r 60%|███████████████████████▍               | 107M/179M [00:01\u003c00:01, 70.4MB/s]\n"}
+,{"stream_name":"stderr","time":114.047130932,"data":"\r 60%|███████████████████████▍               | 107M/179M [00:01\u003c00:01, 70.4MB/s]\r 64%|████████████████████████▉              | 114M/179M [00:01\u003c00:00, 70.4MB/s]\n"}
+,{"stream_name":"stderr","time":114.147288228,"data":"\r 64%|████████████████████████▉              | 114M/179M [00:01\u003c00:00, 70.4MB/s]\r 68%|██████████████████████████▌            | 122M/179M [00:02\u003c00:00, 70.7MB/s]\n"}
+,{"stream_name":"stderr","time":114.248351184,"data":"\r 68%|██████████████████████████▌            | 122M/179M [00:02\u003c00:00, 70.7MB/s]\r 72%|████████████████████████████           | 129M/179M [00:02\u003c00:00, 70.5MB/s]\n"}
+,{"stream_name":"stderr","time":114.348644913,"data":"\r 72%|████████████████████████████           | 129M/179M [00:02\u003c00:00, 70.5MB/s]\r 76%|█████████████████████████████▋         | 136M/179M [00:02\u003c00:00, 71.0MB/s]\n"}
+,{"stream_name":"stderr","time":114.468981441,"data":"\r 76%|█████████████████████████████▋         | 136M/179M [00:02\u003c00:00, 71.0MB/s]\r 80%|███████████████████████████████▏       | 143M/179M [00:02\u003c00:00, 67.0MB/s]\n"}
+,{"stream_name":"stderr","time":114.58311697,"data":"\r 80%|███████████████████████████████▏       | 143M/179M [00:02\u003c00:00, 67.0MB/s]\r 84%|████████████████████████████████▋      | 150M/179M [00:02\u003c00:00, 64.4MB/s]\n"}
+,{"stream_name":"stderr","time":114.694749453,"data":"\r 84%|████████████████████████████████▋      | 150M/179M [00:02\u003c00:00, 64.4MB/s]\r 87%|██████████████████████████████████     | 156M/179M [00:02\u003c00:00, 62.5MB/s]\n"}
+,{"stream_name":"stderr","time":114.795450251,"data":"\r 87%|██████████████████████████████████     | 156M/179M [00:02\u003c00:00, 62.5MB/s]\r 91%|███████████████████████████████████▍   | 163M/179M [00:02\u003c00:00, 62.5MB/s]\n"}
+,{"stream_name":"stderr","time":114.895466835,"data":"\r 91%|███████████████████████████████████▍   | 163M/179M [00:02\u003c00:00, 62.5MB/s]\r 95%|████████████████████████████████████▉  | 169M/179M [00:02\u003c00:00, 63.1MB/s]\n"}
+,{"stream_name":"stderr","time":114.995783428,"data":"\r 95%|████████████████████████████████████▉  | 169M/179M [00:02\u003c00:00, 63.1MB/s]\r 98%|██████████████████████████████████████▎| 175M/179M [00:02\u003c00:00, 63.3MB/s]\n"}
+,{"stream_name":"stderr","time":115.045750267,"data":"\r 98%|██████████████████████████████████████▎| 175M/179M [00:02\u003c00:00, 63.3MB/s]\r  0%|                                               | 0.00/179M [00:00\u003c?, ?B/s]\n"}
+,{"stream_name":"stderr","time":115.046834412,"data":"\r  0%|                                               | 0.00/179M [00:00\u003c?, ?B/s]\r100%|████████████████████████████████████████| 179M/179M [00:00\u003c00:00, 156GB/s]\n"}
+,{"stream_name":"stderr","time":115.095579328,"data":"\r100%|████████████████████████████████████████| 179M/179M [00:00\u003c00:00, 156GB/s]\n"}
+,{"stream_name":"stderr","time":115.095642159,"data":"\n"}
+,{"stream_name":"stderr","time":115.095649512,"data":"\n"}
+,{"stream_name":"stdout","time":116.664704036,"data":"✅ Enhanced rembg session initialized: isnet-general-use on cpu\n"}
+,{"stream_name":"stdout","time":116.664734496,"data":"📂 Loading Excel metadata from egtl.xlsx...\n"}
+,{"stream_name":"stdout","time":124.32731842,"data":"✅ Loaded 20651 parts from catalog\n"}
+,{"stream_name":"stdout","time":124.327358622,"data":"    ❌ Failed: d9e26042-191a-4473-af48-d2fbeb60b2fe_01_image.jpg - process_image() got an unexpected keyword argument 'compression_quality'\n"}
+,{"stream_name":"stdout","time":124.327364841,"data":"    ❌ Failed: d9e26042-191a-4473-af48-d2fbeb60b2fe_02_image.jpg - process_image() got an unexpected keyword argument 'compression_quality'\n"}
+,{"stream_name":"stdout","time":124.327369742,"data":"    ❌ Failed: d9e26042-191a-4473-af48-d2fbeb60b2fe_03_image.jpg - process_image() got an unexpected keyword argument 'compression_quality'\n"}
+,{"stream_name":"stdout","time":124.327375877,"data":"✅ Processing complete!\n"}
+,{"stream_name":"stdout","time":124.327380932,"data":"   💪 Successful: 0\n"}
+,{"stream_name":"stdout","time":124.32738634,"data":"   ❌ Failed: 3\n"}
+,{"stream_name":"stdout","time":124.327391271,"data":"   ⏱️  Total time: 0.0 minutes\n"}
+,{"stream_name":"stdout","time":124.327395512,"data":"   ⚡ Avg per image: 0.0s\n"}
+,{"stream_name":"stdout","time":124.327399714,"data":"❌ No images processed successfully\n"}
+,{"stream_name":"stderr","time":129.733935351,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":129.733971811,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":129.920253701,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":129.920287011,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":130.720678375,"data":"/usr/local/lib/python3.12/dist-packages/traitlets/traitlets.py:2915: FutureWarning: --Exporter.preprocessors=[\"remove_papermill_header.RemovePapermillHeader\"] for containers is deprecated in traitlets 5.0. You can pass `--Exporter.preprocessors item` ... multiple times to add items to a list.\n"}
+,{"stream_name":"stderr","time":130.720717989,"data":"  warn(\n"}
+,{"stream_name":"stderr","time":130.760012305,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":131.201175166,"data":"[NbConvertApp] Writing 38740 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":134.35811379,"data":"/usr/local/lib/python3.12/dist-packages/traitlets/traitlets.py:2915: FutureWarning: --Exporter.preprocessors=[\"nbconvert.preprocessors.ExtractOutputPreprocessor\"] for containers is deprecated in traitlets 5.0. You can pass `--Exporter.preprocessors item` ... multiple times to add items to a list.\n"}
+,{"stream_name":"stderr","time":134.358174289,"data":"  warn(\n"}
+,{"stream_name":"stderr","time":134.388984047,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":135.44065894,"data":"[NbConvertApp] Writing 353522 bytes to __results__.html\n"}
+]

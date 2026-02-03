@@ -14,18 +14,23 @@ interface ProgressStats {
   success_rate: number;
 }
 
+interface PartStats {
+  status: string;
+  image_count?: number;
+  processing_time?: number;
+  completed_at?: string;
+  queued_at?: string;
+  failed_at?: string;
+  error_reason?: string;
+}
+
 interface TrackerData {
   progress: ProgressStats;
   processed_parts: string[];  // Array of exact symbol numbers
   failed_parts: { [key: string]: string };  // Symbol number -> error message
   queued_parts: string[];  // Array of exact symbol numbers
   remaining_parts: string[];  // Array of exact symbol numbers
-}
-
-interface DailyTarget {
-  target: number;
-  completed_today: number;
-  percentage: number;
+  part_stats: { [key: string]: PartStats };  // Symbol number -> detailed stats
 }
 
 // Pie Chart Component
@@ -152,7 +157,8 @@ export const PartsTrackingDashboard: React.FC = () => {
         processed_parts: processed.processed_parts,
         failed_parts: failed.failed_parts,
         queued_parts: queued.queued_parts,
-        remaining_parts: remaining.remaining_parts
+        remaining_parts: remaining.remaining_parts,
+        part_stats: progress.part_stats || {}
       });
     } catch (error) {
       console.error('Failed to fetch tracker data:', error);
@@ -490,12 +496,14 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       default:
-        // Calculate daily progress (parts processed today)
+        // Calculate daily progress using actual timestamps
         const today = new Date().toISOString().split('T')[0];
-        const completedToday = processed_parts.filter(part => {
-          const partStats = trackerData?.progress;
-          // Estimate based on recent processing
-          return true; // TODO: Add timestamp tracking
+        const completedToday = processed_parts.filter(partNum => {
+          const partStats = trackerData?.part_stats?.[partNum];
+          if (!partStats?.completed_at) return false;
+          // Check if completed_at date matches today
+          const completedDate = partStats.completed_at.split('T')[0];
+          return completedDate === today;
         }).length;
 
         const dailyProgress = (completedToday / dailyTarget) * 100;

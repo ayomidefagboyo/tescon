@@ -1,16 +1,8 @@
 {
-  "processed_parts": [
-    "TEST567"
-  ],
+  "processed_parts": [],
   "failed_parts": {},
-  "part_stats": {
-    "TEST567": {
-      "status": "completed",
-      "image_count": 3,
-      "processing_time": null,
-      "completed_at": "2026-01-18T16:33:26.880940"
-    }
-  },
-  "total_parts": 20651,
-  "last_updated": "2026-01-25T13:31:07.875907"
+  "queued_parts": [],
+  "part_stats": {},
+  "total_parts": 23032,
+  "last_updated": "2026-02-03T06:11:44.000000"
 }

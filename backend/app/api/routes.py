@@ -890,6 +890,7 @@ async def get_tracking_progress():
 
     return {
         "progress": stats,
+        "part_stats": tracker.part_stats,  # Include detailed part stats for timestamp tracking
         "last_updated": tracker.tracker_file.stat().st_mtime if tracker.tracker_file.exists() else None
     }
 
