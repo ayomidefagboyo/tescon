@@ -568,7 +568,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                       {dailyTarget}
                     </span>
                     <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                      parts/day
+                      symbol numbers/day
                     </span>
                   </div>
                 </div>

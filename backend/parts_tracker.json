@@ -1,8 +1,115 @@
 {
-  "processed_parts": [],
+  "processed_parts": [
+    "26063060",
+    "58100711",
+    "26030481",
+    "58020322",
+    "58801095",
+    "26063061",
+    "58802653",
+    "97802510",
+    "58801099",
+    "26031521",
+    "58001067",
+    "58002751",
+    "39019359",
+    "58010763",
+    "58023360"
+  ],
   "failed_parts": {},
   "queued_parts": [],
-  "part_stats": {},
-  "total_parts": 23032,
-  "last_updated": "2026-02-03T06:11:44.000000"
+  "part_stats": {
+    "26063060": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:18:48.753898"
+    },
+    "58100711": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:18:51.587409"
+    },
+    "26030481": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:18:54.569835"
+    },
+    "58020322": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:18:56.703660"
+    },
+    "58801095": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:18:58.056978"
+    },
+    "26063061": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:00.004801"
+    },
+    "58802653": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:02.010457"
+    },
+    "97802510": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:04.007763"
+    },
+    "58801099": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:05.674837"
+    },
+    "26031521": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:07.311121"
+    },
+    "58001067": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:08.944864"
+    },
+    "58002751": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:10.661878"
+    },
+    "39019359": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:12.320984"
+    },
+    "58010763": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:13.965718"
+    },
+    "58023360": {
+      "status": "completed",
+      "image_count": 3,
+      "processing_time": null,
+      "completed_at": "2026-02-03T13:19:14.632598"
+    }
+  },
+  "total_parts": 0,
+  "last_updated": "2026-02-03T13:19:14.633667"
 }
