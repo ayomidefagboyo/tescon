@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, Search, Target, TrendingUp } from "lucide-react";
+import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp } from "lucide-react";
 import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus } from "../services/api";
 
 interface ProgressStats {
@@ -658,16 +658,30 @@ export const PartsTrackingDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Stats Grid */}
-            <div style={styles.statsGrid}>
+            {/* Stats Grid - 2 per row */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: spacing.lg,
+              marginBottom: spacing.lg
+            }}>
+              {/* Total Parts */}
               <div style={styles.statCard}>
                 <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
                   <BarChart size={24} color={colors.primary.main} />
                 </div>
                 <div style={styles.statValue}>{progress.total_parts.toLocaleString()}</div>
                 <div style={styles.statLabel}>Total Parts</div>
+                <div style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.tertiary,
+                  marginTop: spacing.xs
+                }}>
+                  From Excel catalog
+                </div>
               </div>
 
+              {/* Processed */}
               <div style={styles.statCard}>
                 <div style={{ ...styles.statIcon, backgroundColor: `${colors.success}20` }}>
                   <CheckCircle size={24} color={colors.success} />
@@ -677,22 +691,46 @@ export const PartsTrackingDashboard: React.FC = () => {
                 <div style={styles.progressBar}>
                   <div style={{ ...styles.progressFill, width: `${progress.progress_percentage}%` }} />
                 </div>
-              </div>
-
-              <div style={styles.statCard}>
-                <div style={{ ...styles.statIcon, backgroundColor: `${colors.error}20` }}>
-                  <XCircle size={24} color={colors.error} />
+                <div style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.tertiary,
+                  marginTop: spacing.xs,
+                  textAlign: 'right'
+                }}>
+                  {progress.progress_percentage.toFixed(1)}% complete
                 </div>
-                <div style={styles.statValue}>{progress.failed_count.toLocaleString()}</div>
-                <div style={styles.statLabel}>Failed</div>
               </div>
 
+              {/* Queued */}
               <div style={styles.statCard}>
                 <div style={{ ...styles.statIcon, backgroundColor: `${colors.warning}20` }}>
                   <Clock size={24} color={colors.warning} />
                 </div>
-                <div style={styles.statValue}>{progress.remaining_count.toLocaleString()}</div>
-                <div style={styles.statLabel}>Remaining</div>
+                <div style={styles.statValue}>{progress.queued_count.toLocaleString()}</div>
+                <div style={styles.statLabel}>Queued</div>
+                <div style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.tertiary,
+                  marginTop: spacing.xs
+                }}>
+                  Awaiting processing
+                </div>
+              </div>
+
+              {/* Success Rate */}
+              <div style={styles.statCard}>
+                <div style={{ ...styles.statIcon, backgroundColor: `${colors.success}20` }}>
+                  <TrendingUp size={24} color={colors.success} />
+                </div>
+                <div style={styles.statValue}>{progress.success_rate.toFixed(1)}%</div>
+                <div style={styles.statLabel}>Success Rate</div>
+                <div style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.tertiary,
+                  marginTop: spacing.xs
+                }}>
+                  {progress.failed_count} failed of {progress.processed_count + progress.failed_count} attempted
+                </div>
               </div>
             </div>
 
