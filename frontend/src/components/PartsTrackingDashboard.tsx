@@ -511,87 +511,84 @@ export const PartsTrackingDashboard: React.FC = () => {
 
         return (
           <>
-            {/* Daily Target - Full Width at Top */}
+            {/* Top Section: Daily Target, Completion ETA, Progress Distribution - Side by Side */}
             <div style={{
-              backgroundColor: colors.background.main,
-              padding: spacing.lg,
-              borderRadius: borderRadius.lg,
-              boxShadow: shadows.md,
-              border: `1px solid ${colors.neutral[200]}`,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: spacing.lg,
               marginBottom: spacing.lg
             }}>
+              {/* Daily Target */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: spacing.md,
-                alignItems: 'center'
+                backgroundColor: colors.background.main,
+                padding: spacing.lg,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.sm,
+                border: `1px solid ${colors.neutral[200]}`
               }}>
-                {/* Target Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
+                    width: '40px',
+                    height: '40px',
                     borderRadius: borderRadius.lg,
                     backgroundColor: `${colors.primary.main}15`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <Target size={24} color={colors.primary.main} />
+                    <Target size={20} color={colors.primary.main} />
                   </div>
-                  <div>
-                    <h3 style={{
-                      fontSize: typography.fontSize.xl,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                      margin: 0
-                    }}>
-                      Daily Target
-                    </h3>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.xs,
-                      marginTop: '4px'
-                    }}>
-                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                        Target:
-                      </span>
-                      <input
-                        type="number"
-                        value={dailyTarget}
-                        onChange={(e) => setDailyTarget(Number(e.target.value))}
-                        style={{
-                          width: '100px',
-                          padding: `${spacing.xs} ${spacing.sm}`,
-                          border: `2px solid ${colors.neutral[300]}`,
-                          borderRadius: borderRadius.md,
-                          fontSize: typography.fontSize.base,
-                          fontWeight: typography.fontWeight.semibold,
-                          textAlign: 'center',
-                          transition: transitions.base
-                        }}
-                      />
-                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                        parts/day
-                      </span>
-                    </div>
+                  <h3 style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                    margin: 0
+                  }}>
+                    Daily Target
+                  </h3>
+                </div>
+
+                <div style={{ marginBottom: spacing.md }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    marginBottom: spacing.sm
+                  }}>
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                      Target:
+                    </span>
+                    <input
+                      type="number"
+                      value={dailyTarget}
+                      onChange={(e) => setDailyTarget(Number(e.target.value))}
+                      style={{
+                        width: '80px',
+                        padding: `${spacing.xs} ${spacing.sm}`,
+                        border: `2px solid ${colors.neutral[300]}`,
+                        borderRadius: borderRadius.md,
+                        fontSize: typography.fontSize.base,
+                        fontWeight: typography.fontWeight.semibold,
+                        textAlign: 'center'
+                      }}
+                    />
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                      parts/day
+                    </span>
                   </div>
                 </div>
 
-                {/* Today's Progress */}
                 <div>
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
                     marginBottom: spacing.xs
                   }}>
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, fontWeight: typography.fontWeight.medium }}>
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
                       Today's Progress
                     </span>
                     <span style={{
-                      fontSize: typography.fontSize.xl,
+                      fontSize: typography.fontSize.lg,
                       fontWeight: typography.fontWeight.bold,
                       color: colors.text.primary
                     }}>
@@ -599,7 +596,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                     </span>
                   </div>
                   <div style={{
-                    height: '12px',
+                    height: '10px',
                     backgroundColor: colors.neutral[200],
                     borderRadius: borderRadius.full,
                     overflow: 'hidden'
@@ -621,40 +618,97 @@ export const PartsTrackingDashboard: React.FC = () => {
                     {dailyProgress.toFixed(1)}% of daily target
                   </div>
                 </div>
+              </div>
 
-                {/* Estimated Completion */}
+              {/* Completion ETA */}
+              <div style={{
+                backgroundColor: colors.background.main,
+                padding: spacing.lg,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.sm,
+                border: `1px solid ${colors.neutral[200]}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: borderRadius.lg,
+                    backgroundColor: `${colors.primary.main}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Calendar size={20} color={colors.primary.main} />
+                  </div>
+                  <h3 style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                    margin: 0
+                  }}>
+                    Completion ETA
+                  </h3>
+                </div>
+
+                <div style={{ textAlign: 'center', padding: `${spacing.md} 0` }}>
+                  <div style={{
+                    fontSize: typography.fontSize['2xl'],
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.primary.main,
+                    marginBottom: spacing.xs
+                  }}>
+                    {(() => {
+                      if (progress.remaining_count === 0) return 'Complete!';
+
+                      const daysRemaining = Math.ceil(progress.remaining_count / dailyTarget);
+                      const completionDate = new Date();
+                      completionDate.setDate(completionDate.getDate() + daysRemaining);
+
+                      return completionDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      });
+                    })()}
+                  </div>
+                  <div style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary
+                  }}>
+                    {progress.remaining_count === 0
+                      ? 'All parts uploaded! 🎉'
+                      : `${Math.ceil(progress.remaining_count / dailyTarget).toLocaleString()} days remaining`
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Distribution */}
+              <div style={{
+                backgroundColor: colors.background.main,
+                padding: spacing.lg,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.sm,
+                border: `1px solid ${colors.neutral[200]}`
+              }}>
+                <h3 style={{
+                  fontSize: typography.fontSize.lg,
+                  fontWeight: typography.fontWeight.bold,
+                  marginBottom: spacing.md,
+                  color: colors.text.primary
+                }}>Progress Distribution</h3>
+
                 <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  padding: spacing.md,
-                  backgroundColor: `${colors.primary.main}08`,
-                  borderRadius: borderRadius.lg,
-                  border: `1px solid ${colors.primary.main}20`
+                  justifyContent: 'center',
+                  alignItems: 'center'
                 }}>
-                  <TrendingUp size={24} color={colors.primary.main} />
-                  <div>
-                    <div style={{
-                      fontSize: typography.fontSize.xs,
-                      color: colors.text.secondary,
-                      fontWeight: typography.fontWeight.medium,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Estimated Completion
-                    </div>
-                    <div style={{
-                      fontSize: typography.fontSize.lg,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                      marginTop: '2px'
-                    }}>
-                      {progress.remaining_count > 0
-                        ? `${Math.ceil(progress.remaining_count / dailyTarget)} days`
-                        : 'Complete! 🎉'
-                      }
-                    </div>
-                  </div>
+                  <PieChart
+                    processed={progress.processed_count}
+                    queued={progress.queued_count}
+                    failed={progress.failed_count}
+                    remaining={progress.remaining_count}
+                  />
                 </div>
               </div>
             </div>
@@ -732,70 +786,6 @@ export const PartsTrackingDashboard: React.FC = () => {
                 }}>
                   {progress.failed_count} failed of {progress.processed_count + progress.failed_count} attempted
                 </div>
-              </div>
-
-              {/* Completion ETA */}
-              <div style={styles.statCard}>
-                <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
-                  <Calendar size={24} color={colors.primary.main} />
-                </div>
-                <div style={styles.statValue}>
-                  {(() => {
-                    if (progress.remaining_count === 0) return 'Complete!';
-                    if (queuedToday === 0) return 'N/A';
-
-                    const daysRemaining = Math.ceil(progress.remaining_count / dailyTarget);
-                    const completionDate = new Date();
-                    completionDate.setDate(completionDate.getDate() + daysRemaining);
-
-                    return completionDate.toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    });
-                  })()}
-                </div>
-                <div style={styles.statLabel}>Completion ETA</div>
-                <div style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.tertiary,
-                  marginTop: spacing.xs
-                }}>
-                  {progress.remaining_count === 0
-                    ? 'All parts uploaded! 🎉'
-                    : `${Math.ceil(progress.remaining_count / dailyTarget)} days at current pace`
-                  }
-                </div>
-              </div>
-            </div>
-
-            {/* Pie Chart - Full Width */}
-            <div style={{
-              backgroundColor: colors.background.main,
-              padding: spacing.lg,
-              borderRadius: borderRadius.lg,
-              boxShadow: shadows.sm,
-              border: `1px solid ${colors.neutral[200]}`,
-              marginTop: spacing.lg
-            }}>
-              <h3 style={{
-                fontSize: typography.fontSize.xl,
-                fontWeight: typography.fontWeight.semibold,
-                marginBottom: spacing.md,
-                color: colors.text.primary
-              }}>Progress Distribution</h3>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <PieChart
-                  processed={progress.processed_count}
-                  queued={progress.queued_count}
-                  failed={progress.failed_count}
-                  remaining={progress.remaining_count}
-                />
               </div>
             </div>
           </>
