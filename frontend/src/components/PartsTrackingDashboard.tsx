@@ -510,6 +510,155 @@ export const PartsTrackingDashboard: React.FC = () => {
 
         return (
           <>
+            {/* Daily Target - Full Width at Top */}
+            <div style={{
+              backgroundColor: colors.background.main,
+              padding: spacing.lg,
+              borderRadius: borderRadius.lg,
+              boxShadow: shadows.md,
+              border: `1px solid ${colors.neutral[200]}`,
+              marginBottom: spacing.lg
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: spacing.md,
+                alignItems: 'center'
+              }}>
+                {/* Target Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: borderRadius.lg,
+                    backgroundColor: `${colors.primary.main}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Target size={24} color={colors.primary.main} />
+                  </div>
+                  <div>
+                    <h3 style={{
+                      fontSize: typography.fontSize.xl,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                      margin: 0
+                    }}>
+                      Daily Target
+                    </h3>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      marginTop: '4px'
+                    }}>
+                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        Target:
+                      </span>
+                      <input
+                        type="number"
+                        value={dailyTarget}
+                        onChange={(e) => setDailyTarget(Number(e.target.value))}
+                        style={{
+                          width: '100px',
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          border: `2px solid ${colors.neutral[300]}`,
+                          borderRadius: borderRadius.md,
+                          fontSize: typography.fontSize.base,
+                          fontWeight: typography.fontWeight.semibold,
+                          textAlign: 'center',
+                          transition: transitions.base
+                        }}
+                      />
+                      <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
+                        parts/day
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Today's Progress */}
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: spacing.xs
+                  }}>
+                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, fontWeight: typography.fontWeight.medium }}>
+                      Today's Progress
+                    </span>
+                    <span style={{
+                      fontSize: typography.fontSize.xl,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary
+                    }}>
+                      {completedToday} / {dailyTarget}
+                    </span>
+                  </div>
+                  <div style={{
+                    height: '12px',
+                    backgroundColor: colors.neutral[200],
+                    borderRadius: borderRadius.full,
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min(dailyProgress, 100)}%`,
+                      backgroundColor: dailyProgress >= 100 ? colors.success : colors.primary.main,
+                      transition: transitions.base,
+                      borderRadius: borderRadius.full
+                    }} />
+                  </div>
+                  <div style={{
+                    fontSize: typography.fontSize.xs,
+                    color: colors.text.tertiary,
+                    marginTop: spacing.xs,
+                    textAlign: 'right'
+                  }}>
+                    {dailyProgress.toFixed(1)}% of daily target
+                  </div>
+                </div>
+
+                {/* Estimated Completion */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                  backgroundColor: `${colors.primary.main}08`,
+                  borderRadius: borderRadius.lg,
+                  border: `1px solid ${colors.primary.main}20`
+                }}>
+                  <TrendingUp size={24} color={colors.primary.main} />
+                  <div>
+                    <div style={{
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.secondary,
+                      fontWeight: typography.fontWeight.medium,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Estimated Completion
+                    </div>
+                    <div style={{
+                      fontSize: typography.fontSize.lg,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                      marginTop: '2px'
+                    }}>
+                      {progress.remaining_count > 0
+                        ? `${Math.ceil(progress.remaining_count / dailyTarget)} days`
+                        : 'Complete! 🎉'
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
             <div style={styles.statsGrid}>
               <div style={styles.statCard}>
                 <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
@@ -547,117 +696,33 @@ export const PartsTrackingDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Pie Chart and Daily Target Section */}
+            {/* Pie Chart - Full Width */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: mobileSpacing.lg,
-              marginTop: mobileSpacing.lg
+              backgroundColor: colors.background.main,
+              padding: spacing.lg,
+              borderRadius: borderRadius.lg,
+              boxShadow: shadows.sm,
+              border: `1px solid ${colors.neutral[200]}`,
+              marginTop: spacing.lg
             }}>
-              {/* Pie Chart */}
-              <div style={{
-                backgroundColor: colors.background.main,
-                padding: mobileSpacing.lg,
-                borderRadius: borderRadius.lg,
-                boxShadow: shadows.sm,
-                border: `1px solid ${colors.neutral[200]}`
-              }}>
-                <h3 style={{
-                  fontSize: mobileTypography.fontSize.lg,
-                  fontWeight: typography.fontWeight.semibold,
-                  marginBottom: mobileSpacing.md,
-                  color: colors.text.primary
-                }}>Progress Distribution</h3>
+              <h3 style={{
+                fontSize: typography.fontSize.xl,
+                fontWeight: typography.fontWeight.semibold,
+                marginBottom: spacing.md,
+                color: colors.text.primary
+              }}>Progress Distribution</h3>
 
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
                 <PieChart
                   processed={progress.processed_count}
                   queued={progress.queued_count}
                   failed={progress.failed_count}
                   remaining={progress.remaining_count}
                 />
-              </div>
-
-              {/* Daily Target */}
-              <div style={{
-                backgroundColor: colors.background.main,
-                padding: mobileSpacing.lg,
-                borderRadius: borderRadius.lg,
-                boxShadow: shadows.sm,
-                border: `1px solid ${colors.neutral[200]}`
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: mobileSpacing.md }}>
-                  <h3 style={{
-                    fontSize: mobileTypography.fontSize.lg,
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.text.primary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: mobileSpacing.xs
-                  }}>
-                    <Target size={20} color={colors.primary.main} />
-                    Daily Target
-                  </h3>
-                  <input
-                    type="number"
-                    value={dailyTarget}
-                    onChange={(e) => setDailyTarget(Number(e.target.value))}
-                    style={{
-                      width: '80px',
-                      padding: mobileSpacing.xs,
-                      border: `1px solid ${colors.neutral[300]}`,
-                      borderRadius: borderRadius.sm,
-                      fontSize: mobileTypography.fontSize.sm,
-                      textAlign: 'center'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: mobileSpacing.md }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: mobileSpacing.xs
-                  }}>
-                    <span style={{ fontSize: mobileTypography.fontSize.sm, color: colors.text.secondary }}>
-                      Today's Progress
-                    </span>
-                    <span style={{ fontSize: mobileTypography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text.primary }}>
-                      {completedToday} / {dailyTarget}
-                    </span>
-                  </div>
-                  <div style={styles.progressBar}>
-                    <div style={{
-                      ...styles.progressFill,
-                      width: `${Math.min(dailyProgress, 100)}%`,
-                      backgroundColor: dailyProgress >= 100 ? colors.success : colors.primary.main
-                    }} />
-                  </div>
-                  <div style={{
-                    fontSize: mobileTypography.fontSize.xs,
-                    color: colors.text.tertiary,
-                    marginTop: mobileSpacing.xs,
-                    textAlign: 'right'
-                  }}>
-                    {dailyProgress.toFixed(1)}% of daily target
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: mobileSpacing.xs,
-                  padding: mobileSpacing.sm,
-                  backgroundColor: `${colors.primary.main}10`,
-                  borderRadius: borderRadius.md
-                }}>
-                  <TrendingUp size={16} color={colors.primary.main} />
-                  <span style={{ fontSize: mobileTypography.fontSize.sm, color: colors.text.secondary }}>
-                    {progress.remaining_count > 0
-                      ? `${Math.ceil(progress.remaining_count / dailyTarget)} days remaining at current pace`
-                      : 'All parts processed! 🎉'
-                    }
-                  </span>
-                </div>
               </div>
             </div>
           </>
