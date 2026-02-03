@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp } from "lucide-react";
+import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp, Calendar } from "lucide-react";
 import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus } from "../services/api";
 
 interface ProgressStats {
@@ -731,6 +731,40 @@ export const PartsTrackingDashboard: React.FC = () => {
                   marginTop: spacing.xs
                 }}>
                   {progress.failed_count} failed of {progress.processed_count + progress.failed_count} attempted
+                </div>
+              </div>
+
+              {/* Completion ETA */}
+              <div style={styles.statCard}>
+                <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
+                  <Calendar size={24} color={colors.primary.main} />
+                </div>
+                <div style={styles.statValue}>
+                  {(() => {
+                    if (progress.remaining_count === 0) return 'Complete!';
+                    if (queuedToday === 0) return 'N/A';
+
+                    const daysRemaining = Math.ceil(progress.remaining_count / dailyTarget);
+                    const completionDate = new Date();
+                    completionDate.setDate(completionDate.getDate() + daysRemaining);
+
+                    return completionDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+                  })()}
+                </div>
+                <div style={styles.statLabel}>Completion ETA</div>
+                <div style={{
+                  fontSize: typography.fontSize.xs,
+                  color: colors.text.tertiary,
+                  marginTop: spacing.xs
+                }}>
+                  {progress.remaining_count === 0
+                    ? 'All parts uploaded! 🎉'
+                    : `${Math.ceil(progress.remaining_count / dailyTarget)} days at current pace`
+                  }
                 </div>
               </div>
             </div>
