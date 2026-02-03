@@ -1125,3 +1125,190 @@ async def download_all_r2_files(
             detail=f"Failed to create download archive: {str(e)}"
         )
 
+
+@router.post("/jobs/complete")
+async def job_completion_webhook(
+    job_id: str = Query(...),
+    status: str = Query(...),
+    processor: str = Query(default="unknown"),
+    processed_count: int = Query(default=0)
+):
+    """
+    Webhook endpoint for GitHub Actions to notify when job processing completes.
+    
+    This updates the parts tracker based on completed jobs.
+    """
+    try:
+        tracker = get_parts_tracker()
+        r2_storage = get_r2_storage()
+        
+        if not r2_storage:
+            raise HTTPException(status_code=503, detail="R2 storage not available")
+        
+        # Get job metadata from R2
+        try:
+            job_response = r2_storage.s3_client.get_object(
+                Bucket=r2_storage.bucket_name,
+                Key=f"jobs/completed/{job_id}.json"
+            )
+            job_data = json.loads(job_response['Body'].read().decode('utf-8'))
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found: {e}")
+        
+        # Extract parts from job data
+        parts = job_data.get('parts', [])
+        
+        # If old format (single part), convert to list
+        if not parts and 'symbol_number' in job_data:
+            parts = [{'symbol_number': job_data['symbol_number']}]
+        
+        # Update tracker for each part
+        updated_parts = []
+        for part in parts:
+            symbol_number = part.get('symbol_number')
+            if not symbol_number:
+                continue
+            
+            # Check if part was successfully processed (has files in R2)
+            parts_prefix = f"parts/{symbol_number}/"
+            try:
+                parts_response = r2_storage.s3_client.list_objects_v2(
+                    Bucket=r2_storage.bucket_name,
+                    Prefix=parts_prefix,
+                    MaxKeys=1
+                )
+                
+                if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
+                    # Part was successfully processed
+                    # Count total images
+                    all_images_response = r2_storage.s3_client.list_objects_v2(
+                        Bucket=r2_storage.bucket_name,
+                        Prefix=parts_prefix
+                    )
+                    image_count = len(all_images_response.get('Contents', []))
+                    
+                    # Mark as processed
+                    tracker.mark_part_processed(symbol_number, image_count)
+                    updated_parts.append(symbol_number)
+                else:
+                    # No processed images found, mark as failed
+                    tracker.mark_part_failed(symbol_number, "No processed images found in R2")
+                    
+            except Exception as e:
+                tracker.mark_part_failed(symbol_number, f"Error checking R2: {str(e)}")
+        
+        return {
+            "success": True,
+            "job_id": job_id,
+            "updated_parts": updated_parts,
+            "message": f"Updated tracker for {len(updated_parts)} parts"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process webhook: {str(e)}")
+
+
+@router.post("/tracker/sync-from-r2")
+async def sync_tracker_from_r2():
+    """
+    Sync tracker with actual R2 storage state.
+    
+    This scans R2 storage and updates the tracker to match reality:
+    - Parts in parts/ folder → marked as processed
+    - Parts in raw/ folder only → marked as queued
+    - Parts in neither → remain as pending
+    """
+    try:
+        tracker = get_parts_tracker()
+        r2_storage = get_r2_storage()
+        excel_service = get_excel_parts_service()
+        
+        if not r2_storage:
+            raise HTTPException(status_code=503, detail="R2 storage not available")
+        
+        if excel_service.unique_parts is None:
+            raise HTTPException(status_code=503, detail="No Excel file loaded")
+        
+        # Get all parts from Excel
+        all_parts = excel_service.unique_parts['Symbol Number'].astype(str).tolist()
+        
+        # Scan R2 for processed parts (parts/ folder)
+        processed_parts = set()
+        queued_parts = set()
+        
+        print("🔄 Scanning R2 storage...")
+        
+        # Check processed parts
+        paginator = r2_storage.s3_client.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix='parts/'):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                # Extract symbol number from path: parts/SYMBOL/filename
+                parts_path = key.split('/')
+                if len(parts_path) >= 2:
+                    symbol_number = parts_path[1]
+                    processed_parts.add(symbol_number)
+        
+        # Check queued parts (raw/ folder)
+        for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix='raw/'):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                # Extract symbol number from path: raw/SYMBOL/filename
+                parts_path = key.split('/')
+                if len(parts_path) >= 2:
+                    symbol_number = parts_path[1]
+                    # Only mark as queued if not already processed
+                    if symbol_number not in processed_parts:
+                        queued_parts.add(symbol_number)
+        
+        # Update tracker
+        print(f"📊 Found {len(processed_parts)} processed, {len(queued_parts)} queued")
+        
+        # Clear current tracker state
+        tracker.processed_parts.clear()
+        tracker.queued_parts.clear()
+        tracker.failed_parts.clear()
+        tracker.part_stats.clear()
+        
+        # Add processed parts
+        for symbol_number in processed_parts:
+            # Count images for this part
+            prefix = f"parts/{symbol_number}/"
+            response = r2_storage.s3_client.list_objects_v2(
+                Bucket=r2_storage.bucket_name,
+                Prefix=prefix
+            )
+            image_count = len(response.get('Contents', []))
+            tracker.mark_part_processed(symbol_number, image_count)
+        
+        # Add queued parts
+        for symbol_number in queued_parts:
+            # Count raw images
+            prefix = f"raw/{symbol_number}/"
+            response = r2_storage.s3_client.list_objects_v2(
+                Bucket=r2_storage.bucket_name,
+                Prefix=prefix
+            )
+            image_count = len(response.get('Contents', []))
+            tracker.mark_part_queued(symbol_number, image_count)
+        
+        # Save tracker
+        tracker.save_tracker()
+        
+        # Get updated stats
+        stats = tracker.get_progress_stats()
+        
+        return {
+            "success": True,
+            "message": "Tracker synced with R2 storage",
+            "stats": stats,
+            "processed_parts_count": len(processed_parts),
+            "queued_parts_count": len(queued_parts)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to sync tracker: {str(e)}")

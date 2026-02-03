@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, Search } from "lucide-react";
+import { BarChart, CheckCircle, XCircle, Clock, RefreshCw, Search, Target, TrendingUp } from "lucide-react";
 import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus } from "../services/api";
 
 interface ProgressStats {
@@ -16,11 +16,117 @@ interface ProgressStats {
 
 interface TrackerData {
   progress: ProgressStats;
-  processed_parts: string[];
-  failed_parts: { [key: string]: string };
-  queued_parts: string[];
-  remaining_parts: string[];
+  processed_parts: string[];  // Array of exact symbol numbers
+  failed_parts: { [key: string]: string };  // Symbol number -> error message
+  queued_parts: string[];  // Array of exact symbol numbers
+  remaining_parts: string[];  // Array of exact symbol numbers
 }
+
+interface DailyTarget {
+  target: number;
+  completed_today: number;
+  percentage: number;
+}
+
+// Pie Chart Component
+interface PieChartProps {
+  processed: number;
+  queued: number;
+  failed: number;
+  remaining: number;
+}
+
+const PieChart: React.FC<PieChartProps> = ({ processed, queued, failed, remaining }) => {
+  const total = processed + queued + failed + remaining;
+
+  if (total === 0) {
+    return <div style={{ textAlign: 'center', padding: '40px', color: colors.text.secondary }}>No data available</div>;
+  }
+
+  // Calculate percentages
+  const processedPercent = (processed / total) * 100;
+  const queuedPercent = (queued / total) * 100;
+  const failedPercent = (failed / total) * 100;
+  const remainingPercent = (remaining / total) * 100;
+
+  // Calculate cumulative angles for SVG
+  let currentAngle = 0;
+  const segments = [
+    { label: 'Processed', value: processed, percent: processedPercent, color: colors.success, angle: currentAngle },
+    { label: 'Queued', value: queued, percent: queuedPercent, color: colors.warning, angle: currentAngle += processedPercent * 3.6 },
+    { label: 'Failed', value: failed, percent: failedPercent, color: colors.error, angle: currentAngle += queuedPercent * 3.6 },
+    { label: 'Remaining', value: remaining, percent: remainingPercent, color: colors.neutral[400], angle: currentAngle += failedPercent * 3.6 }
+  ].filter(seg => seg.value > 0);
+
+  // Create SVG path for donut segment
+  const createArc = (startAngle: number, endAngle: number, radius: number, innerRadius: number) => {
+    const start = polarToCartesian(100, 100, radius, endAngle);
+    const end = polarToCartesian(100, 100, radius, startAngle);
+    const innerStart = polarToCartesian(100, 100, innerRadius, endAngle);
+    const innerEnd = polarToCartesian(100, 100, innerRadius, startAngle);
+
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+    return [
+      "M", start.x, start.y,
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+      "L", innerEnd.x, innerEnd.y,
+      "A", innerRadius, innerRadius, 0, largeArcFlag, 1, innerStart.x, innerStart.y,
+      "Z"
+    ].join(" ");
+  };
+
+  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+    return {
+      x: centerX + (radius * Math.cos(angleInRadians)),
+      y: centerY + (radius * Math.sin(angleInRadians))
+    };
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobileSpacing.md }}>
+      {/* SVG Donut Chart */}
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        {segments.map((seg, idx) => {
+          const nextAngle = idx < segments.length - 1 ? segments[idx + 1].angle : 360;
+          return (
+            <path
+              key={seg.label}
+              d={createArc(seg.angle, nextAngle, 80, 50)}
+              fill={seg.color}
+              opacity="0.9"
+            />
+          );
+        })}
+        {/* Center text */}
+        <text x="100" y="95" textAnchor="middle" fontSize="24" fontWeight="bold" fill={colors.text.primary}>
+          {((processed / total) * 100).toFixed(1)}%
+        </text>
+        <text x="100" y="115" textAnchor="middle" fontSize="12" fill={colors.text.secondary}>
+          Complete
+        </text>
+      </svg>
+
+      {/* Legend */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: mobileSpacing.sm, width: '100%' }}>
+        {segments.map(seg => (
+          <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: mobileSpacing.xs }}>
+            <div style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '2px',
+              backgroundColor: seg.color
+            }} />
+            <span style={{ fontSize: mobileTypography.fontSize.xs, color: colors.text.secondary }}>
+              {seg.label}: {seg.value.toLocaleString()}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const PartsTrackingDashboard: React.FC = () => {
   const [trackerData, setTrackerData] = useState<TrackerData | null>(null);
@@ -28,6 +134,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'processed' | 'failed' | 'queued' | 'remaining'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [dailyTarget, setDailyTarget] = useState(100); // Default: 100 parts per day
 
   const fetchTrackerData = async () => {
     setRefreshing(true);
@@ -383,43 +490,169 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       default:
+        // Calculate daily progress (parts processed today)
+        const today = new Date().toISOString().split('T')[0];
+        const completedToday = processed_parts.filter(part => {
+          const partStats = trackerData?.progress;
+          // Estimate based on recent processing
+          return true; // TODO: Add timestamp tracking
+        }).length;
+
+        const dailyProgress = (completedToday / dailyTarget) * 100;
+
         return (
-          <div style={styles.statsGrid}>
-            <div style={styles.statCard}>
-              <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
-                <BarChart size={24} color={colors.primary.main} />
+          <>
+            <div style={styles.statsGrid}>
+              <div style={styles.statCard}>
+                <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
+                  <BarChart size={24} color={colors.primary.main} />
+                </div>
+                <div style={styles.statValue}>{progress.total_parts.toLocaleString()}</div>
+                <div style={styles.statLabel}>Total Parts</div>
               </div>
-              <div style={styles.statValue}>{progress.total_parts.toLocaleString()}</div>
-              <div style={styles.statLabel}>Total Parts</div>
+
+              <div style={styles.statCard}>
+                <div style={{ ...styles.statIcon, backgroundColor: `${colors.success}20` }}>
+                  <CheckCircle size={24} color={colors.success} />
+                </div>
+                <div style={styles.statValue}>{progress.processed_count.toLocaleString()}</div>
+                <div style={styles.statLabel}>Processed</div>
+                <div style={styles.progressBar}>
+                  <div style={{ ...styles.progressFill, width: `${progress.progress_percentage}%` }} />
+                </div>
+              </div>
+
+              <div style={styles.statCard}>
+                <div style={{ ...styles.statIcon, backgroundColor: `${colors.error}20` }}>
+                  <XCircle size={24} color={colors.error} />
+                </div>
+                <div style={styles.statValue}>{progress.failed_count.toLocaleString()}</div>
+                <div style={styles.statLabel}>Failed</div>
+              </div>
+
+              <div style={styles.statCard}>
+                <div style={{ ...styles.statIcon, backgroundColor: `${colors.warning}20` }}>
+                  <Clock size={24} color={colors.warning} />
+                </div>
+                <div style={styles.statValue}>{progress.remaining_count.toLocaleString()}</div>
+                <div style={styles.statLabel}>Remaining</div>
+              </div>
             </div>
 
-            <div style={styles.statCard}>
-              <div style={{ ...styles.statIcon, backgroundColor: `${colors.success}20` }}>
-                <CheckCircle size={24} color={colors.success} />
-              </div>
-              <div style={styles.statValue}>{progress.processed_count.toLocaleString()}</div>
-              <div style={styles.statLabel}>Processed</div>
-              <div style={styles.progressBar}>
-                <div style={{ ...styles.progressFill, width: `${progress.progress_percentage}%` }} />
-              </div>
-            </div>
+            {/* Pie Chart and Daily Target Section */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: mobileSpacing.lg,
+              marginTop: mobileSpacing.lg
+            }}>
+              {/* Pie Chart */}
+              <div style={{
+                backgroundColor: colors.background.main,
+                padding: mobileSpacing.lg,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.sm,
+                border: `1px solid ${colors.neutral[200]}`
+              }}>
+                <h3 style={{
+                  fontSize: mobileTypography.fontSize.lg,
+                  fontWeight: typography.fontWeight.semibold,
+                  marginBottom: mobileSpacing.md,
+                  color: colors.text.primary
+                }}>Progress Distribution</h3>
 
-            <div style={styles.statCard}>
-              <div style={{ ...styles.statIcon, backgroundColor: `${colors.error}20` }}>
-                <XCircle size={24} color={colors.error} />
+                <PieChart
+                  processed={progress.processed_count}
+                  queued={progress.queued_count}
+                  failed={progress.failed_count}
+                  remaining={progress.remaining_count}
+                />
               </div>
-              <div style={styles.statValue}>{progress.failed_count.toLocaleString()}</div>
-              <div style={styles.statLabel}>Failed</div>
-            </div>
 
-            <div style={styles.statCard}>
-              <div style={{ ...styles.statIcon, backgroundColor: `${colors.warning}20` }}>
-                <Clock size={24} color={colors.warning} />
+              {/* Daily Target */}
+              <div style={{
+                backgroundColor: colors.background.main,
+                padding: mobileSpacing.lg,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.sm,
+                border: `1px solid ${colors.neutral[200]}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: mobileSpacing.md }}>
+                  <h3 style={{
+                    fontSize: mobileTypography.fontSize.lg,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: mobileSpacing.xs
+                  }}>
+                    <Target size={20} color={colors.primary.main} />
+                    Daily Target
+                  </h3>
+                  <input
+                    type="number"
+                    value={dailyTarget}
+                    onChange={(e) => setDailyTarget(Number(e.target.value))}
+                    style={{
+                      width: '80px',
+                      padding: mobileSpacing.xs,
+                      border: `1px solid ${colors.neutral[300]}`,
+                      borderRadius: borderRadius.sm,
+                      fontSize: mobileTypography.fontSize.sm,
+                      textAlign: 'center'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: mobileSpacing.md }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: mobileSpacing.xs
+                  }}>
+                    <span style={{ fontSize: mobileTypography.fontSize.sm, color: colors.text.secondary }}>
+                      Today's Progress
+                    </span>
+                    <span style={{ fontSize: mobileTypography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.text.primary }}>
+                      {completedToday} / {dailyTarget}
+                    </span>
+                  </div>
+                  <div style={styles.progressBar}>
+                    <div style={{
+                      ...styles.progressFill,
+                      width: `${Math.min(dailyProgress, 100)}%`,
+                      backgroundColor: dailyProgress >= 100 ? colors.success : colors.primary.main
+                    }} />
+                  </div>
+                  <div style={{
+                    fontSize: mobileTypography.fontSize.xs,
+                    color: colors.text.tertiary,
+                    marginTop: mobileSpacing.xs,
+                    textAlign: 'right'
+                  }}>
+                    {dailyProgress.toFixed(1)}% of daily target
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: mobileSpacing.xs,
+                  padding: mobileSpacing.sm,
+                  backgroundColor: `${colors.primary.main}10`,
+                  borderRadius: borderRadius.md
+                }}>
+                  <TrendingUp size={16} color={colors.primary.main} />
+                  <span style={{ fontSize: mobileTypography.fontSize.sm, color: colors.text.secondary }}>
+                    {progress.remaining_count > 0
+                      ? `${Math.ceil(progress.remaining_count / dailyTarget)} days remaining at current pace`
+                      : 'All parts processed! 🎉'
+                    }
+                  </span>
+                </div>
               </div>
-              <div style={styles.statValue}>{progress.remaining_count.toLocaleString()}</div>
-              <div style={styles.statLabel}>Remaining</div>
             </div>
-          </div>
+          </>
         );
     }
   };
