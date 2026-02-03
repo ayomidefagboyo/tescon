@@ -139,7 +139,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'processed' | 'failed' | 'queued' | 'remaining'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [dailyTarget, setDailyTarget] = useState(100); // Default: 100 parts per day
+  const dailyTarget = 300; // Fixed target: 300 parts per day
 
   const fetchTrackerData = async () => {
     setRefreshing(true);
@@ -194,7 +194,8 @@ export const PartsTrackingDashboard: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
       marginBottom: mobileSpacing.lg,
-      flexDirection: 'column' as const,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
       gap: mobileSpacing.md,
     },
     title: {
@@ -514,7 +515,7 @@ export const PartsTrackingDashboard: React.FC = () => {
             {/* Top Section: Daily Target, Completion ETA, Progress Distribution - Side by Side */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: spacing.lg,
               marginBottom: spacing.lg
             }}>
@@ -558,20 +559,14 @@ export const PartsTrackingDashboard: React.FC = () => {
                     <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
                       Target:
                     </span>
-                    <input
-                      type="number"
-                      value={dailyTarget}
-                      onChange={(e) => setDailyTarget(Number(e.target.value))}
-                      style={{
-                        width: '80px',
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        border: `2px solid ${colors.neutral[300]}`,
-                        borderRadius: borderRadius.md,
-                        fontSize: typography.fontSize.base,
-                        fontWeight: typography.fontWeight.semibold,
-                        textAlign: 'center'
-                      }}
-                    />
+                    <span style={{
+                      fontSize: typography.fontSize.base,
+                      fontWeight: typography.fontWeight.semibold,
+                      color: colors.text.primary,
+                      margin: `0 ${spacing.xs}`
+                    }}>
+                      {dailyTarget}
+                    </span>
                     <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
                       parts/day
                     </span>
@@ -716,7 +711,7 @@ export const PartsTrackingDashboard: React.FC = () => {
             {/* Stats Grid - 2 per row */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
               gap: spacing.lg,
               marginBottom: spacing.lg
             }}>
