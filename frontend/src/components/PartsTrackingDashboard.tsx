@@ -496,17 +496,18 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       default:
-        // Calculate daily progress using actual timestamps
+        // Calculate daily progress using queued parts (uploaded today)
+        // This tracks upload activity, not processing (which happens later via GitHub Actions)
         const today = new Date().toISOString().split('T')[0];
-        const completedToday = processed_parts.filter(partNum => {
+        const queuedToday = queued_parts.filter(partNum => {
           const partStats = trackerData?.part_stats?.[partNum];
-          if (!partStats?.completed_at) return false;
-          // Check if completed_at date matches today
-          const completedDate = partStats.completed_at.split('T')[0];
-          return completedDate === today;
+          if (!partStats?.queued_at) return false;
+          // Check if queued_at date matches today
+          const queuedDate = partStats.queued_at.split('T')[0];
+          return queuedDate === today;
         }).length;
 
-        const dailyProgress = (completedToday / dailyTarget) * 100;
+        const dailyProgress = (queuedToday / dailyTarget) * 100;
 
         return (
           <>
@@ -594,7 +595,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                       fontWeight: typography.fontWeight.bold,
                       color: colors.text.primary
                     }}>
-                      {completedToday} / {dailyTarget}
+                      {queuedToday} / {dailyTarget}
                     </span>
                   </div>
                   <div style={{
