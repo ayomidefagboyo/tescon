@@ -270,8 +270,13 @@ def process_image(
             if processing_time < 1000:  # Log fast processing
                 print(f"⚡ Fast processing: {processing_time:.0f}ms ({_current_model})")
 
-            # Convert to requested format with optimization
-            return convert_format(processed_image, output_format, quality=compression_quality)
+            # Convert to requested format with optimized quality for e-commerce cards
+            if use_ecommerce_layout:
+                # Use JPEG quality 95 for e-commerce cards - visually identical to PNG but much smaller
+                return convert_format(processed_image, "JPEG", quality=95)
+            else:
+                # Use original format for simple products
+                return convert_format(processed_image, output_format, quality=compression_quality)
 
         except torch.cuda.OutOfMemoryError as e:
             print(f"🚨 GPU OOM, falling back to CPU for this image")
