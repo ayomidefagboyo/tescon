@@ -88,21 +88,22 @@ jobs:
           from app.services.excel_service import ExcelPartsService
 
           # Configuration
-          JOB_ID = os.environ['JOB_ID']
+          JOB_ID = os.environ['JOB_ID'].strip()
           R2_ENDPOINT = f"https://{os.environ['R2_ENDPOINT']}"
           R2_ACCESS_KEY = os.environ['R2_ACCESS_KEY']
           R2_SECRET_KEY = os.environ['R2_SECRET_KEY']
           R2_BUCKET = os.environ['R2_BUCKET']
           RENDER_WEBHOOK = os.environ.get('RENDER_WEBHOOK', '')
 
-          print(f"🚀 GitHub Actions Processing - Job: {JOB_ID}")
+          print(f"🚀 GitHub Actions Processing - Job: '{JOB_ID}'")
           print(f"💰 Saving $6,900 vs PicWish API")
 
           # Initialize R2
           r2 = boto3.client('s3',
               endpoint_url=R2_ENDPOINT,
               aws_access_key_id=R2_ACCESS_KEY,
-              aws_secret_access_key=R2_SECRET_KEY
+              aws_secret_access_key=R2_SECRET_KEY,
+              region_name='auto'
           )
 
           def download_job_metadata():
