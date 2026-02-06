@@ -50,6 +50,6 @@ backend/backend.log
 backend/~$*.xlsx
 
 # Local Excel catalogs / generated subsets (keep out of git)
-backend/Total EGTL Photo Project.xlsx
+
 backend/*_GTA*_filtered.xlsx
 backend/*_filtered_clean.xlsx
