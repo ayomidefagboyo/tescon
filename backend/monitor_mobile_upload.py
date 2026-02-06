@@ -40,7 +40,7 @@ class MobileUploadMonitor:
     def _load_excel(self):
         """Load Excel catalog if not already loaded."""
         if self.excel_service.unique_parts is None:
-            excel_file_path = Path(os.getenv("EXCEL_FILE_PATH", "Total EGTL Photo Project.xlsx"))
+            excel_file_path = Path(os.getenv("EXCEL_FILE_PATH", "data/Total EGTL Photo Project.xlsx"))
             if excel_file_path.exists():
                 print("📂 Loading Excel catalog...")
                 sheet_name = os.getenv("EXCEL_SHEET_NAME", "Photo Data")
