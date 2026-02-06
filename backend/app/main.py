@@ -80,12 +80,18 @@ async def startup_event():
     else:
         print("⚠ Warning: Processor not available.")
 
-    # Load Excel file if it exists
-    excel_file_path = Path(__file__).parent.parent / "EGTL_FINAL_23033_CLEANED.xlsx"
+    # Load Excel catalog on startup
+    #
+    # Default catalog is the Total EGTL Photo Project workbook (Photo Data sheet).
+    # This file may not include 'Long Text JDE' natively; the Excel service will
+    # enrich it from EGTL_FINAL_23033_CLEANED.xlsx if present.
+    default_excel_file = Path(__file__).parent.parent / "Total EGTL Photo Project.xlsx"
+    excel_file_path = Path(os.getenv("EXCEL_FILE_PATH", str(default_excel_file)))
+    excel_sheet_name = os.getenv("EXCEL_SHEET_NAME", "Photo Data")
     if excel_file_path.exists():
         try:
             excel_service = get_excel_parts_service()
-            success = excel_service.load_excel_file(str(excel_file_path), sheet_name="Sheet1")
+            success = excel_service.load_excel_file(str(excel_file_path), sheet_name=excel_sheet_name)
             if success:
                 stats = excel_service.get_stats()
                 print(f"✓ Excel catalog loaded: {stats['total_parts']} parts")

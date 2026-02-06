@@ -1,4 +1,5 @@
 """Excel file processing service for parts catalog."""
+import os
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -14,6 +15,110 @@ class ExcelPartsService:
         self.unique_parts: Optional[pd.DataFrame] = None
         self.total_parts = 0
 
+    def _select_sheet_name(self, file_path: str, preferred_sheet: Optional[str]) -> Optional[str]:
+        """
+        Pick a sheet to load.
+
+        Priority:
+        - preferred_sheet if it exists
+        - first sheet that contains a 'Symbol Number' column
+        - first sheet in workbook
+        """
+        xl = pd.ExcelFile(file_path, engine="openpyxl")
+
+        if preferred_sheet and preferred_sheet in xl.sheet_names:
+            return preferred_sheet
+
+        # Prefer a sheet that looks like the actual catalog data
+        for name in xl.sheet_names:
+            try:
+                cols = pd.read_excel(file_path, sheet_name=name, nrows=0, engine="openpyxl").columns
+                if any(str(c).strip().lower() == "symbol number" for c in cols):
+                    return name
+            except Exception:
+                continue
+
+        return xl.sheet_names[0] if xl.sheet_names else None
+
+    def _enrich_long_text_jde_if_missing(
+        self,
+        parts_df: pd.DataFrame,
+        excel_file_path: Path,
+        reference_excel_path: Optional[Path],
+    ) -> pd.DataFrame:
+        """
+        Ensure 'Long Text JDE' exists on the parts dataframe by looking it up
+        from a reference catalog Excel (matched on 'Symbol Number').
+        """
+        if "Long Text JDE" in parts_df.columns:
+            return parts_df
+
+        ref_path = reference_excel_path
+        if ref_path is None:
+            ref_path = excel_file_path.parent / "EGTL_FINAL_23033_CLEANED.xlsx"
+
+        if not ref_path.exists():
+            logger.warning(
+                "Long Text JDE missing and reference excel not found at %s; leaving blank",
+                str(ref_path),
+            )
+            parts_df["Long Text JDE"] = ""
+            return parts_df
+
+        try:
+            ref_sheet = self._select_sheet_name(str(ref_path), preferred_sheet=None)
+            if not ref_sheet:
+                parts_df["Long Text JDE"] = ""
+                return parts_df
+
+            ref_df = pd.read_excel(
+                str(ref_path),
+                sheet_name=ref_sheet,
+                usecols=lambda c: str(c).strip() in {"Symbol Number", "Long Text JDE", "JDE long Text"},
+                dtype={"Symbol Number": "string"},
+                engine="openpyxl",
+            )
+
+            # Normalize column choice
+            text_col = None
+            if "Long Text JDE" in ref_df.columns:
+                text_col = "Long Text JDE"
+            elif "JDE long Text" in ref_df.columns:
+                text_col = "JDE long Text"
+
+            if text_col is None or "Symbol Number" not in ref_df.columns:
+                parts_df["Long Text JDE"] = ""
+                return parts_df
+
+            ref_df = ref_df.dropna(subset=["Symbol Number"]).copy()
+            ref_df["Symbol Number"] = ref_df["Symbol Number"].astype(str).str.strip()
+            ref_df[text_col] = ref_df[text_col].fillna("").astype(str)
+
+            # Prefer first non-empty long text for each symbol
+            ref_df = ref_df[ref_df["Symbol Number"] != ""]
+            ref_df = ref_df.sort_values(by=["Symbol Number"])
+            ref_map = (
+                ref_df.groupby("Symbol Number")[text_col]
+                .apply(lambda s: next((v for v in s.tolist() if str(v).strip() and str(v).strip().lower() != "nan"), ""))
+                .to_dict()
+            )
+
+            parts_df = parts_df.copy()
+            parts_df["Symbol Number"] = parts_df["Symbol Number"].astype(str).str.strip()
+            parts_df["Long Text JDE"] = parts_df["Symbol Number"].map(ref_map).fillna("")
+
+            logger.info(
+                "Enriched Long Text JDE for %s rows using %s",
+                len(parts_df),
+                str(ref_path),
+            )
+            return parts_df
+        except Exception as e:
+            logger.warning("Failed to enrich Long Text JDE: %s", e)
+            parts_df = parts_df.copy()
+            parts_df["Long Text JDE"] = ""
+            return parts_df
+
     def load_excel_file(self, file_path: str, sheet_name: str = "Data") -> bool:
         """
         Load Excel file and process parts data.
@@ -26,10 +131,20 @@ class ExcelPartsService:
             True if successful, False otherwise
         """
         try:
+            excel_path = Path(file_path)
+
+            # Allow overriding the reference catalog for Long Text JDE enrichment
+            ref_env = os.getenv("EXCEL_LONG_TEXT_REF_PATH")
+            ref_path = Path(ref_env) if ref_env else None
+
+            selected_sheet = self._select_sheet_name(file_path, preferred_sheet=sheet_name)
+            if not selected_sheet:
+                raise ValueError("No sheets found in Excel file")
+
             # Read Excel file with memory optimization
             # Specify dtypes to reduce memory usage
             dtype_spec = {
-                'Symbol Number': 'int64',
+                'Symbol Number': 'string',
                 'Desc1': 'string',
                 'Desc2': 'string',
                 'Location': 'string',
@@ -39,11 +154,18 @@ class ExcelPartsService:
             
             self.parts_data = pd.read_excel(
                 file_path, 
-                sheet_name=sheet_name,
+                sheet_name=selected_sheet,
                 dtype=dtype_spec,
                 engine='openpyxl'
             )
             logger.info(f"Loaded Excel file: {len(self.parts_data)} total rows")
+
+            # Ensure Long Text JDE exists (enrich from reference if needed)
+            self.parts_data = self._enrich_long_text_jde_if_missing(
+                self.parts_data,
+                excel_file_path=excel_path,
+                reference_excel_path=ref_path,
+            )
 
             # Process and deduplicate parts
             self._process_parts_data()

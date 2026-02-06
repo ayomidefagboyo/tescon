@@ -40,10 +40,11 @@ class MobileUploadMonitor:
     def _load_excel(self):
         """Load Excel catalog if not already loaded."""
         if self.excel_service.unique_parts is None:
-            excel_file_path = Path("EGTL_FINAL_23033_CLEANED.xlsx")
+            excel_file_path = Path(os.getenv("EXCEL_FILE_PATH", "Total EGTL Photo Project.xlsx"))
             if excel_file_path.exists():
                 print("📂 Loading Excel catalog...")
-                success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name="Sheet1")
+                sheet_name = os.getenv("EXCEL_SHEET_NAME", "Photo Data")
+                success = self.excel_service.load_excel_file(str(excel_file_path), sheet_name=sheet_name)
                 if success:
                     stats = self.excel_service.get_stats()
                     print(f"✅ Excel loaded: {stats['total_parts']} parts")

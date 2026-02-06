@@ -831,6 +831,7 @@ async def upload_excel_file(file: UploadFile = File(...)):
 
         # Load into Excel service
         excel_service = get_excel_parts_service()
+        # Sheet name varies across workbooks; excel_service auto-selects the best sheet
         success = excel_service.load_excel_file(temp_path, sheet_name="Data")
 
         if not success:
