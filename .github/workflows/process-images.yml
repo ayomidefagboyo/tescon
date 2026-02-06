@@ -49,9 +49,17 @@ jobs:
       
       - name: Download processing code
         run: |
-          # Copy the app directory from the repo
+          # Copy the app directory from the repo (enhanced processor base)
           cp -r enhanced-rembg-processor/app .
-          cp enhanced-rembg-processor/egtl.xlsx . || echo "Excel file not in repo"
+          
+          # Overwrite with robust Excel service from backend
+          cp backend/app/services/excel_service.py app/services/excel_service.py
+          
+          # Copy the REAL Excel catalog
+          cp "backend/data/Total EGTL Photo Project.xlsx" catalog.xlsx || echo "Excel file not found"
+          
+          # Copy the reference Excel for Long Text JDE
+          cp "backend/data/EGTL_FINAL_23033_CLEANED.xlsx" "EGTL_FINAL_23033_CLEANED.xlsx" || echo "Reference Excel not found"
       
       - name: Process images
         env:
@@ -155,16 +163,22 @@ jobs:
 
           def load_excel_metadata():
               """Load Excel metadata if available."""
-              excel_path = Path('egtl.xlsx')
+              # Use the catalog file we copied
+              excel_path = Path('catalog.xlsx')
               if excel_path.exists():
                   try:
+                      # Initialize with cleaner service (from backend)
                       excel_service = ExcelPartsService()
+                      # Note: backend Excel service might assume 'Total EGTL Photo Project.xlsx' logic
+                      # which is compatible with what we copied.
                       excel_service.load_excel_file(str(excel_path))
                       stats = excel_service.get_stats()
                       print(f"✅ Loaded {stats['total_parts']} parts from catalog")
                       return excel_service
                   except Exception as e:
                       print(f"⚠️ Failed to load Excel: {e}")
+              else:
+                   print("⚠️ Catalog file not found")
               return None
 
           def process_images(images, job_data, excel_service):
