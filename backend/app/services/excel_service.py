@@ -40,19 +40,16 @@ class ExcelPartsService:
 
         return xl.sheet_names[0] if xl.sheet_names else None
 
-    def _enrich_long_text_jde_if_missing(
+    def _ensure_long_text_jde(
         self,
         parts_df: pd.DataFrame,
         excel_file_path: Path,
         reference_excel_path: Optional[Path],
     ) -> pd.DataFrame:
         """
-        Ensure 'Long Text JDE' exists on the parts dataframe by looking it up
+        Always add/overwrite 'Long Text JDE' on the parts dataframe by looking it up
         from a reference catalog Excel (matched on 'Symbol Number').
         """
-        if "Long Text JDE" in parts_df.columns:
-            return parts_df
-
         ref_path = reference_excel_path
         if ref_path is None:
             ref_path = excel_file_path.parent / "EGTL_FINAL_23033_CLEANED.xlsx"
@@ -68,6 +65,7 @@ class ExcelPartsService:
         try:
             ref_sheet = self._select_sheet_name(str(ref_path), preferred_sheet=None)
             if not ref_sheet:
+                parts_df = parts_df.copy()
                 parts_df["Long Text JDE"] = ""
                 return parts_df
 
@@ -87,6 +85,7 @@ class ExcelPartsService:
                 text_col = "JDE long Text"
 
             if text_col is None or "Symbol Number" not in ref_df.columns:
+                parts_df = parts_df.copy()
                 parts_df["Long Text JDE"] = ""
                 return parts_df
 
@@ -105,10 +104,11 @@ class ExcelPartsService:
 
             parts_df = parts_df.copy()
             parts_df["Symbol Number"] = parts_df["Symbol Number"].astype(str).str.strip()
+            # Always set/overwrite Long Text JDE from reference
             parts_df["Long Text JDE"] = parts_df["Symbol Number"].map(ref_map).fillna("")
 
             logger.info(
-                "Enriched Long Text JDE for %s rows using %s",
+                "Set Long Text JDE for %s rows using %s",
                 len(parts_df),
                 str(ref_path),
             )
@@ -160,8 +160,8 @@ class ExcelPartsService:
             )
             logger.info(f"Loaded Excel file: {len(self.parts_data)} total rows")
 
-            # Ensure Long Text JDE exists (enrich from reference if needed)
-            self.parts_data = self._enrich_long_text_jde_if_missing(
+            # Always set Long Text JDE from reference catalog
+            self.parts_data = self._ensure_long_text_jde(
                 self.parts_data,
                 excel_file_path=excel_path,
                 reference_excel_path=ref_path,
