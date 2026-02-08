@@ -945,31 +945,6 @@ export const PartsTrackingDashboard: React.FC = () => {
         </div>
       </div>
 
-      {progress.progress_percentage > 0 && (
-        <div style={{
-          padding: mobileSpacing.md,
-          backgroundColor: `${colors.primary.main}10`,
-          borderRadius: borderRadius.md,
-          marginBottom: mobileSpacing.lg,
-          textAlign: 'center',
-        }}>
-          <div style={{
-            fontSize: mobileTypography.fontSize.lg,
-            fontWeight: typography.fontWeight.semibold,
-            color: colors.text.primary,
-            marginBottom: mobileSpacing.xs,
-          }}>
-            {progress.progress_percentage.toFixed(1)}% Complete
-          </div>
-          <div style={{
-            fontSize: mobileTypography.fontSize.sm,
-            color: colors.text.secondary,
-          }}>
-            Success Rate: {progress.success_rate.toFixed(1)}%
-          </div>
-        </div>
-      )}
-
       <div style={styles.tabsContainer}>
         {[
           { key: 'overview', label: 'Overview' },
