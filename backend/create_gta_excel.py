@@ -7,7 +7,7 @@ import sys
 def create_gta_excel():
     print("🔍 Creating GTA-filtered Excel file...")
 
-    input_file = "egtl_cleaned_OPTIMIZED_20260124_131513.xlsx"
+    input_file = "backend/data/Total EGTL Photo Project.xlsx"
     output_file = "egtl_GTA_BOH_filtered.xlsx"
 
     try:
@@ -18,12 +18,12 @@ def create_gta_excel():
             'Whs', 'Location', 'Loc Type', 'Symbol Number',
             'Desc1', 'Desc2', 'Long Text Desc', 'UOM', 'BOH',
             'Min', 'Max', 'Item Pool', 'Unit Cost ($)', 'Unit Cost(N)',
-            'Mfg Name', 'Part No', 'JDE long Text', 'DATA_FLAG'
+            'Mfg Name', 'Part No'
         ]
 
         # Load only the required columns
         print("📋 Loading essential columns...")
-        df = pd.read_excel(input_file, sheet_name='DATA', usecols=required_columns)
+        df = pd.read_excel(input_file, sheet_name='Photo Data', usecols=required_columns)
 
         print(f"✅ Loaded {len(df)} total rows")
         print(f"📊 Columns: {list(df.columns)}")

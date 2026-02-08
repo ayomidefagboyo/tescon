@@ -1268,13 +1268,22 @@ async def sync_tracker_from_r2():
         # Update tracker
         print(f"📊 Found {len(processed_parts)} processed, {len(queued_parts)} queued")
         
+        # Preserve existing stats timestamps where possible
+        preserved_stats = {}
+        for symbol_number in processed_parts:
+            if symbol_number in tracker.part_stats:
+                old_stats = tracker.part_stats[symbol_number]
+                # Preserve completed_at if it exists
+                if old_stats.get('status') == 'completed' and old_stats.get('completed_at'):
+                    preserved_stats[symbol_number] = old_stats
+        
         # Clear current tracker state
         tracker.processed_parts.clear()
         tracker.queued_parts.clear()
         tracker.failed_parts.clear()
         tracker.part_stats.clear()
         
-        # Add processed parts
+        # Add processed parts (remove from queued automatically via mark_part_processed)
         for symbol_number in processed_parts:
             # Count images for this part
             prefix = f"parts/{symbol_number}/"
@@ -1283,18 +1292,28 @@ async def sync_tracker_from_r2():
                 Prefix=prefix
             )
             image_count = len(response.get('Contents', []))
-            tracker.mark_part_processed(symbol_number, image_count)
+            
+            # Preserve completed_at timestamp if available
+            if symbol_number in preserved_stats:
+                old_stats = preserved_stats[symbol_number]
+                tracker.mark_part_processed(symbol_number, image_count)
+                # Restore timestamp
+                if symbol_number in tracker.part_stats:
+                    tracker.part_stats[symbol_number]['completed_at'] = old_stats['completed_at']
+            else:
+                tracker.mark_part_processed(symbol_number, image_count)
         
-        # Add queued parts
+        # Add queued parts (only if not already processed)
         for symbol_number in queued_parts:
-            # Count raw images
-            prefix = f"raw/{symbol_number}/"
-            response = r2_storage.s3_client.list_objects_v2(
-                Bucket=r2_storage.bucket_name,
-                Prefix=prefix
-            )
-            image_count = len(response.get('Contents', []))
-            tracker.mark_part_queued(symbol_number, image_count)
+            if symbol_number not in processed_parts:
+                # Count raw images
+                prefix = f"raw/{symbol_number}/"
+                response = r2_storage.s3_client.list_objects_v2(
+                    Bucket=r2_storage.bucket_name,
+                    Prefix=prefix
+                )
+                image_count = len(response.get('Contents', []))
+                tracker.mark_part_queued(symbol_number, image_count)
         
         # Save tracker
         tracker.save_tracker()

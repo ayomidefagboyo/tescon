@@ -150,6 +150,24 @@ class PartsTracker:
         if self.total_parts > 0:
             progress_percentage = (processed_count / self.total_parts) * 100
 
+        # Calculate daily stats
+        today = datetime.now().date().isoformat()
+        completed_today = sum(
+            1 for stats in self.part_stats.values()
+            if stats.get('status') == 'completed' 
+            and stats.get('completed_at', '').startswith(today)
+        )
+        queued_today = sum(
+            1 for stats in self.part_stats.values()
+            if stats.get('status') == 'queued'
+            and stats.get('queued_at', '').startswith(today)
+        )
+        failed_today = sum(
+            1 for stats in self.part_stats.values()
+            if stats.get('status') == 'failed'
+            and stats.get('failed_at', '').startswith(today)
+        )
+
         return {
             'total_parts': self.total_parts,
             'processed_count': processed_count,
@@ -157,7 +175,10 @@ class PartsTracker:
             'queued_count': queued_count,
             'remaining_count': remaining_count,
             'progress_percentage': round(progress_percentage, 2),
-            'success_rate': round((processed_count / max(1, processed_count + failed_count)) * 100, 2)
+            'success_rate': round((processed_count / max(1, processed_count + failed_count)) * 100, 2),
+            'completed_today': completed_today,
+            'queued_today': queued_today,
+            'failed_today': failed_today
         }
 
     def get_queued_parts(self) -> List[str]:

@@ -12,6 +12,9 @@ interface ProgressStats {
   remaining_count: number;
   progress_percentage: number;
   success_rate: number;
+  completed_today?: number;
+  queued_today?: number;
+  failed_today?: number;
 }
 
 interface PartStats {
@@ -499,15 +502,10 @@ export const PartsTrackingDashboard: React.FC = () => {
       default:
         // Calculate daily progress using queued parts (uploaded today)
         // This tracks upload activity, not processing (which happens later via GitHub Actions)
-        const today = new Date().toISOString().split('T')[0];
-        const queuedToday = queued_parts.filter(partNum => {
-          const partStats = trackerData?.part_stats?.[partNum];
-          if (!partStats?.queued_at) return false;
-          // Check if queued_at date matches today
-          const queuedDate = partStats.queued_at.split('T')[0];
-          return queuedDate === today;
-        }).length;
-
+        const completedToday = progress.completed_today || 0;
+        const queuedToday = progress.queued_today || 0;
+        const failedToday = progress.failed_today || 0;
+        
         const dailyProgress = (queuedToday / dailyTarget) * 100;
 
         return (
@@ -611,6 +609,11 @@ export const PartsTrackingDashboard: React.FC = () => {
                     textAlign: 'right'
                   }}>
                     {dailyProgress.toFixed(1)}% of daily target
+                    {completedToday > 0 && (
+                      <span style={{ marginLeft: spacing.xs, color: colors.success }}>
+                        ({completedToday} completed today)
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -763,7 +766,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                   color: colors.text.tertiary,
                   marginTop: spacing.xs
                 }}>
-                  Awaiting processing
+                  {queuedToday > 0 ? `${queuedToday} queued today` : 'Awaiting processing'}
                 </div>
               </div>
 
