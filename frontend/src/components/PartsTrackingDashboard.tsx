@@ -121,9 +121,8 @@ export const PartsTrackingDashboard: React.FC = () => {
     try {
       const result = await syncTrackerFromR2();
       console.log('Sync result:', result);
-      // Refresh tracker data after sync
+      // Refresh tracker data after sync (silent update, no alert)
       await fetchTrackerData();
-      alert(`Sync completed! ${result.stats.processed_count} processed, ${result.stats.queued_count} queued`);
     } catch (error) {
       console.error('Failed to sync tracker:', error);
       alert('Failed to sync tracker with R2 storage. Please try again.');
