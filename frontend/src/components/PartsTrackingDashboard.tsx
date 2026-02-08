@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp, Calendar, Download, Filter } from "lucide-react";
+import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp, Calendar, Download } from "lucide-react";
 import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel } from "../services/api";
 
 interface ProgressStats {
@@ -675,15 +675,15 @@ export const PartsTrackingDashboard: React.FC = () => {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.xs }}>
                         <span>Completed:</span>
-                        <strong>{dailyStatsData.completed_count}</strong>
+                        <strong style={{ color: colors.success }}>{dailyStatsData.completed_count}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.xs }}>
                         <span>Queued:</span>
-                        <strong>{dailyStatsData.queued_count}</strong>
+                        <strong style={{ color: colors.warning }}>{dailyStatsData.queued_count}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Failed:</span>
-                        <strong>{dailyStatsData.failed_count}</strong>
+                        <strong style={{ color: failedToday > 0 ? colors.error : colors.text.secondary }}>{dailyStatsData.failed_count}</strong>
                       </div>
                     </div>
                   )}
