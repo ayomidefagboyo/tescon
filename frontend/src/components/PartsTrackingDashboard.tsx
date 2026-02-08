@@ -1,8 +1,8 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp, Calendar, Download } from "lucide-react";
-import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel } from "../services/api";
+import { BarChart, CheckCircle, Clock, RefreshCw, Search, TrendingUp, Calendar, Download, CloudSync } from "lucide-react";
+import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, syncTrackerFromR2 } from "../services/api";
 
 interface ProgressStats {
   total_parts: number;
@@ -146,6 +146,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsStatus, setDailyStatsStatus] = useState<string>('all');
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const dailyTarget = 300; // Fixed target: 300 parts per day
 
   const fetchTrackerData = async () => {
@@ -213,6 +214,22 @@ export const PartsTrackingDashboard: React.FC = () => {
       alert('Failed to export daily stats. Please try again.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleSyncTracker = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncTrackerFromR2();
+      console.log('Sync result:', result);
+      // Refresh tracker data after sync
+      await fetchTrackerData();
+      alert(`Sync completed! ${result.stats.processed_count} processed, ${result.stats.queued_count} queued`);
+    } catch (error) {
+      console.error('Failed to sync tracker:', error);
+      alert('Failed to sync tracker with R2 storage. Please try again.');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -539,14 +556,7 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       default:
-        // Calculate daily progress using queued parts (uploaded today)
-        // This tracks upload activity, not processing (which happens later via GitHub Actions)
-        const completedToday = progress.completed_today || 0;
-        const queuedToday = progress.queued_today || 0;
-        const failedToday = progress.failed_today || 0;
-        
-        const dailyProgress = (queuedToday / dailyTarget) * 100;
-
+        // Render Daily Activity card with stats from dailyStatsData
         return (
           <>
             {/* Top Section: Daily Target, Completion ETA, Progress Distribution - Side by Side */}
@@ -556,7 +566,7 @@ export const PartsTrackingDashboard: React.FC = () => {
               gap: spacing.lg,
               marginBottom: spacing.lg
             }}>
-              {/* Daily Target */}
+              {/* Daily Activity */}
               <div style={{
                 backgroundColor: colors.background.main,
                 padding: spacing.lg,
@@ -575,7 +585,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <Target size={20} color={colors.primary.main} />
+                      <Calendar size={20} color={colors.primary.main} />
                     </div>
                     <h3 style={{
                       fontSize: typography.fontSize.lg,
@@ -583,12 +593,12 @@ export const PartsTrackingDashboard: React.FC = () => {
                       color: colors.text.primary,
                       margin: 0
                     }}>
-                      Daily Target
+                      Daily Activity
                     </h3>
                   </div>
                   {dailyStatsData && (
                     <div style={{
-                      fontSize: typography.fontSize.xs,
+                      fontSize: typography.fontSize.sm,
                       color: colors.text.secondary,
                       textAlign: 'right'
                     }}>
@@ -597,97 +607,66 @@ export const PartsTrackingDashboard: React.FC = () => {
                   )}
                 </div>
 
-                <div style={{ marginBottom: spacing.md }}>
+                {dailyStatsData ? (
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    marginBottom: spacing.sm
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: spacing.md
                   }}>
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                      Target:
-                    </span>
-                    <span style={{
-                      fontSize: typography.fontSize.base,
-                      fontWeight: typography.fontWeight.semibold,
-                      color: colors.text.primary,
-                      margin: `0 ${spacing.xs}`
-                    }}>
-                      {dailyTarget}
-                    </span>
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                      symbol numbers/day
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: spacing.xs
-                  }}>
-                    <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary }}>
-                      Today's Progress
-                    </span>
-                    <span style={{
-                      fontSize: typography.fontSize.lg,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary
-                    }}>
-                      {queuedToday} / {dailyTarget}
-                    </span>
-                  </div>
-                  <div style={{
-                    height: '10px',
-                    backgroundColor: colors.neutral[200],
-                    borderRadius: borderRadius.full,
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${Math.min(dailyProgress, 100)}%`,
-                      backgroundColor: dailyProgress >= 100 ? colors.success : colors.primary.main,
-                      transition: transitions.base,
-                      borderRadius: borderRadius.full
-                    }} />
-                  </div>
-                  <div style={{
-                    fontSize: typography.fontSize.xs,
-                    color: colors.text.tertiary,
-                    marginTop: spacing.xs,
-                    textAlign: 'right'
-                  }}>
-                    {dailyProgress.toFixed(1)}% of daily target
-                    {completedToday > 0 && (
-                      <span style={{ marginLeft: spacing.xs, color: colors.success }}>
-                        ({completedToday} completed today)
-                      </span>
-                    )}
-                  </div>
-                  {dailyStatsData && (
-                    <div style={{
-                      fontSize: typography.fontSize.xs,
-                      color: colors.text.secondary,
-                      marginTop: spacing.xs,
-                      paddingTop: spacing.xs,
-                      borderTop: `1px solid ${colors.neutral[200]}`
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-                        <span>Completed:</span>
-                        <strong style={{ color: colors.success }}>{dailyStatsData.completed_count}</strong>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: typography.fontSize['2xl'],
+                        fontWeight: typography.fontWeight.bold,
+                        color: colors.success,
+                        marginBottom: spacing.xs
+                      }}>
+                        {dailyStatsData.completed_count}
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-                        <span>Queued:</span>
-                        <strong style={{ color: colors.warning }}>{dailyStatsData.queued_count}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Failed:</span>
-                        <strong style={{ color: failedToday > 0 ? colors.error : colors.text.secondary }}>{dailyStatsData.failed_count}</strong>
+                      <div style={{
+                        fontSize: typography.fontSize.xs,
+                        color: colors.text.secondary
+                      }}>
+                        Completed
                       </div>
                     </div>
-                  )}
-                </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: typography.fontSize['2xl'],
+                        fontWeight: typography.fontWeight.bold,
+                        color: colors.warning,
+                        marginBottom: spacing.xs
+                      }}>
+                        {dailyStatsData.queued_count}
+                      </div>
+                      <div style={{
+                        fontSize: typography.fontSize.xs,
+                        color: colors.text.secondary
+                      }}>
+                        Queued
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: typography.fontSize['2xl'],
+                        fontWeight: typography.fontWeight.bold,
+                        color: dailyStatsData.failed_count > 0 ? colors.error : colors.text.secondary,
+                        marginBottom: spacing.xs
+                      }}>
+                        {dailyStatsData.failed_count}
+                      </div>
+                      <div style={{
+                        fontSize: typography.fontSize.xs,
+                        color: colors.text.secondary
+                      }}>
+                        Failed
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: colors.text.secondary, padding: spacing.md }}>
+                    Loading daily stats...
+                  </div>
+                )}
               </div>
 
               {/* Completion ETA */}
@@ -838,7 +817,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                   color: colors.text.tertiary,
                   marginTop: spacing.xs
                 }}>
-                  {queuedToday > 0 ? `${queuedToday} queued today` : 'Awaiting processing'}
+                  {progress.queued_today && progress.queued_today > 0 ? `${progress.queued_today} queued today` : 'Awaiting processing'}
                 </div>
               </div>
 
@@ -928,6 +907,25 @@ export const PartsTrackingDashboard: React.FC = () => {
               </button>
             </>
           )}
+          <button
+            style={{
+              ...styles.refreshButton,
+              backgroundColor: colors.warning
+            }}
+            onClick={handleSyncTracker}
+            disabled={syncing}
+            onMouseEnter={(e) => {
+              if (!syncing) {
+                e.currentTarget.style.backgroundColor = '#d97706';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.warning;
+            }}
+          >
+            <CloudSync size={16} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+            {syncing ? 'Syncing...' : 'Sync R2'}
+          </button>
           <button
             style={styles.refreshButton}
             onClick={fetchTrackerData}

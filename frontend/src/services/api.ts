@@ -180,3 +180,8 @@ export async function exportDailyStatsExcel(date?: string, status?: string): Pro
   });
   return response.data;
 }
+
+export async function syncTrackerFromR2(): Promise<any> {
+  const response = await api.post('/tracker/sync-from-r2');
+  return response.data;
+}
