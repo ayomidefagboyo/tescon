@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, Clock, RefreshCw, Search, TrendingUp, Calendar, Download, CloudSync } from "lucide-react";
+import { BarChart, RefreshCw, Search, Download, CloudSync } from "lucide-react";
 import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, syncTrackerFromR2 } from "../services/api";
 
 interface ProgressStats {
@@ -36,106 +36,6 @@ interface TrackerData {
   part_stats: { [key: string]: PartStats };  // Symbol number -> detailed stats
 }
 
-// Pie Chart Component
-interface PieChartProps {
-  processed: number;
-  queued: number;
-  failed: number;
-  remaining: number;
-}
-
-const PieChart: React.FC<PieChartProps> = ({ processed, queued, failed, remaining }) => {
-  const total = processed + queued + failed + remaining;
-
-  if (total === 0) {
-    return <div style={{ textAlign: 'center', padding: '40px', color: colors.text.secondary }}>No data available</div>;
-  }
-
-  // Calculate percentages
-  const processedPercent = (processed / total) * 100;
-  const queuedPercent = (queued / total) * 100;
-  const failedPercent = (failed / total) * 100;
-  const remainingPercent = (remaining / total) * 100;
-
-  // Calculate cumulative angles for SVG
-  let currentAngle = 0;
-  const segments = [
-    { label: 'Processed', value: processed, percent: processedPercent, color: colors.success, angle: currentAngle },
-    { label: 'Queued', value: queued, percent: queuedPercent, color: colors.warning, angle: currentAngle += processedPercent * 3.6 },
-    { label: 'Failed', value: failed, percent: failedPercent, color: colors.error, angle: currentAngle += queuedPercent * 3.6 },
-    { label: 'Remaining', value: remaining, percent: remainingPercent, color: colors.neutral[400], angle: currentAngle += failedPercent * 3.6 }
-  ].filter(seg => seg.value > 0);
-
-  // Create SVG path for donut segment
-  const createArc = (startAngle: number, endAngle: number, radius: number, innerRadius: number) => {
-    const start = polarToCartesian(100, 100, radius, endAngle);
-    const end = polarToCartesian(100, 100, radius, startAngle);
-    const innerStart = polarToCartesian(100, 100, innerRadius, endAngle);
-    const innerEnd = polarToCartesian(100, 100, innerRadius, startAngle);
-
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-    return [
-      "M", start.x, start.y,
-      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
-      "L", innerEnd.x, innerEnd.y,
-      "A", innerRadius, innerRadius, 0, largeArcFlag, 1, innerStart.x, innerStart.y,
-      "Z"
-    ].join(" ");
-  };
-
-  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-    return {
-      x: centerX + (radius * Math.cos(angleInRadians)),
-      y: centerY + (radius * Math.sin(angleInRadians))
-    };
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobileSpacing.md }}>
-      {/* SVG Donut Chart */}
-      <svg width="200" height="200" viewBox="0 0 200 200">
-        {segments.map((seg, idx) => {
-          const nextAngle = idx < segments.length - 1 ? segments[idx + 1].angle : 360;
-          return (
-            <path
-              key={seg.label}
-              d={createArc(seg.angle, nextAngle, 80, 50)}
-              fill={seg.color}
-              opacity="0.9"
-            />
-          );
-        })}
-        {/* Center text */}
-        <text x="100" y="95" textAnchor="middle" fontSize="24" fontWeight="bold" fill={colors.text.primary}>
-          {((processed / total) * 100).toFixed(1)}%
-        </text>
-        <text x="100" y="115" textAnchor="middle" fontSize="12" fill={colors.text.secondary}>
-          Complete
-        </text>
-      </svg>
-
-      {/* Legend */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: mobileSpacing.sm, width: '100%' }}>
-        {segments.map(seg => (
-          <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: mobileSpacing.xs }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '2px',
-              backgroundColor: seg.color
-            }} />
-            <span style={{ fontSize: mobileTypography.fontSize.xs, color: colors.text.secondary }}>
-              {seg.label}: {seg.value.toLocaleString()}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 export const PartsTrackingDashboard: React.FC = () => {
   const [trackerData, setTrackerData] = useState<TrackerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +47,6 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const dailyTarget = 300; // Fixed target: 300 parts per day
 
   const fetchTrackerData = async () => {
     setRefreshing(true);
@@ -556,53 +455,44 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       default:
-        // Render Daily Activity card with stats from dailyStatsData
+        // Render simplified premium overview
         return (
           <>
-            {/* Top Section: Daily Target, Completion ETA, Progress Distribution - Side by Side */}
+            {/* Main Stats - 2 cards side by side */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: spacing.lg,
-              marginBottom: spacing.lg
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: spacing.xl,
+              marginBottom: spacing.xl
             }}>
               {/* Daily Activity */}
               <div style={{
                 backgroundColor: colors.background.main,
-                padding: spacing.lg,
-                borderRadius: borderRadius.lg,
-                boxShadow: shadows.sm,
+                padding: spacing.xl,
+                borderRadius: borderRadius.xl,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                 border: `1px solid ${colors.neutral[200]}`
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: borderRadius.lg,
-                      backgroundColor: `${colors.primary.main}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Calendar size={20} color={colors.primary.main} />
-                    </div>
-                    <h3 style={{
-                      fontSize: typography.fontSize.lg,
-                      fontWeight: typography.fontWeight.bold,
-                      color: colors.text.primary,
-                      margin: 0
-                    }}>
-                      Daily Activity
-                    </h3>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}>
+                  <h3 style={{
+                    fontSize: typography.fontSize.xl,
+                    fontWeight: typography.fontWeight.bold,
+                    color: colors.text.primary,
+                    margin: 0,
+                    letterSpacing: '-0.5px'
+                  }}>
+                    Daily Activity
+                  </h3>
                   {dailyStatsData && (
                     <div style={{
                       fontSize: typography.fontSize.sm,
                       color: colors.text.secondary,
-                      textAlign: 'right'
+                      fontWeight: typography.fontWeight.medium,
+                      backgroundColor: `${colors.neutral[100]}`,
+                      padding: `${spacing.xs} ${spacing.md}`,
+                      borderRadius: borderRadius.full
                     }}>
-                      {dailyStatsData.date}
+                      {new Date(dailyStatsData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   )}
                 </div>
@@ -611,229 +501,205 @@ export const PartsTrackingDashboard: React.FC = () => {
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: spacing.md
+                    gap: spacing.xl
                   }}>
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', padding: spacing.md }}>
                       <div style={{
-                        fontSize: typography.fontSize['2xl'],
+                        fontSize: '3rem',
                         fontWeight: typography.fontWeight.bold,
                         color: colors.success,
-                        marginBottom: spacing.xs
+                        marginBottom: spacing.sm,
+                        letterSpacing: '-1px'
                       }}>
                         {dailyStatsData.completed_count}
                       </div>
                       <div style={{
-                        fontSize: typography.fontSize.xs,
-                        color: colors.text.secondary
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.secondary,
+                        fontWeight: typography.fontWeight.medium,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
                       }}>
                         Completed
                       </div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', padding: spacing.md }}>
                       <div style={{
-                        fontSize: typography.fontSize['2xl'],
+                        fontSize: '3rem',
                         fontWeight: typography.fontWeight.bold,
                         color: colors.warning,
-                        marginBottom: spacing.xs
+                        marginBottom: spacing.sm,
+                        letterSpacing: '-1px'
                       }}>
                         {dailyStatsData.queued_count}
                       </div>
                       <div style={{
-                        fontSize: typography.fontSize.xs,
-                        color: colors.text.secondary
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.secondary,
+                        fontWeight: typography.fontWeight.medium,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
                       }}>
                         Queued
                       </div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', padding: spacing.md }}>
                       <div style={{
-                        fontSize: typography.fontSize['2xl'],
+                        fontSize: '3rem',
                         fontWeight: typography.fontWeight.bold,
-                        color: dailyStatsData.failed_count > 0 ? colors.error : colors.text.secondary,
-                        marginBottom: spacing.xs
+                        color: dailyStatsData.failed_count > 0 ? colors.error : colors.neutral[300],
+                        marginBottom: spacing.sm,
+                        letterSpacing: '-1px'
                       }}>
                         {dailyStatsData.failed_count}
                       </div>
                       <div style={{
-                        fontSize: typography.fontSize.xs,
-                        color: colors.text.secondary
+                        fontSize: typography.fontSize.sm,
+                        color: colors.text.secondary,
+                        fontWeight: typography.fontWeight.medium,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
                       }}>
                         Failed
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', color: colors.text.secondary, padding: spacing.md }}>
+                  <div style={{ textAlign: 'center', color: colors.text.secondary, padding: spacing.xl }}>
                     Loading daily stats...
                   </div>
                 )}
               </div>
 
-              {/* Completion ETA */}
+              {/* Overall Progress Summary */}
               <div style={{
                 backgroundColor: colors.background.main,
-                padding: spacing.lg,
-                borderRadius: borderRadius.lg,
-                boxShadow: shadows.sm,
-                border: `1px solid ${colors.neutral[200]}`
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: borderRadius.lg,
-                    backgroundColor: `${colors.primary.main}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Calendar size={20} color={colors.primary.main} />
-                  </div>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.text.primary,
-                    margin: 0
-                  }}>
-                    Completion ETA
-                  </h3>
-                </div>
-
-                <div style={{ textAlign: 'center', padding: `${spacing.md} 0` }}>
-                  <div style={{
-                    fontSize: typography.fontSize['2xl'],
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.primary.main,
-                    marginBottom: spacing.xs
-                  }}>
-                    {(() => {
-                      if (progress.remaining_count === 0) return 'Complete!';
-
-                      const daysRemaining = Math.ceil(progress.remaining_count / dailyTarget);
-                      const completionDate = new Date();
-                      completionDate.setDate(completionDate.getDate() + daysRemaining);
-
-                      return completionDate.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      });
-                    })()}
-                  </div>
-                  <div style={{
-                    fontSize: typography.fontSize.sm,
-                    color: colors.text.secondary
-                  }}>
-                    {progress.remaining_count === 0
-                      ? 'All parts uploaded! 🎉'
-                      : `${Math.ceil(progress.remaining_count / dailyTarget).toLocaleString()} days remaining`
-                    }
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Distribution */}
-              <div style={{
-                backgroundColor: colors.background.main,
-                padding: spacing.lg,
-                borderRadius: borderRadius.lg,
-                boxShadow: shadows.sm,
+                padding: spacing.xl,
+                borderRadius: borderRadius.xl,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                 border: `1px solid ${colors.neutral[200]}`
               }}>
                 <h3 style={{
-                  fontSize: typography.fontSize.lg,
+                  fontSize: typography.fontSize.xl,
                   fontWeight: typography.fontWeight.bold,
-                  marginBottom: spacing.md,
-                  color: colors.text.primary
-                }}>Progress Distribution</h3>
+                  color: colors.text.primary,
+                  marginBottom: spacing.lg,
+                  letterSpacing: '-0.5px'
+                }}>
+                  Overall Progress
+                </h3>
 
                 <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: spacing.lg,
+                  marginBottom: spacing.lg
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: typography.fontSize.sm,
+                      color: colors.text.secondary,
+                      marginBottom: spacing.xs,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      fontWeight: typography.fontWeight.medium
+                    }}>
+                      Catalog
+                    </div>
+                    <div style={{
+                      fontSize: typography.fontSize['2xl'],
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                      letterSpacing: '-1px'
+                    }}>
+                      {progress.total_parts.toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize: typography.fontSize.sm,
+                      color: colors.text.secondary,
+                      marginBottom: spacing.xs,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      fontWeight: typography.fontWeight.medium
+                    }}>
+                      Completed
+                    </div>
+                    <div style={{
+                      fontSize: typography.fontSize['2xl'],
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.success,
+                      letterSpacing: '-1px'
+                    }}>
+                      {progress.processed_count.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{
+                  marginTop: spacing.md
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: spacing.sm
+                  }}>
+                    <span style={{
+                      fontSize: typography.fontSize.sm,
+                      color: colors.text.secondary,
+                      fontWeight: typography.fontWeight.medium
+                    }}>
+                      Progress
+                    </span>
+                    <span style={{
+                      fontSize: typography.fontSize.sm,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.primary.main
+                    }}>
+                      {progress.progress_percentage.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div style={{
+                    height: '12px',
+                    backgroundColor: colors.neutral[200],
+                    borderRadius: borderRadius.full,
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${progress.progress_percentage}%`,
+                      background: `linear-gradient(90deg, ${colors.success} 0%, ${colors.primary.main} 100%)`,
+                      transition: 'width 0.6s ease',
+                      borderRadius: borderRadius.full
+                    }} />
+                  </div>
+                </div>
+
+                {/* Success rate */}
+                <div style={{
+                  marginTop: spacing.lg,
+                  paddingTop: spacing.lg,
+                  borderTop: `1px solid ${colors.neutral[200]}`,
                   display: 'flex',
-                  justifyContent: 'center',
+                  justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <PieChart
-                    processed={progress.processed_count}
-                    queued={progress.queued_count}
-                    failed={progress.failed_count}
-                    remaining={progress.remaining_count}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Stats Grid - 2 per row */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-              gap: spacing.lg,
-              marginBottom: spacing.lg
-            }}>
-              {/* Total Parts */}
-              <div style={styles.statCard}>
-                <div style={{ ...styles.statIcon, backgroundColor: `${colors.primary.main}20` }}>
-                  <BarChart size={24} color={colors.primary.main} />
-                </div>
-                <div style={styles.statValue}>{progress.total_parts.toLocaleString()}</div>
-                <div style={styles.statLabel}>Total Parts</div>
-                <div style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.tertiary,
-                  marginTop: spacing.xs
-                }}>
-                  From Excel catalog
-                </div>
-              </div>
-
-              {/* Processed */}
-              <div style={styles.statCard}>
-                <div style={{ ...styles.statIcon, backgroundColor: `${colors.success}20` }}>
-                  <CheckCircle size={24} color={colors.success} />
-                </div>
-                <div style={styles.statValue}>{progress.processed_count.toLocaleString()}</div>
-                <div style={styles.statLabel}>Processed</div>
-                <div style={styles.progressBar}>
-                  <div style={{ ...styles.progressFill, width: `${progress.progress_percentage}%` }} />
-                </div>
-                <div style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.tertiary,
-                  marginTop: spacing.xs,
-                  textAlign: 'right'
-                }}>
-                  {progress.progress_percentage.toFixed(1)}% complete
-                </div>
-              </div>
-
-              {/* Queued */}
-              <div style={styles.statCard}>
-                <div style={{ ...styles.statIcon, backgroundColor: `${colors.warning}20` }}>
-                  <Clock size={24} color={colors.warning} />
-                </div>
-                <div style={styles.statValue}>{progress.queued_count.toLocaleString()}</div>
-                <div style={styles.statLabel}>Queued</div>
-                <div style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.tertiary,
-                  marginTop: spacing.xs
-                }}>
-                  {progress.queued_today && progress.queued_today > 0 ? `${progress.queued_today} queued today` : 'Awaiting processing'}
-                </div>
-              </div>
-
-              {/* Success Rate */}
-              <div style={styles.statCard}>
-                <div style={{ ...styles.statIcon, backgroundColor: `${colors.success}20` }}>
-                  <TrendingUp size={24} color={colors.success} />
-                </div>
-                <div style={styles.statValue}>{progress.success_rate.toFixed(1)}%</div>
-                <div style={styles.statLabel}>Success Rate</div>
-                <div style={{
-                  fontSize: typography.fontSize.xs,
-                  color: colors.text.tertiary,
-                  marginTop: spacing.xs
-                }}>
-                  {progress.failed_count} failed of {progress.processed_count + progress.failed_count} attempted
+                  <span style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                    fontWeight: typography.fontWeight.medium
+                  }}>
+                    Success Rate
+                  </span>
+                  <span style={{
+                    fontSize: typography.fontSize.lg,
+                    fontWeight: typography.fontWeight.bold,
+                    color: progress.success_rate >= 95 ? colors.success : colors.warning
+                  }}>
+                    {progress.success_rate.toFixed(1)}%
+                  </span>
                 </div>
               </div>
             </div>
