@@ -951,6 +951,194 @@ async def get_queued_parts():
     }
 
 
+@router.get("/tracker/daily-stats")
+async def get_daily_stats(
+    date: Optional[str] = Query(None, description="Date filter (YYYY-MM-DD), defaults to today"),
+    status: Optional[str] = Query(None, description="Filter by status: completed, queued, failed")
+):
+    """
+    Get daily statistics with optional date and status filters.
+    
+    Returns parts completed/queued/failed on a specific date.
+    """
+    tracker = get_parts_tracker()
+    
+    from datetime import datetime
+    if date:
+        try:
+            filter_date = datetime.fromisoformat(date).date().isoformat()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    else:
+        filter_date = datetime.now().date().isoformat()
+    
+    results = {
+        'date': filter_date,
+        'completed': [],
+        'queued': [],
+        'failed': []
+    }
+    
+    for symbol_number, stats in tracker.part_stats.items():
+        part_status = stats.get('status')
+        
+        # Filter by status if provided
+        if status and part_status != status:
+            continue
+        
+        # Check completed
+        if part_status == 'completed' and stats.get('completed_at', '').startswith(filter_date):
+            results['completed'].append({
+                'symbol_number': symbol_number,
+                'completed_at': stats.get('completed_at'),
+                'image_count': stats.get('image_count'),
+                'processing_time': stats.get('processing_time')
+            })
+        
+        # Check queued
+        if part_status == 'queued' and stats.get('queued_at', '').startswith(filter_date):
+            results['queued'].append({
+                'symbol_number': symbol_number,
+                'queued_at': stats.get('queued_at'),
+                'image_count': stats.get('image_count')
+            })
+        
+        # Check failed
+        if part_status == 'failed' and stats.get('failed_at', '').startswith(filter_date):
+            results['failed'].append({
+                'symbol_number': symbol_number,
+                'failed_at': stats.get('failed_at'),
+                'error_reason': stats.get('error_reason')
+            })
+    
+    # Sort by timestamp
+    results['completed'].sort(key=lambda x: x.get('completed_at', ''), reverse=True)
+    results['queued'].sort(key=lambda x: x.get('queued_at', ''), reverse=True)
+    results['failed'].sort(key=lambda x: x.get('failed_at', ''), reverse=True)
+    
+    return {
+        'date': filter_date,
+        'completed_count': len(results['completed']),
+        'queued_count': len(results['queued']),
+        'failed_count': len(results['failed']),
+        'completed': results['completed'],
+        'queued': results['queued'],
+        'failed': results['failed']
+    }
+
+
+@router.get("/tracker/export-daily-stats")
+async def export_daily_stats_excel(
+    date: Optional[str] = Query(None, description="Date filter (YYYY-MM-DD), defaults to today"),
+    status: Optional[str] = Query(None, description="Filter by status: completed, queued, failed, all")
+):
+    """
+    Export daily statistics as Excel file.
+    
+    Generates Excel with sheets for completed, queued, and failed parts for the specified date.
+    """
+    import pandas as pd
+    import io
+    from datetime import datetime
+    from fastapi.responses import StreamingResponse
+    
+    tracker = get_parts_tracker()
+    
+    if date:
+        try:
+            filter_date = datetime.fromisoformat(date).date().isoformat()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    else:
+        filter_date = datetime.now().date().isoformat()
+    
+    # Collect data
+    completed_data = []
+    queued_data = []
+    failed_data = []
+    
+    for symbol_number, stats in tracker.part_stats.items():
+        part_status = stats.get('status')
+        
+        # Filter by status if provided
+        if status and status != 'all' and part_status != status:
+            continue
+        
+        # Completed
+        if part_status == 'completed' and stats.get('completed_at', '').startswith(filter_date):
+            completed_data.append({
+                'Symbol Number': symbol_number,
+                'Completed At': stats.get('completed_at', ''),
+                'Image Count': stats.get('image_count', 0),
+                'Processing Time (s)': stats.get('processing_time')
+            })
+        
+        # Queued
+        if part_status == 'queued' and stats.get('queued_at', '').startswith(filter_date):
+            queued_data.append({
+                'Symbol Number': symbol_number,
+                'Queued At': stats.get('queued_at', ''),
+                'Image Count': stats.get('image_count', 0)
+            })
+        
+        # Failed
+        if part_status == 'failed' and stats.get('failed_at', '').startswith(filter_date):
+            failed_data.append({
+                'Symbol Number': symbol_number,
+                'Failed At': stats.get('failed_at', ''),
+                'Error Reason': stats.get('error_reason', '')
+            })
+    
+    # Create Excel in memory
+    excel_buffer = io.BytesIO()
+    
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        # Summary sheet
+        summary_df = pd.DataFrame([{
+            'Date': filter_date,
+            'Completed': len(completed_data),
+            'Queued': len(queued_data),
+            'Failed': len(failed_data),
+            'Total': len(completed_data) + len(queued_data) + len(failed_data)
+        }])
+        summary_df.to_excel(writer, sheet_name='Summary', index=False)
+        
+        # Completed sheet
+        if completed_data:
+            completed_df = pd.DataFrame(completed_data)
+            completed_df.to_excel(writer, sheet_name='Completed', index=False)
+        else:
+            pd.DataFrame([{'Symbol Number': 'No data', 'Completed At': '', 'Image Count': 0, 'Processing Time (s)': ''}]).to_excel(writer, sheet_name='Completed', index=False)
+        
+        # Queued sheet
+        if queued_data:
+            queued_df = pd.DataFrame(queued_data)
+            queued_df.to_excel(writer, sheet_name='Queued', index=False)
+        else:
+            pd.DataFrame([{'Symbol Number': 'No data', 'Queued At': '', 'Image Count': 0}]).to_excel(writer, sheet_name='Queued', index=False)
+        
+        # Failed sheet
+        if failed_data:
+            failed_df = pd.DataFrame(failed_data)
+            failed_df.to_excel(writer, sheet_name='Failed', index=False)
+        else:
+            pd.DataFrame([{'Symbol Number': 'No data', 'Failed At': '', 'Error Reason': ''}]).to_excel(writer, sheet_name='Failed', index=False)
+    
+    excel_buffer.seek(0)
+    
+    # Generate filename
+    status_suffix = f"_{status}" if status and status != 'all' else ""
+    filename = f"daily_stats_{filter_date}{status_suffix}.xlsx"
+    
+    return StreamingResponse(
+        excel_buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
 @router.get("/tracker/parts/{symbol_number}/status")
 async def get_part_status(symbol_number: str):
     """Get detailed status of a specific part."""

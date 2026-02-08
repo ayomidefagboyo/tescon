@@ -1,8 +1,8 @@
 /** Parts tracking dashboard component */
 import React, { useState, useEffect } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp, Calendar } from "lucide-react";
-import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus } from "../services/api";
+import { BarChart, CheckCircle, Clock, RefreshCw, Search, Target, TrendingUp, Calendar, Download, Filter } from "lucide-react";
+import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel } from "../services/api";
 
 interface ProgressStats {
   total_parts: number;
@@ -142,6 +142,10 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'processed' | 'failed' | 'queued' | 'remaining'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [dailyStatsDate, setDailyStatsDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dailyStatsStatus, setDailyStatsStatus] = useState<string>('all');
+  const [dailyStatsData, setDailyStatsData] = useState<any>(null);
+  const [exporting, setExporting] = useState(false);
   const dailyTarget = 300; // Fixed target: 300 parts per day
 
   const fetchTrackerData = async () => {
@@ -176,6 +180,41 @@ export const PartsTrackingDashboard: React.FC = () => {
     const interval = setInterval(fetchTrackerData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchDailyStats = async () => {
+    try {
+      const data = await getDailyStats(dailyStatsDate, dailyStatsStatus === 'all' ? undefined : dailyStatsStatus);
+      setDailyStatsData(data);
+    } catch (error) {
+      console.error('Failed to fetch daily stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedTab === 'overview') {
+      fetchDailyStats();
+    }
+  }, [dailyStatsDate, dailyStatsStatus, selectedTab]);
+
+  const handleExportDailyStats = async () => {
+    setExporting(true);
+    try {
+      const blob = await exportDailyStatsExcel(dailyStatsDate, dailyStatsStatus === 'all' ? undefined : dailyStatsStatus);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `daily_stats_${dailyStatsDate}${dailyStatsStatus !== 'all' ? `_${dailyStatsStatus}` : ''}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to export daily stats:', error);
+      alert('Failed to export daily stats. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const resetPartStatus = async (partNumber: string) => {
     try {
@@ -525,26 +564,37 @@ export const PartsTrackingDashboard: React.FC = () => {
                 boxShadow: shadows.sm,
                 border: `1px solid ${colors.neutral[200]}`
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: borderRadius.lg,
-                    backgroundColor: `${colors.primary.main}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Target size={20} color={colors.primary.main} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: borderRadius.lg,
+                      backgroundColor: `${colors.primary.main}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Target size={20} color={colors.primary.main} />
+                    </div>
+                    <h3 style={{
+                      fontSize: typography.fontSize.lg,
+                      fontWeight: typography.fontWeight.bold,
+                      color: colors.text.primary,
+                      margin: 0
+                    }}>
+                      Daily Target
+                    </h3>
                   </div>
-                  <h3 style={{
-                    fontSize: typography.fontSize.lg,
-                    fontWeight: typography.fontWeight.bold,
-                    color: colors.text.primary,
-                    margin: 0
-                  }}>
-                    Daily Target
-                  </h3>
+                  {dailyStatsData && (
+                    <div style={{
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.secondary,
+                      textAlign: 'right'
+                    }}>
+                      {dailyStatsData.date}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ marginBottom: spacing.md }}>
@@ -615,6 +665,28 @@ export const PartsTrackingDashboard: React.FC = () => {
                       </span>
                     )}
                   </div>
+                  {dailyStatsData && (
+                    <div style={{
+                      fontSize: typography.fontSize.xs,
+                      color: colors.text.secondary,
+                      marginTop: spacing.xs,
+                      paddingTop: spacing.xs,
+                      borderTop: `1px solid ${colors.neutral[200]}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+                        <span>Completed:</span>
+                        <strong>{dailyStatsData.completed_count}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.xs }}>
+                        <span>Queued:</span>
+                        <strong>{dailyStatsData.queued_count}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Failed:</span>
+                        <strong>{dailyStatsData.failed_count}</strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -798,22 +870,81 @@ export const PartsTrackingDashboard: React.FC = () => {
           <BarChart size={32} />
           Parts Tracking Dashboard
         </div>
-        <button
-          style={styles.refreshButton}
-          onClick={fetchTrackerData}
-          disabled={refreshing}
-          onMouseEnter={(e) => {
-            if (!refreshing) {
-              e.currentTarget.style.backgroundColor = colors.primary.hover;
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = colors.primary.main;
-          }}
-        >
-          <RefreshCw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <div style={{ display: 'flex', gap: mobileSpacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
+          {selectedTab === 'overview' && (
+            <>
+              <input
+                type="date"
+                value={dailyStatsDate}
+                onChange={(e) => setDailyStatsDate(e.target.value)}
+                style={{
+                  padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
+                  border: `1px solid ${colors.neutral[300]}`,
+                  borderRadius: borderRadius.md,
+                  fontSize: mobileTypography.fontSize.sm,
+                  backgroundColor: colors.background.main,
+                  color: colors.text.primary
+                }}
+              />
+              <select
+                value={dailyStatsStatus}
+                onChange={(e) => setDailyStatsStatus(e.target.value)}
+                style={{
+                  padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
+                  border: `1px solid ${colors.neutral[300]}`,
+                  borderRadius: borderRadius.md,
+                  fontSize: mobileTypography.fontSize.sm,
+                  backgroundColor: colors.background.main,
+                  color: colors.text.primary,
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="queued">Queued</option>
+                <option value="failed">Failed</option>
+              </select>
+              <button
+                style={{
+                  ...styles.refreshButton,
+                  backgroundColor: colors.success,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: mobileSpacing.xs
+                }}
+                onClick={handleExportDailyStats}
+                disabled={exporting}
+                onMouseEnter={(e) => {
+                  if (!exporting) {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.success;
+                }}
+              >
+                <Download size={16} />
+                {exporting ? 'Exporting...' : 'Export Excel'}
+              </button>
+            </>
+          )}
+          <button
+            style={styles.refreshButton}
+            onClick={fetchTrackerData}
+            disabled={refreshing}
+            onMouseEnter={(e) => {
+              if (!refreshing) {
+                e.currentTarget.style.backgroundColor = colors.primary.hover;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primary.main;
+            }}
+          >
+            <RefreshCw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {progress.progress_percentage > 0 && (

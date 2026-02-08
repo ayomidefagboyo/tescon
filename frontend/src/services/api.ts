@@ -162,3 +162,21 @@ export async function getQueuedParts(): Promise<any> {
 export async function resetPartStatus(partNumber: string): Promise<void> {
   await api.post(`/tracker/parts/${partNumber}/reset`);
 }
+
+export async function getDailyStats(date?: string, status?: string): Promise<any> {
+  const params = new URLSearchParams();
+  if (date) params.append('date', date);
+  if (status) params.append('status', status);
+  const response = await api.get(`/tracker/daily-stats?${params.toString()}`);
+  return response.data;
+}
+
+export async function exportDailyStatsExcel(date?: string, status?: string): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (date) params.append('date', date);
+  if (status) params.append('status', status);
+  const response = await api.get(`/tracker/export-daily-stats?${params.toString()}`, {
+    responseType: 'blob'
+  });
+  return response.data;
+}
