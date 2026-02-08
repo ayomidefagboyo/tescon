@@ -1432,6 +1432,8 @@ async def sync_tracker_from_r2():
         
         # Check processed parts
         paginator = r2_storage.s3_client.get_paginator('list_objects_v2')
+        parts_with_timestamps = {}  # symbol_number -> earliest LastModified from R2
+        
         for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix='parts/'):
             for obj in page.get('Contents', []):
                 key = obj['Key']
@@ -1440,6 +1442,10 @@ async def sync_tracker_from_r2():
                 if len(parts_path) >= 2:
                     symbol_number = parts_path[1]
                     processed_parts.add(symbol_number)
+                    # Track earliest file timestamp (when part was first processed)
+                    last_modified = obj.get('LastModified')
+                    if last_modified and (symbol_number not in parts_with_timestamps or last_modified < parts_with_timestamps[symbol_number]):
+                        parts_with_timestamps[symbol_number] = last_modified
         
         # Check queued parts (raw/ folder)
         for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix='raw/'):
@@ -1481,15 +1487,21 @@ async def sync_tracker_from_r2():
             )
             image_count = len(response.get('Contents', []))
             
-            # Preserve completed_at timestamp if available
+            # Preserve completed_at timestamp if available (from old tracker or R2)
             if symbol_number in preserved_stats:
                 old_stats = preserved_stats[symbol_number]
                 tracker.mark_part_processed(symbol_number, image_count)
-                # Restore timestamp
+                # Restore original timestamp
                 if symbol_number in tracker.part_stats:
                     tracker.part_stats[symbol_number]['completed_at'] = old_stats['completed_at']
             else:
+                # New part: use R2 LastModified timestamp as completed_at
                 tracker.mark_part_processed(symbol_number, image_count)
+                if symbol_number in parts_with_timestamps:
+                    r2_timestamp = parts_with_timestamps[symbol_number]
+                    # Convert to ISO string
+                    completed_at = r2_timestamp.isoformat() if hasattr(r2_timestamp, 'isoformat') else r2_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')
+                    tracker.part_stats[symbol_number]['completed_at'] = completed_at
         
         # Add queued parts (only if not already processed)
         for symbol_number in queued_parts:
