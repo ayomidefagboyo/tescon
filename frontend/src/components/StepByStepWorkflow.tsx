@@ -12,7 +12,7 @@ interface StepByStepWorkflowProps {
 
 type WorkflowStep = "part-number" | "upload" | "review" | "processing" | "success-notification" | "complete";
 
-export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
+export function StepByStepWorkflow({ onError: _onError }: StepByStepWorkflowProps) {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>("part-number");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [partNumber, setPartNumber] = useState("");
