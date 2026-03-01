@@ -1,9 +1,10 @@
 /** Step-by-step workflow component for streamlined part processing */
 import { useState, useEffect } from "react";
 import { UploadZone } from "./UploadZone";
-import { getPartInfo, processPartImagesAsync, PartInfo, ProcessPartResponse } from "../services/api";
+import { getPartInfo, PartInfo, ProcessPartResponse } from "../services/api";
+import { uploadTracker } from "../services/uploadTracker";
 import { FileWithPreview } from "../types";
-import { ChevronLeft, ChevronRight, Upload, Search, Image, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Upload, Search, Image, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 interface StepByStepWorkflowProps {
   onError?: (error: string) => void;
@@ -83,35 +84,30 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
     }
     setProcessing(true);
 
-    // Don't wait for upload - fire and forget!
-    processPartImagesAsync(
-      files,
+    // Add upload to tracker with automatic retry
+    const uploadId = uploadTracker.addUpload(
       partInfo.symbol_number,
+      files,
       undefined, // Auto-assign view numbers 1, 2, 3...
-      "PNG",
-      true, // White background
-      85, // Compression quality
-      2048, // Max dimension
-      true, // Add label
-      "bottom-left" // Label position
-    ).catch((err: any) => {
-      // Log error but don't block user
-      console.error("Background upload error:", err);
-      // Optionally, you could still show a transient error notification if needed
-      // setError("Background processing failed. Please check console for details.");
-      if (onError) {
-        const errorMessage = err.response?.data?.detail || err.message || "Background processing failed";
-        onError(errorMessage);
+      {
+        format: "PNG",
+        whiteBackground: true,
+        compressionQuality: 85,
+        maxDimension: 2048,
+        addLabel: true,
+        labelPosition: "bottom-left"
       }
-    });
+    );
 
-    // Show success notification immediately
+    console.log(`📤 Upload queued: ${partInfo.symbol_number} (${uploadId})`);
+
+    // Show success notification immediately (with upload status)
     setCurrentStep("success-notification");
 
     // Auto-reset to start for next part
     setTimeout(() => {
       handleStartOver();
-    }, 1500);
+    }, 2000); // Slightly longer to show upload status
   };
 
   // Reset workflow
@@ -301,23 +297,41 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
   );
 
 
-  const renderSuccessNotification = () => (
-    <div className="step-content">
-      <div className="success-notification">
-        <CheckCircle size={64} className="success-icon" />
-        <h2>🎉 Images Uploaded Successfully!</h2>
-        <p className="success-message">
-          <strong>{partInfo?.symbol_number}</strong> - {files.length} images uploaded for background processing
-        </p>
-        <p className="auto-return">
-          Ready for next part...
-        </p>
-        <button className="btn-secondary" onClick={handleStartOver}>
-          Continue Now
-        </button>
+  const renderSuccessNotification = () => {
+    const uploadCounts = uploadTracker.getPendingCount();
+
+    return (
+      <div className="step-content">
+        <div className="success-notification">
+          <CheckCircle size={64} className="success-icon" />
+          <h2>🎉 Images Queued Successfully!</h2>
+          <p className="success-message">
+            <strong>{partInfo?.symbol_number}</strong> - {files.length} images queued for processing
+          </p>
+
+          <div className="upload-status-summary">
+            <div className="status-item">
+              <Clock size={16} />
+              <span>{uploadCounts.pending + uploadCounts.inProgress} uploading</span>
+            </div>
+            {uploadCounts.failed > 0 && (
+              <div className="status-item failed">
+                <AlertCircle size={16} />
+                <span>{uploadCounts.failed} failed (will retry)</span>
+              </div>
+            )}
+          </div>
+
+          <p className="auto-return">
+            Ready for next part...
+          </p>
+          <button className="btn-secondary" onClick={handleStartOver}>
+            Continue Now
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCompleteStep = () => (
     <div className="step-content">
@@ -739,6 +753,36 @@ export function StepByStepWorkflow({ onError }: StepByStepWorkflowProps) {
           color: #666;
           margin: 20px 0;
           font-style: italic;
+        }
+
+        .upload-status-summary {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin: 20px 0;
+          flex-wrap: wrap;
+        }
+
+        .status-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #e3f2fd;
+          border-radius: 16px;
+          font-size: 14px;
+          color: #1565c0;
+          border: 1px solid #bbdefb;
+        }
+
+        .status-item.failed {
+          background: #ffebee;
+          color: #c62828;
+          border-color: #ffcdd2;
+        }
+
+        .status-item svg {
+          flex-shrink: 0;
         }
 
         .success-icon {

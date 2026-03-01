@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "./styles/design-system";
 import { StepByStepWorkflow } from "./components/StepByStepWorkflow";
 import { PartsTrackingDashboard } from "./components/PartsTrackingDashboard";
+import { UploadStatusDashboard } from "./components/UploadStatusDashboard";
 
 function App() {
   const [health, setHealth] = useState<{ gpu_available: boolean; model_loaded: boolean } | null>(null);
@@ -201,13 +202,19 @@ function App() {
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {currentView === 'workflow' ? (
-          <StepByStepWorkflow
-            onError={(_error: string) => {
-              // Error is handled within the component
-            }}
-          />
+          <>
+            <StepByStepWorkflow
+              onError={(_error: string) => {
+                // Error is handled within the component
+              }}
+            />
+            <UploadStatusDashboard compact={true} />
+          </>
         ) : (
-          <PartsTrackingDashboard />
+          <>
+            <PartsTrackingDashboard />
+            <UploadStatusDashboard compact={false} />
+          </>
         )}
       </div>
 
