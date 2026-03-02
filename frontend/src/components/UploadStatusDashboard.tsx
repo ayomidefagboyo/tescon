@@ -1,7 +1,7 @@
-/** Upload status dashboard component for tracking failed uploads */
+/** Upload queue dashboard component for tracking active and recent uploads */
 import React, { useState, useEffect } from "react";
 import { uploadTracker, UploadAttempt } from "../services/uploadTracker";
-import { RefreshCw, AlertCircle, Clock, CheckCircle, X, RotateCcw } from "lucide-react";
+import { RefreshCw, AlertCircle, Clock, CheckCircle, RotateCcw } from "lucide-react";
 
 interface UploadStatusDashboardProps {
   compact?: boolean;
@@ -33,12 +33,6 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
     if (didRetry) {
       loadUploads();
     }
-  };
-
-  // Clear completed uploads
-  const handleClearCompleted = () => {
-    uploadTracker.clearCompleted();
-    loadUploads();
   };
 
   const getStatusIcon = (status: UploadAttempt['status']) => {
@@ -90,9 +84,10 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
   };
 
   const counts = uploadTracker.getPendingCount();
+  const successCount = uploadTracker.getSuccessCount();
   const recentUploads = compact ? uploads.slice(0, 5) : uploads;
 
-  if (compact && uploads.length === 0) {
+  if (compact && uploads.length === 0 && successCount === 0) {
     return null; // Hide when compact and no uploads
   }
 
@@ -245,25 +240,13 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
               {counts.failed} failed
             </div>
           )}
-          {uploads.filter(u => u.status === 'completed').length > 0 && (
+          {successCount > 0 && (
             <div style={styles.summaryItem('completed')}>
               <CheckCircle size={12} />
-              {uploads.filter(u => u.status === 'completed').length} done
+              {successCount} uploaded
             </div>
           )}
         </div>
-
-        {!compact && uploads.some(u => u.status === 'completed') && (
-          <div style={styles.actions}>
-            <button
-              style={styles.iconButton}
-              onClick={handleClearCompleted}
-              title="Clear completed"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
       </div>
 
       {recentUploads.length > 0 && (

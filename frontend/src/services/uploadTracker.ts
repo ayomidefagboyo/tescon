@@ -25,11 +25,13 @@ export interface UploadOptions {
 
 class UploadTracker {
   private storageKey = 'tescon_upload_queue';
+  private successKey = 'tescon_upload_success_log';
   private maxRetries = 3;
   private retryDelays = [500, 2000, 8000]; // 0.5s, 2s, 8s (faster retries for network issues)
   private activeFiles = new Map<string, File[]>();
   private uploadOptions = new Map<string, UploadOptions>();
   private retryTimers = new Map<string, number>();
+  private successTtlMs = 24 * 60 * 60 * 1000;
 
   private clearRetryTimer(uploadId: string): void {
     const timerId = this.retryTimers.get(uploadId);
@@ -49,6 +51,48 @@ class UploadTracker {
     });
 
     return uploads.filter(upload => upload.partNumber !== partNumber);
+  }
+
+  private getSuccessLog(): number[] {
+    try {
+      const stored = localStorage.getItem(this.successKey);
+      if (!stored) {
+        return [];
+      }
+
+      const parsed = JSON.parse(stored) as number[];
+      if (!Array.isArray(parsed)) {
+        localStorage.removeItem(this.successKey);
+        return [];
+      }
+
+      return parsed.filter((value) => Number.isFinite(value));
+    } catch (error) {
+      console.warn('Failed to parse upload success log, clearing corrupted data:', error);
+      localStorage.removeItem(this.successKey);
+      return [];
+    }
+  }
+
+  private saveSuccessLog(entries: number[]): void {
+    try {
+      localStorage.setItem(this.successKey, JSON.stringify(entries));
+    } catch (error) {
+      console.warn('Failed to save upload success log:', error);
+    }
+  }
+
+  private pruneSuccessLog(): number[] {
+    const cutoff = Date.now() - this.successTtlMs;
+    const prunedEntries = this.getSuccessLog().filter((timestamp) => timestamp >= cutoff);
+    this.saveSuccessLog(prunedEntries);
+    return prunedEntries;
+  }
+
+  private recordSuccess(): void {
+    const entries = this.pruneSuccessLog();
+    entries.push(Date.now());
+    this.saveSuccessLog(entries);
   }
 
   // Get all uploads from localStorage
@@ -211,6 +255,7 @@ class UploadTracker {
       );
 
       const nextUploads = this.removeUploadsByPartNumber(uploads, upload.partNumber);
+      this.recordSuccess();
       this.saveUploads(nextUploads);
 
       console.log(`✅ Upload completed: ${upload.partNumber} (${uploadId}) as job ${response.job_id}`);
@@ -297,6 +342,10 @@ class UploadTracker {
       failed: uploads.filter(u => u.status === 'failed').length,
       inProgress: uploads.filter(u => u.status === 'in_progress').length
     };
+  }
+
+  getSuccessCount(): number {
+    return this.pruneSuccessLog().length;
   }
 
   // Manually retry a failed upload
@@ -388,6 +437,7 @@ class UploadTracker {
     this.activeFiles.clear();
     this.uploadOptions.clear();
     localStorage.removeItem(this.storageKey);
+    localStorage.removeItem(this.successKey);
   }
 }
 
@@ -396,3 +446,4 @@ export const uploadTracker = new UploadTracker();
 
 // Auto-cleanup on load
 uploadTracker.cleanup();
+uploadTracker.getSuccessCount();
