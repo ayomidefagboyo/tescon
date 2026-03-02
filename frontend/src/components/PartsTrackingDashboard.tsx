@@ -49,15 +49,9 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [syncing, setSyncing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchTrackerData = async (syncFirst = false) => {
+  const fetchTrackerData = async () => {
     setRefreshing(true);
     try {
-      // Sync from R2 first if requested (initial load or manual sync)
-      if (syncFirst) {
-        console.log('Syncing tracker data from R2...');
-        await syncTrackerFromR2();
-      }
-
       const [progress, processed, failed, queued, remaining] = await Promise.all([
         getTrackerProgress(),
         getProcessedParts(),
@@ -82,15 +76,37 @@ export const PartsTrackingDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    // Sync from R2 on initial load to get accurate data
-    fetchTrackerData(isInitialLoad);
-    setIsInitialLoad(false);
+  // Separate function for background R2 sync
+  const backgroundSyncFromR2 = async () => {
+    try {
+      console.log('Background sync from R2 starting...');
+      await syncTrackerFromR2();
+      console.log('Background sync completed, refreshing data...');
+      // Refresh data after sync completes
+      await fetchTrackerData();
+    } catch (error) {
+      console.error('Background R2 sync failed:', error);
+      // Don't show error to user since this is background
+    }
+  };
 
-    // Regular refresh every 30 seconds (without sync)
-    const interval = setInterval(() => fetchTrackerData(false), 30000);
+  useEffect(() => {
+    // Load dashboard immediately with cached data
+    fetchTrackerData();
+
+    // Start background sync from R2 on initial load (non-blocking)
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      // Use setTimeout to make it truly non-blocking
+      setTimeout(() => {
+        backgroundSyncFromR2();
+      }, 100);
+    }
+
+    // Regular refresh every 30 seconds
+    const interval = setInterval(fetchTrackerData, 30000);
     return () => clearInterval(interval);
-  }, []);  // Remove isInitialLoad from deps to avoid re-sync
+  }, []);
 
   const fetchDailyStats = async () => {
     try {
@@ -130,9 +146,11 @@ export const PartsTrackingDashboard: React.FC = () => {
   const handleSyncTracker = async () => {
     setSyncing(true);
     try {
-      // Use the fetchTrackerData with sync=true to sync and refresh
-      await fetchTrackerData(true);
-      console.log('Sync completed successfully');
+      console.log('Manual sync from R2 starting...');
+      await syncTrackerFromR2();
+      console.log('Manual sync completed, refreshing data...');
+      // Refresh tracker data after sync
+      await fetchTrackerData();
     } catch (error) {
       console.error('Failed to sync tracker:', error);
       alert('Failed to sync tracker with R2 storage. Please try again.');
@@ -832,7 +850,7 @@ export const PartsTrackingDashboard: React.FC = () => {
               whiteSpace: 'nowrap',
               flexShrink: 0
             }}
-            onClick={() => fetchTrackerData(false)}
+            onClick={fetchTrackerData}
             disabled={refreshing}
             onMouseEnter={(e) => {
               if (!refreshing) {

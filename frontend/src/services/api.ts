@@ -135,27 +135,27 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
  * Tracker API functions
  */
 export async function getTrackerProgress(): Promise<any> {
-  const response = await api.get('/tracker/progress');
+  const response = await api.get('/tracker/progress', { timeout: 10000 }); // 10s timeout
   return response.data;
 }
 
 export async function getProcessedParts(): Promise<any> {
-  const response = await api.get('/tracker/parts/processed');
+  const response = await api.get('/tracker/parts/processed', { timeout: 10000 }); // 10s timeout
   return response.data;
 }
 
 export async function getFailedParts(): Promise<any> {
-  const response = await api.get('/tracker/parts/failed');
+  const response = await api.get('/tracker/parts/failed', { timeout: 10000 }); // 10s timeout
   return response.data;
 }
 
 export async function getRemainingParts(): Promise<any> {
-  const response = await api.get('/tracker/parts/remaining');
+  const response = await api.get('/tracker/parts/remaining', { timeout: 10000 }); // 10s timeout
   return response.data;
 }
 
 export async function getQueuedParts(): Promise<any> {
-  const response = await api.get('/tracker/parts/queued');
+  const response = await api.get('/tracker/parts/queued', { timeout: 10000 }); // 10s timeout
   return response.data;
 }
 
@@ -182,6 +182,6 @@ export async function exportDailyStatsExcel(date?: string, status?: string): Pro
 }
 
 export async function syncTrackerFromR2(): Promise<any> {
-  const response = await api.post('/tracker/sync-from-r2');
+  const response = await api.post('/tracker/sync-from-r2', {}, { timeout: 30000 }); // 30s timeout for sync
   return response.data;
 }
