@@ -747,41 +747,43 @@ export const PartsTrackingDashboard: React.FC = () => {
         </div>
         <div style={{
           display: 'flex',
-          gap: '2px',
-          alignItems: 'center',
-          flexShrink: 0,
-          overflowX: 'auto'
+          flexDirection: 'column',
+          gap: mobileSpacing.sm,
+          alignItems: 'flex-end'
         }}>
+          {/* First row: Date and Status filters */}
           {selectedTab === 'overview' && (
-            <>
+            <div style={{
+              display: 'flex',
+              gap: mobileSpacing.sm,
+              alignItems: 'center'
+            }}>
               <input
                 type="date"
                 value={dailyStatsDate}
                 onChange={(e) => setDailyStatsDate(e.target.value)}
                 style={{
-                  padding: `${mobileSpacing.xs} 6px`,
+                  padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
                   border: `1px solid ${colors.neutral[300]}`,
                   borderRadius: borderRadius.md,
-                  fontSize: mobileTypography.fontSize.xs,
+                  fontSize: mobileTypography.fontSize.sm,
                   backgroundColor: colors.background.main,
                   color: colors.text.primary,
-                  width: '100px',
-                  flexShrink: 0
+                  width: '140px'
                 }}
               />
               <select
                 value={dailyStatsStatus}
                 onChange={(e) => setDailyStatsStatus(e.target.value)}
                 style={{
-                  padding: `${mobileSpacing.xs} 6px`,
+                  padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
                   border: `1px solid ${colors.neutral[300]}`,
                   borderRadius: borderRadius.md,
-                  fontSize: mobileTypography.fontSize.xs,
+                  fontSize: mobileTypography.fontSize.sm,
                   backgroundColor: colors.background.main,
                   color: colors.text.primary,
                   cursor: 'pointer',
-                  width: '70px',
-                  flexShrink: 0
+                  width: '120px'
                 }}
               >
                 <option value="all">All Status</option>
@@ -789,17 +791,28 @@ export const PartsTrackingDashboard: React.FC = () => {
                 <option value="queued">Queued</option>
                 <option value="failed">Failed</option>
               </select>
+            </div>
+          )}
+
+          {/* Second row: Action buttons */}
+          <div style={{
+            display: 'flex',
+            gap: mobileSpacing.sm,
+            alignItems: 'center',
+            flexWrap: 'nowrap'
+          }}>
+            {selectedTab === 'overview' && (
               <button
                 style={{
                   ...styles.refreshButton,
                   backgroundColor: colors.success,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '2px',
-                  padding: `${mobileSpacing.xs} 4px`,
-                  fontSize: mobileTypography.fontSize.xs,
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap'
+                  gap: mobileSpacing.xs,
+                  padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+                  fontSize: mobileTypography.fontSize.sm,
+                  minWidth: '80px',
+                  justifyContent: 'center'
                 }}
                 onClick={handleExportDailyStats}
                 disabled={exporting}
@@ -812,58 +825,62 @@ export const PartsTrackingDashboard: React.FC = () => {
                   e.currentTarget.style.backgroundColor = colors.success;
                 }}
               >
-                <Download size={12} />
+                <Download size={14} />
                 {exporting ? 'Export' : 'Export'}
               </button>
-            </>
-          )}
-          <button
-            style={{
-              ...styles.refreshButton,
-              backgroundColor: colors.warning,
-              padding: `${mobileSpacing.xs} 4px`,
-              fontSize: mobileTypography.fontSize.xs,
-              gap: '2px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-            onClick={handleSyncTracker}
-            disabled={syncing}
-            onMouseEnter={(e) => {
-              if (!syncing) {
-                e.currentTarget.style.backgroundColor = '#d97706';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = colors.warning;
-            }}
-          >
-            <CloudSync size={12} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
-            {syncing ? 'Sync' : 'Sync'}
-          </button>
-          <button
-            style={{
-              ...styles.refreshButton,
-              padding: `${mobileSpacing.xs} 4px`,
-              fontSize: mobileTypography.fontSize.xs,
-              gap: '2px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-            onClick={fetchTrackerData}
-            disabled={refreshing}
-            onMouseEnter={(e) => {
-              if (!refreshing) {
-                e.currentTarget.style.backgroundColor = colors.primary.hover;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = colors.primary.main;
-            }}
-          >
-            <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-            {refreshing ? 'Refresh' : 'Refresh'}
-          </button>
+            )}
+            <button
+              style={{
+                ...styles.refreshButton,
+                backgroundColor: colors.warning,
+                display: 'flex',
+                alignItems: 'center',
+                gap: mobileSpacing.xs,
+                padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+                fontSize: mobileTypography.fontSize.sm,
+                minWidth: '70px',
+                justifyContent: 'center'
+              }}
+              onClick={handleSyncTracker}
+              disabled={syncing}
+              onMouseEnter={(e) => {
+                if (!syncing) {
+                  e.currentTarget.style.backgroundColor = '#d97706';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = colors.warning;
+              }}
+            >
+              <CloudSync size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+              {syncing ? 'Sync' : 'Sync'}
+            </button>
+            <button
+              style={{
+                ...styles.refreshButton,
+                display: 'flex',
+                alignItems: 'center',
+                gap: mobileSpacing.xs,
+                padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+                fontSize: mobileTypography.fontSize.sm,
+                minWidth: '85px',
+                justifyContent: 'center'
+              }}
+              onClick={fetchTrackerData}
+              disabled={refreshing}
+              onMouseEnter={(e) => {
+                if (!refreshing) {
+                  e.currentTarget.style.backgroundColor = colors.primary.hover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = colors.primary.main;
+              }}
+            >
+              <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+              {refreshing ? 'Refresh' : 'Refresh'}
+            </button>
+          </div>
         </div>
       </div>
 
