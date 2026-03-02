@@ -500,64 +500,91 @@ export const PartsTrackingDashboard: React.FC = () => {
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: spacing.xl
+                    gap: mobileSpacing.md,
+                    '@media (min-width: 768px)': {
+                      gap: spacing.xl
+                    }
                   }}>
-                    <div style={{ textAlign: 'center', padding: spacing.md }}>
+                    <div style={{ textAlign: 'center', padding: mobileSpacing.sm }}>
                       <div style={{
-                        fontSize: '3rem',
+                        fontSize: mobileTypography.fontSize.xl,
                         fontWeight: typography.fontWeight.bold,
                         color: colors.success,
-                        marginBottom: spacing.sm,
-                        letterSpacing: '-1px'
+                        marginBottom: mobileSpacing.xs,
+                        letterSpacing: '-1px',
+                        lineHeight: 1.2,
+                        '@media (min-width: 768px)': {
+                          fontSize: '3rem',
+                          marginBottom: spacing.sm
+                        }
                       }}>
                         {dailyStatsData.completed_count}
                       </div>
                       <div style={{
-                        fontSize: typography.fontSize.sm,
+                        fontSize: mobileTypography.fontSize.xs,
                         color: colors.text.secondary,
                         fontWeight: typography.fontWeight.medium,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        '@media (min-width: 768px)': {
+                          fontSize: typography.fontSize.sm
+                        }
                       }}>
                         Completed
                       </div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: spacing.md }}>
+                    <div style={{ textAlign: 'center', padding: mobileSpacing.sm }}>
                       <div style={{
-                        fontSize: '3rem',
+                        fontSize: mobileTypography.fontSize.xl,
                         fontWeight: typography.fontWeight.bold,
                         color: colors.warning,
-                        marginBottom: spacing.sm,
-                        letterSpacing: '-1px'
+                        marginBottom: mobileSpacing.xs,
+                        letterSpacing: '-1px',
+                        lineHeight: 1.2,
+                        '@media (min-width: 768px)': {
+                          fontSize: '3rem',
+                          marginBottom: spacing.sm
+                        }
                       }}>
                         {dailyStatsData.queued_count}
                       </div>
                       <div style={{
-                        fontSize: typography.fontSize.sm,
+                        fontSize: mobileTypography.fontSize.xs,
                         color: colors.text.secondary,
                         fontWeight: typography.fontWeight.medium,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        '@media (min-width: 768px)': {
+                          fontSize: typography.fontSize.sm
+                        }
                       }}>
                         Queued
                       </div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: spacing.md }}>
+                    <div style={{ textAlign: 'center', padding: mobileSpacing.sm }}>
                       <div style={{
-                        fontSize: '3rem',
+                        fontSize: mobileTypography.fontSize.xl,
                         fontWeight: typography.fontWeight.bold,
                         color: dailyStatsData.failed_count > 0 ? colors.error : colors.neutral[300],
-                        marginBottom: spacing.sm,
-                        letterSpacing: '-1px'
+                        marginBottom: mobileSpacing.xs,
+                        letterSpacing: '-1px',
+                        lineHeight: 1.2,
+                        '@media (min-width: 768px)': {
+                          fontSize: '3rem',
+                          marginBottom: spacing.sm
+                        }
                       }}>
                         {dailyStatsData.failed_count}
                       </div>
                       <div style={{
-                        fontSize: typography.fontSize.sm,
+                        fontSize: mobileTypography.fontSize.xs,
                         color: colors.text.secondary,
                         fontWeight: typography.fontWeight.medium,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        '@media (min-width: 768px)': {
+                          fontSize: typography.fontSize.sm
+                        }
                       }}>
                         Failed
                       </div>
@@ -714,7 +741,15 @@ export const PartsTrackingDashboard: React.FC = () => {
           <BarChart size={32} />
           Parts Tracking Dashboard
         </div>
-        <div style={{ display: 'flex', gap: mobileSpacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex',
+          gap: '4px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          '@media (min-width: 768px)': {
+            gap: mobileSpacing.sm
+          }
+        }}>
           {selectedTab === 'overview' && (
             <>
               <input
@@ -722,25 +757,29 @@ export const PartsTrackingDashboard: React.FC = () => {
                 value={dailyStatsDate}
                 onChange={(e) => setDailyStatsDate(e.target.value)}
                 style={{
-                  padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
+                  padding: `${mobileSpacing.xs} 6px`,
                   border: `1px solid ${colors.neutral[300]}`,
                   borderRadius: borderRadius.md,
-                  fontSize: mobileTypography.fontSize.sm,
+                  fontSize: mobileTypography.fontSize.xs,
                   backgroundColor: colors.background.main,
-                  color: colors.text.primary
+                  color: colors.text.primary,
+                  width: '120px',
+                  flexShrink: 0
                 }}
               />
               <select
                 value={dailyStatsStatus}
                 onChange={(e) => setDailyStatsStatus(e.target.value)}
                 style={{
-                  padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
+                  padding: `${mobileSpacing.xs} 6px`,
                   border: `1px solid ${colors.neutral[300]}`,
                   borderRadius: borderRadius.md,
-                  fontSize: mobileTypography.fontSize.sm,
+                  fontSize: mobileTypography.fontSize.xs,
                   backgroundColor: colors.background.main,
                   color: colors.text.primary,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  width: '90px',
+                  flexShrink: 0
                 }}
               >
                 <option value="all">All Status</option>
@@ -754,7 +793,10 @@ export const PartsTrackingDashboard: React.FC = () => {
                   backgroundColor: colors.success,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: mobileSpacing.xs
+                  gap: '3px',
+                  padding: `${mobileSpacing.xs} 8px`,
+                  fontSize: mobileTypography.fontSize.xs,
+                  flexShrink: 0
                 }}
                 onClick={handleExportDailyStats}
                 disabled={exporting}
@@ -775,7 +817,11 @@ export const PartsTrackingDashboard: React.FC = () => {
           <button
             style={{
               ...styles.refreshButton,
-              backgroundColor: colors.warning
+              backgroundColor: colors.warning,
+              padding: `${mobileSpacing.xs} 8px`,
+              fontSize: mobileTypography.fontSize.xs,
+              gap: '3px',
+              flexShrink: 0
             }}
             onClick={handleSyncTracker}
             disabled={syncing}
@@ -792,7 +838,13 @@ export const PartsTrackingDashboard: React.FC = () => {
             {syncing ? 'Syncing...' : 'Sync R2'}
           </button>
           <button
-            style={styles.refreshButton}
+            style={{
+              ...styles.refreshButton,
+              padding: `${mobileSpacing.xs} 8px`,
+              fontSize: mobileTypography.fontSize.xs,
+              gap: '3px',
+              flexShrink: 0
+            }}
             onClick={fetchTrackerData}
             disabled={refreshing}
             onMouseEnter={(e) => {
