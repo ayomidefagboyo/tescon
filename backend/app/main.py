@@ -36,10 +36,6 @@ app.include_router(validation_router, prefix="/api")
 from app.api.export import router as export_router
 app.include_router(export_router, prefix="/api")
 
-# Include webhook routes
-from app.api.webhooks import router as webhook_router
-app.include_router(webhook_router, prefix="/api")
-
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -128,4 +124,3 @@ async def startup_event():
     except Exception as e:
         print(f"⚠️ GitHub Actions service failed to start: {e}")
         print("ℹ️ Processing may need to be triggered manually")
-

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from app.models import PartInfo, ProcessPartResponse, JobResponse, JobStatus, JobStatusResponse
 from app.processing.lightweight_processor import process_image
@@ -1318,17 +1318,51 @@ async def download_all_r2_files(
 
 @router.post("/jobs/complete")
 async def job_completion_webhook(
-    job_id: str = Query(...),
-    status: str = Query(...),
-    processor: str = Query(default="unknown"),
-    processed_count: int = Query(default=0)
+    request: Request,
+    job_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    processor: Optional[str] = Query(default=None),
+    processed_count: Optional[int] = Query(default=None)
 ):
     """
     Webhook endpoint for GitHub Actions to notify when job processing completes.
     
-    This updates the parts tracker based on completed jobs.
+    Accepts either query parameters or a JSON body. This updates the parts
+    tracker based on completed jobs.
     """
     try:
+        payload = {}
+
+        if job_id is None or status is None or processor is None or processed_count is None:
+            try:
+                parsed_body = await request.json()
+                if isinstance(parsed_body, dict):
+                    payload = parsed_body
+            except Exception:
+                payload = {}
+
+        job_id = job_id or payload.get("job_id")
+        status = status or payload.get("status")
+        processor = processor or payload.get("processor", "unknown")
+
+        if processed_count is None:
+            raw_processed_count = payload.get("processed_count", 0)
+            try:
+                processed_count = int(raw_processed_count)
+            except (TypeError, ValueError):
+                processed_count = 0
+
+        if not job_id or not status:
+            raise HTTPException(status_code=400, detail="Missing job_id or status")
+
+        if str(status).lower() != "completed":
+            return {
+                "success": True,
+                "job_id": job_id,
+                "updated_parts": [],
+                "message": f"Webhook received with status '{status}' from {processor}"
+            }
+
         tracker = get_parts_tracker()
         r2_storage = get_r2_storage()
         
@@ -1391,7 +1425,8 @@ async def job_completion_webhook(
             "success": True,
             "job_id": job_id,
             "updated_parts": updated_parts,
-            "message": f"Updated tracker for {len(updated_parts)} parts"
+            "message": f"Updated tracker for {len(updated_parts)} parts from {processor}",
+            "processed_count": processed_count
         }
         
     except HTTPException:

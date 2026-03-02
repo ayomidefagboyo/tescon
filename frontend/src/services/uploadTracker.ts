@@ -29,6 +29,27 @@ class UploadTracker {
   private retryDelays = [500, 2000, 8000]; // 0.5s, 2s, 8s (faster retries for network issues)
   private activeFiles = new Map<string, File[]>();
   private uploadOptions = new Map<string, UploadOptions>();
+  private retryTimers = new Map<string, number>();
+
+  private clearRetryTimer(uploadId: string): void {
+    const timerId = this.retryTimers.get(uploadId);
+    if (timerId !== undefined) {
+      window.clearTimeout(timerId);
+      this.retryTimers.delete(uploadId);
+    }
+  }
+
+  private removeUploadsByPartNumber(uploads: UploadAttempt[], partNumber: string): UploadAttempt[] {
+    const removedUploads = uploads.filter(upload => upload.partNumber === partNumber);
+
+    removedUploads.forEach(upload => {
+      this.clearRetryTimer(upload.id);
+      this.activeFiles.delete(upload.id);
+      this.uploadOptions.delete(upload.id);
+    });
+
+    return uploads.filter(upload => upload.partNumber !== partNumber);
+  }
 
   // Get all uploads from localStorage
   private getUploads(): UploadAttempt[] {
@@ -103,7 +124,18 @@ class UploadTracker {
     options?: UploadOptions
   ): string {
     const uploads = this.getUploads();
-    const id = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const existingUploads = uploads.filter(upload => upload.partNumber === partNumber);
+    const inProgressUpload = existingUploads.find(upload => upload.status === 'in_progress');
+
+    if (inProgressUpload) {
+      console.warn(`Upload already in progress for ${partNumber}`);
+      return inProgressUpload.id;
+    }
+
+    const existingUpload = existingUploads[0];
+    const id = existingUpload?.id || `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    this.clearRetryTimer(id);
     this.activeFiles.set(id, files);
     if (options) {
       this.uploadOptions.set(id, options);
@@ -120,17 +152,27 @@ class UploadTracker {
       maxRetries: this.maxRetries,
     };
 
-    uploads.push(upload);
-    this.saveUploads(uploads);
+    const deduplicatedUploads = uploads.filter(existing => existing.partNumber !== partNumber || existing.id === id);
+    const existingIndex = deduplicatedUploads.findIndex(existing => existing.id === id);
+
+    if (existingIndex >= 0) {
+      deduplicatedUploads[existingIndex] = upload;
+    } else {
+      deduplicatedUploads.push(upload);
+    }
+
+    this.saveUploads(deduplicatedUploads);
 
     // Start upload immediately
-    this.processUpload(id, options);
+    void this.processUpload(id, options);
 
     return id;
   }
 
   // Process a single upload with retry logic
   private async processUpload(uploadId: string, overrideOptions?: UploadOptions): Promise<void> {
+    this.clearRetryTimer(uploadId);
+
     const uploads = this.getUploads();
     const uploadIndex = uploads.findIndex(u => u.id === uploadId);
 
@@ -168,15 +210,11 @@ class UploadTracker {
         options?.labelPosition || "bottom-left"
       );
 
-      // Success - mark as completed
-      upload.status = 'completed';
-      upload.jobId = response.job_id;
-      upload.completedAt = Date.now();
-      upload.lastError = undefined;
-      this.activeFiles.delete(uploadId);
-      this.uploadOptions.delete(uploadId);
+      const nextUploads = this.removeUploadsByPartNumber(uploads, upload.partNumber);
+      this.saveUploads(nextUploads);
 
-      console.log(`✅ Upload completed: ${upload.partNumber} (${uploadId})`);
+      console.log(`✅ Upload completed: ${upload.partNumber} (${uploadId}) as job ${response.job_id}`);
+      return;
 
     } catch (error: any) {
       console.error(`❌ Upload failed: ${upload.partNumber} (${uploadId})`, error);
@@ -195,9 +233,11 @@ class UploadTracker {
         const delay = this.retryDelays[upload.retryCount - 1] || 15000;
         console.log(`🔄 Retrying upload in ${delay}ms: ${upload.partNumber} (attempt ${upload.retryCount}/${upload.maxRetries})`);
 
-        setTimeout(() => {
-          this.processUpload(uploadId, options);
+        const retryTimer = window.setTimeout(() => {
+          this.retryTimers.delete(uploadId);
+          void this.processUpload(uploadId, options);
         }, delay);
+        this.retryTimers.set(uploadId, retryTimer);
 
       } else {
         // Failed permanently
@@ -277,6 +317,7 @@ class UploadTracker {
     }
 
     // Reset retry state
+    this.clearRetryTimer(uploadId);
     upload.retryCount = 0;
     upload.status = 'pending';
     upload.lastError = undefined;
@@ -343,6 +384,7 @@ class UploadTracker {
 
   // Clear all uploads (for testing/reset)
   clearAll(): void {
+    Array.from(this.retryTimers.keys()).forEach(id => this.clearRetryTimer(id));
     this.activeFiles.clear();
     this.uploadOptions.clear();
     localStorage.removeItem(this.storageKey);

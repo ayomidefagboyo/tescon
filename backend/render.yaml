@@ -13,33 +13,31 @@ services:
         value: /opt/render/project/src/backend
       - fromGroup: tescon-env
 
-  # Background worker for image processing
-  - type: worker
-    name: tescon-worker
-    env: python
-    region: oregon
-    plan: starter
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: python worker.py
-    envVars:
-      - key: PYTHONPATH
-        value: /opt/render/project/src/backend
-      - fromGroup: tescon-env
-
 # Environment variables group
 envVarGroups:
   - name: tescon-env
     envVars:
-      - key: CLOUDFLARE_R2_ACCOUNT_ID
+      - key: CLOUDFLARE_ACCOUNT_ID
         sync: false
-      - key: CLOUDFLARE_R2_ACCESS_KEY_ID
+      - key: CLOUDFLARE_ACCESS_KEY_ID
         sync: false
-      - key: CLOUDFLARE_R2_SECRET_ACCESS_KEY
+      - key: CLOUDFLARE_SECRET_ACCESS_KEY
         sync: false
-      - key: CLOUDFLARE_R2_BUCKET_NAME
+      - key: CLOUDFLARE_BUCKET_NAME
         sync: false
-      - key: PICWISH_API_KEY
+      - key: EXCEL_FILE_PATH
         sync: false
-      - key: EXCEL_FILE_URL
+      - key: EXCEL_SHEET_NAME
+        value: Photo Data
+      - key: GITHUB_TOKEN
         sync: false
+      - key: GITHUB_REPO_OWNER
+        value: ayomidefagboyo
+      - key: GITHUB_REPO_NAME
+        value: tescon
+      - key: GITHUB_WORKFLOW_FILE
+        value: process-images.yml
+      - key: GITHUB_AUTO_TRIGGER_ENABLED
+        value: "true"
+      - key: GITHUB_JOB_AGE_THRESHOLD
+        value: "3600"

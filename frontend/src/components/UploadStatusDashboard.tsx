@@ -229,7 +229,7 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
 
       <div style={styles.header}>
         <h3 style={styles.title}>
-          {compact ? 'Upload Status' : 'Upload Queue'}
+          Upload Queue
         </h3>
 
         <div style={styles.statusSummary}>

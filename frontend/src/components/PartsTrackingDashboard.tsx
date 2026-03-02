@@ -27,19 +27,34 @@ interface PartStats {
   error_reason?: string;
 }
 
+type DashboardTab = 'overview' | 'processed' | 'failed' | 'queued' | 'remaining';
+type ListTab = Exclude<DashboardTab, 'overview'>;
+
 interface TrackerData {
   progress: ProgressStats;
-  processed_parts: string[];  // Array of exact symbol numbers
-  failed_parts: { [key: string]: string };  // Symbol number -> error message
-  queued_parts: string[];  // Array of exact symbol numbers
-  remaining_parts: string[];  // Array of exact symbol numbers
   part_stats: { [key: string]: PartStats };  // Symbol number -> detailed stats
 }
 
+interface TrackerLists {
+  processed: string[];
+  failed: { [key: string]: string };
+  queued: string[];
+  remaining: string[];
+}
+
 export const PartsTrackingDashboard: React.FC = () => {
+  const summaryCacheKey = 'tescon_tracker_dashboard_summary';
   const [trackerData, setTrackerData] = useState<TrackerData | null>(null);
+  const [trackerLists, setTrackerLists] = useState<TrackerLists>({
+    processed: [],
+    failed: {},
+    queued: [],
+    remaining: []
+  });
+  const [loadedTabs, setLoadedTabs] = useState<Partial<Record<ListTab, boolean>>>({});
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'processed' | 'failed' | 'queued' | 'remaining'>('overview');
+  const [tabLoading, setTabLoading] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<DashboardTab>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [dailyStatsDate, setDailyStatsDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -47,18 +62,15 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchTrackerData = async () => {
-    setRefreshing(true);
+  const fetchTrackerSummary = async () => {
     try {
-      const [progress, processed, failed, queued, remaining] = await Promise.all([
-        getTrackerProgress(),
-        getProcessedParts(),
-        getFailedParts(),
-        getQueuedParts(),
-        getRemainingParts()
-      ]);
+      const progress = await getTrackerProgress();
+
+      const nextTrackerData = {
+        progress: progress.progress,
+        part_stats: progress.part_stats || {}
+      };
 
       console.log('📊 Tracker data received:', {
         processed_count: progress.progress?.processed_count,
@@ -66,62 +78,104 @@ export const PartsTrackingDashboard: React.FC = () => {
         timestamp: new Date().toISOString()
       });
 
-      setTrackerData({
-        progress: progress.progress,
-        processed_parts: processed.processed_parts,
-        failed_parts: failed.failed_parts,
-        queued_parts: queued.queued_parts,
-        remaining_parts: remaining.remaining_parts,
-        part_stats: progress.part_stats || {}
-      });
+      setTrackerData(nextTrackerData);
+      localStorage.setItem(summaryCacheKey, JSON.stringify(nextTrackerData));
     } catch (error) {
       console.error('Failed to fetch tracker data:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
+  const fetchTabData = async (tab: ListTab, forceRefresh: boolean = false) => {
+    if (!forceRefresh && loadedTabs[tab]) {
+      return;
+    }
+
+    setTabLoading(true);
+
+    try {
+      switch (tab) {
+        case 'processed': {
+          const processed = await getProcessedParts();
+          setTrackerLists((current) => ({
+            ...current,
+            processed: processed.processed_parts || []
+          }));
+          break;
+        }
+        case 'failed': {
+          const failed = await getFailedParts();
+          setTrackerLists((current) => ({
+            ...current,
+            failed: failed.failed_parts || {}
+          }));
+          break;
+        }
+        case 'queued': {
+          const queued = await getQueuedParts();
+          setTrackerLists((current) => ({
+            ...current,
+            queued: queued.queued_parts || []
+          }));
+          break;
+        }
+        case 'remaining': {
+          const remaining = await getRemainingParts();
+          setTrackerLists((current) => ({
+            ...current,
+            remaining: remaining.remaining_parts || []
+          }));
+          break;
+        }
+      }
+
+      setLoadedTabs((current) => ({
+        ...current,
+        [tab]: true
+      }));
+    } catch (error) {
+      console.error(`Failed to fetch ${tab} parts:`, error);
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const refreshCurrentView = async (forceTabRefresh: boolean = false) => {
+    await fetchTrackerSummary();
+
+    if (selectedTab === 'overview') {
+      await fetchDailyStats();
+      return;
+    }
+
+    await fetchTabData(selectedTab, forceTabRefresh);
+  };
 
   useEffect(() => {
-    const initializeDashboard = async () => {
-      try {
-        // Show loading immediately
-        setLoading(true);
-
-        if (isInitialLoad) {
-          setIsInitialLoad(false);
-          console.log('🔄 Initial load: Syncing tracker from R2 storage...');
-
-          // Set a reasonable timeout for initial sync to prevent hanging
-          const syncPromise = syncTrackerFromR2();
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Sync timeout')), 45000) // Increased to 45s
-          );
-
-          try {
-            await Promise.race([syncPromise, timeoutPromise]);
-            console.log('✅ R2 sync completed successfully');
-          } catch (error) {
-            console.warn('⚠️ R2 sync failed or timed out, using cached data:', (error as Error).message);
-          }
+    try {
+      const cachedSummary = localStorage.getItem(summaryCacheKey);
+      if (cachedSummary) {
+        const parsed = JSON.parse(cachedSummary) as TrackerData;
+        if (parsed?.progress) {
+          setTrackerData(parsed);
+          setLoading(false);
         }
-
-        // Always fetch data after sync attempt
-        await fetchTrackerData();
-
-      } catch (error) {
-        console.error('❌ Dashboard initialization failed:', error);
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.warn('Failed to load cached tracker summary:', error);
+    }
 
-    initializeDashboard();
-
-    // Regular refresh every 30 seconds (without sync)
-    const interval = setInterval(fetchTrackerData, 30000);
-    return () => clearInterval(interval);
+    void fetchTrackerSummary();
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      void refreshCurrentView(selectedTab !== 'overview');
+    }, 30000);
+
+    return () => window.clearInterval(interval);
+  }, [selectedTab, dailyStatsDate, dailyStatsStatus]);
 
   const fetchDailyStats = async () => {
     try {
@@ -134,9 +188,15 @@ export const PartsTrackingDashboard: React.FC = () => {
 
   useEffect(() => {
     if (selectedTab === 'overview') {
-      fetchDailyStats();
+      void fetchDailyStats();
     }
   }, [dailyStatsDate, dailyStatsStatus, selectedTab]);
+
+  useEffect(() => {
+    if (selectedTab !== 'overview') {
+      void fetchTabData(selectedTab);
+    }
+  }, [selectedTab]);
 
   const handleExportDailyStats = async () => {
     setExporting(true);
@@ -164,8 +224,7 @@ export const PartsTrackingDashboard: React.FC = () => {
       console.log('Manual sync from R2 starting...');
       await syncTrackerFromR2();
       console.log('Manual sync completed, refreshing data...');
-      // Refresh tracker data after sync
-      await fetchTrackerData();
+      await refreshCurrentView(true);
     } catch (error) {
       console.error('Failed to sync tracker:', error);
       alert('Failed to sync tracker with R2 storage. Please try again.');
@@ -177,7 +236,10 @@ export const PartsTrackingDashboard: React.FC = () => {
   const resetPartStatus = async (partNumber: string) => {
     try {
       await apiResetPartStatus(partNumber);
-      await fetchTrackerData();
+      await fetchTrackerSummary();
+      if (selectedTab !== 'overview') {
+        await fetchTabData(selectedTab, true);
+      }
     } catch (error) {
       console.error('Failed to reset part status:', error);
     }
@@ -380,7 +442,7 @@ export const PartsTrackingDashboard: React.FC = () => {
     );
   }
 
-  const { progress, processed_parts, failed_parts, queued_parts, remaining_parts } = trackerData;
+  const { progress } = trackerData;
 
   const getStatusBadgeStyle = (status: string) => {
     const baseStyle = styles.statusBadge;
@@ -402,7 +464,11 @@ export const PartsTrackingDashboard: React.FC = () => {
   const renderTabContent = () => {
     switch (selectedTab) {
       case 'processed':
-        const filteredProcessed = filterParts(processed_parts, searchQuery);
+        if (!loadedTabs.processed && tabLoading) {
+          return <p style={{ textAlign: 'center', color: colors.text.secondary }}>Loading processed parts...</p>;
+        }
+
+        const filteredProcessed = filterParts(trackerLists.processed, searchQuery);
         return (
           <div style={styles.partsList}>
             {filteredProcessed.length === 0 ? (
@@ -421,7 +487,11 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       case 'failed':
-        const filteredFailed = Object.entries(failed_parts).filter(([partNumber]) =>
+        if (!loadedTabs.failed && tabLoading) {
+          return <p style={{ textAlign: 'center', color: colors.text.secondary }}>Loading failed parts...</p>;
+        }
+
+        const filteredFailed = Object.entries(trackerLists.failed).filter(([partNumber]) =>
           partNumber.toLowerCase().includes(searchQuery.toLowerCase())
         ).slice(0, 50);
         return (
@@ -459,7 +529,11 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       case 'queued':
-        const filteredQueued = filterParts(queued_parts, searchQuery);
+        if (!loadedTabs.queued && tabLoading) {
+          return <p style={{ textAlign: 'center', color: colors.text.secondary }}>Loading queued parts...</p>;
+        }
+
+        const filteredQueued = filterParts(trackerLists.queued, searchQuery);
         return (
           <div style={styles.partsList}>
             {filteredQueued.length === 0 ? (
@@ -478,7 +552,11 @@ export const PartsTrackingDashboard: React.FC = () => {
         );
 
       case 'remaining':
-        const filteredRemaining = filterParts(remaining_parts, searchQuery);
+        if (!loadedTabs.remaining && tabLoading) {
+          return <p style={{ textAlign: 'center', color: colors.text.secondary }}>Loading remaining parts...</p>;
+        }
+
+        const filteredRemaining = filterParts(trackerLists.remaining, searchQuery);
         return (
           <div style={styles.partsList}>
             {filteredRemaining.length === 0 ? (
@@ -881,7 +959,14 @@ export const PartsTrackingDashboard: React.FC = () => {
                 minWidth: '85px',
                 justifyContent: 'center'
               }}
-              onClick={fetchTrackerData}
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await refreshCurrentView(true);
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
               disabled={refreshing}
               onMouseEnter={(e) => {
                 if (!refreshing) {
@@ -913,7 +998,7 @@ export const PartsTrackingDashboard: React.FC = () => {
               ...styles.tab,
               ...(selectedTab === tab.key ? styles.activeTab : {})
             }}
-            onClick={() => setSelectedTab(tab.key as any)}
+            onClick={() => setSelectedTab(tab.key as DashboardTab)}
           >
             {tab.label}
           </div>
