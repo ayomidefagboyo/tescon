@@ -500,10 +500,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: mobileSpacing.md,
-                    '@media (min-width: 768px)': {
-                      gap: spacing.xl
-                    }
+                    gap: mobileSpacing.md
                   }}>
                     <div style={{ textAlign: 'center', padding: mobileSpacing.sm }}>
                       <div style={{
@@ -512,11 +509,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                         color: colors.success,
                         marginBottom: mobileSpacing.xs,
                         letterSpacing: '-1px',
-                        lineHeight: 1.2,
-                        '@media (min-width: 768px)': {
-                          fontSize: '3rem',
-                          marginBottom: spacing.sm
-                        }
+                        lineHeight: 1.2
                       }}>
                         {dailyStatsData.completed_count}
                       </div>
@@ -525,10 +518,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                         color: colors.text.secondary,
                         fontWeight: typography.fontWeight.medium,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        '@media (min-width: 768px)': {
-                          fontSize: typography.fontSize.sm
-                        }
+                        letterSpacing: '0.5px'
                       }}>
                         Completed
                       </div>
@@ -540,11 +530,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                         color: colors.warning,
                         marginBottom: mobileSpacing.xs,
                         letterSpacing: '-1px',
-                        lineHeight: 1.2,
-                        '@media (min-width: 768px)': {
-                          fontSize: '3rem',
-                          marginBottom: spacing.sm
-                        }
+                        lineHeight: 1.2
                       }}>
                         {dailyStatsData.queued_count}
                       </div>
@@ -553,10 +539,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                         color: colors.text.secondary,
                         fontWeight: typography.fontWeight.medium,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        '@media (min-width: 768px)': {
-                          fontSize: typography.fontSize.sm
-                        }
+                        letterSpacing: '0.5px'
                       }}>
                         Queued
                       </div>
@@ -568,11 +551,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                         color: dailyStatsData.failed_count > 0 ? colors.error : colors.neutral[300],
                         marginBottom: mobileSpacing.xs,
                         letterSpacing: '-1px',
-                        lineHeight: 1.2,
-                        '@media (min-width: 768px)': {
-                          fontSize: '3rem',
-                          marginBottom: spacing.sm
-                        }
+                        lineHeight: 1.2
                       }}>
                         {dailyStatsData.failed_count}
                       </div>
@@ -581,10 +560,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                         color: colors.text.secondary,
                         fontWeight: typography.fontWeight.medium,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        '@media (min-width: 768px)': {
-                          fontSize: typography.fontSize.sm
-                        }
+                        letterSpacing: '0.5px'
                       }}>
                         Failed
                       </div>
@@ -745,10 +721,7 @@ export const PartsTrackingDashboard: React.FC = () => {
           display: 'flex',
           gap: '4px',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          '@media (min-width: 768px)': {
-            gap: mobileSpacing.sm
-          }
+          flexWrap: 'wrap'
         }}>
           {selectedTab === 'overview' && (
             <>
