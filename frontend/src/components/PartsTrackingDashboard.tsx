@@ -47,10 +47,17 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchTrackerData = async () => {
+  const fetchTrackerData = async (syncFirst = false) => {
     setRefreshing(true);
     try {
+      // Sync from R2 first if requested (initial load or manual sync)
+      if (syncFirst) {
+        console.log('Syncing tracker data from R2...');
+        await syncTrackerFromR2();
+      }
+
       const [progress, processed, failed, queued, remaining] = await Promise.all([
         getTrackerProgress(),
         getProcessedParts(),
@@ -76,10 +83,14 @@ export const PartsTrackingDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTrackerData();
-    const interval = setInterval(fetchTrackerData, 30000);
+    // Sync from R2 on initial load to get accurate data
+    fetchTrackerData(isInitialLoad);
+    setIsInitialLoad(false);
+
+    // Regular refresh every 30 seconds (without sync)
+    const interval = setInterval(() => fetchTrackerData(false), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, []);  // Remove isInitialLoad from deps to avoid re-sync
 
   const fetchDailyStats = async () => {
     try {
@@ -119,10 +130,9 @@ export const PartsTrackingDashboard: React.FC = () => {
   const handleSyncTracker = async () => {
     setSyncing(true);
     try {
-      const result = await syncTrackerFromR2();
-      console.log('Sync result:', result);
-      // Refresh tracker data after sync (silent update, no alert)
-      await fetchTrackerData();
+      // Use the fetchTrackerData with sync=true to sync and refresh
+      await fetchTrackerData(true);
+      console.log('Sync completed successfully');
     } catch (error) {
       console.error('Failed to sync tracker:', error);
       alert('Failed to sync tracker with R2 storage. Please try again.');
@@ -719,9 +729,10 @@ export const PartsTrackingDashboard: React.FC = () => {
         </div>
         <div style={{
           display: 'flex',
-          gap: '4px',
+          gap: '2px',
           alignItems: 'center',
-          flexWrap: 'wrap'
+          flexShrink: 0,
+          overflowX: 'auto'
         }}>
           {selectedTab === 'overview' && (
             <>
@@ -736,7 +747,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                   fontSize: mobileTypography.fontSize.xs,
                   backgroundColor: colors.background.main,
                   color: colors.text.primary,
-                  width: '120px',
+                  width: '100px',
                   flexShrink: 0
                 }}
               />
@@ -751,7 +762,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                   backgroundColor: colors.background.main,
                   color: colors.text.primary,
                   cursor: 'pointer',
-                  width: '90px',
+                  width: '70px',
                   flexShrink: 0
                 }}
               >
@@ -766,10 +777,11 @@ export const PartsTrackingDashboard: React.FC = () => {
                   backgroundColor: colors.success,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '3px',
-                  padding: `${mobileSpacing.xs} 8px`,
+                  gap: '2px',
+                  padding: `${mobileSpacing.xs} 4px`,
                   fontSize: mobileTypography.fontSize.xs,
-                  flexShrink: 0
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap'
                 }}
                 onClick={handleExportDailyStats}
                 disabled={exporting}
@@ -782,8 +794,8 @@ export const PartsTrackingDashboard: React.FC = () => {
                   e.currentTarget.style.backgroundColor = colors.success;
                 }}
               >
-                <Download size={16} />
-                {exporting ? 'Exporting...' : 'Export Excel'}
+                <Download size={12} />
+                {exporting ? 'Export' : 'Export'}
               </button>
             </>
           )}
@@ -791,9 +803,10 @@ export const PartsTrackingDashboard: React.FC = () => {
             style={{
               ...styles.refreshButton,
               backgroundColor: colors.warning,
-              padding: `${mobileSpacing.xs} 8px`,
+              padding: `${mobileSpacing.xs} 4px`,
               fontSize: mobileTypography.fontSize.xs,
-              gap: '3px',
+              gap: '2px',
+              whiteSpace: 'nowrap',
               flexShrink: 0
             }}
             onClick={handleSyncTracker}
@@ -807,18 +820,19 @@ export const PartsTrackingDashboard: React.FC = () => {
               e.currentTarget.style.backgroundColor = colors.warning;
             }}
           >
-            <CloudSync size={16} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
-            {syncing ? 'Syncing...' : 'Sync R2'}
+            <CloudSync size={12} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+            {syncing ? 'Sync' : 'Sync'}
           </button>
           <button
             style={{
               ...styles.refreshButton,
-              padding: `${mobileSpacing.xs} 8px`,
+              padding: `${mobileSpacing.xs} 4px`,
               fontSize: mobileTypography.fontSize.xs,
-              gap: '3px',
+              gap: '2px',
+              whiteSpace: 'nowrap',
               flexShrink: 0
             }}
-            onClick={fetchTrackerData}
+            onClick={() => fetchTrackerData(false)}
             disabled={refreshing}
             onMouseEnter={(e) => {
               if (!refreshing) {
@@ -829,8 +843,8 @@ export const PartsTrackingDashboard: React.FC = () => {
               e.currentTarget.style.backgroundColor = colors.primary.main;
             }}
           >
-            <RefreshCw size={16} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {refreshing ? 'Refresh' : 'Refresh'}
           </button>
         </div>
       </div>
