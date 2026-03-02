@@ -60,6 +60,12 @@ export const PartsTrackingDashboard: React.FC = () => {
         getRemainingParts()
       ]);
 
+      console.log('📊 Tracker data received:', {
+        processed_count: progress.progress?.processed_count,
+        total_parts: progress.progress?.total_parts,
+        timestamp: new Date().toISOString()
+      });
+
       setTrackerData({
         progress: progress.progress,
         processed_parts: processed.processed_parts,
@@ -76,34 +82,43 @@ export const PartsTrackingDashboard: React.FC = () => {
     }
   };
 
-  // Separate function for background R2 sync
-  const backgroundSyncFromR2 = async () => {
-    try {
-      console.log('Background sync from R2 starting...');
-      await syncTrackerFromR2();
-      console.log('Background sync completed, refreshing data...');
-      // Refresh data after sync completes
-      await fetchTrackerData();
-    } catch (error) {
-      console.error('Background R2 sync failed:', error);
-      // Don't show error to user since this is background
-    }
-  };
 
   useEffect(() => {
-    // Load dashboard immediately with cached data
-    fetchTrackerData();
+    const initializeDashboard = async () => {
+      try {
+        // Show loading immediately
+        setLoading(true);
 
-    // Start background sync from R2 on initial load (non-blocking)
-    if (isInitialLoad) {
-      setIsInitialLoad(false);
-      // Use setTimeout to make it truly non-blocking
-      setTimeout(() => {
-        backgroundSyncFromR2();
-      }, 100);
-    }
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+          console.log('🔄 Initial load: Syncing tracker from R2 storage...');
 
-    // Regular refresh every 30 seconds
+          // Set a reasonable timeout for initial sync to prevent hanging
+          const syncPromise = syncTrackerFromR2();
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Sync timeout')), 45000) // Increased to 45s
+          );
+
+          try {
+            await Promise.race([syncPromise, timeoutPromise]);
+            console.log('✅ R2 sync completed successfully');
+          } catch (error) {
+            console.warn('⚠️ R2 sync failed or timed out, using cached data:', (error as Error).message);
+          }
+        }
+
+        // Always fetch data after sync attempt
+        await fetchTrackerData();
+
+      } catch (error) {
+        console.error('❌ Dashboard initialization failed:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeDashboard();
+
+    // Regular refresh every 30 seconds (without sync)
     const interval = setInterval(fetchTrackerData, 30000);
     return () => clearInterval(interval);
   }, []);

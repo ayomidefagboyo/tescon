@@ -135,12 +135,30 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
  * Tracker API functions
  */
 export async function getTrackerProgress(): Promise<any> {
-  const response = await api.get('/tracker/progress', { timeout: 10000 }); // 10s timeout
+  const response = await api.get('/tracker/progress', {
+    timeout: 10000, // 10s timeout
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    params: {
+      '_t': Date.now() // Cache busting
+    }
+  });
   return response.data;
 }
 
 export async function getProcessedParts(): Promise<any> {
-  const response = await api.get('/tracker/parts/processed', { timeout: 10000 }); // 10s timeout
+  const response = await api.get('/tracker/parts/processed', {
+    timeout: 10000, // 10s timeout
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    params: {
+      '_t': Date.now() // Cache busting
+    }
+  });
   return response.data;
 }
 
