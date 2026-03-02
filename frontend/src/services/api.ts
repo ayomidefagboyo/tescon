@@ -117,7 +117,10 @@ export async function processPartImagesAsync(
 
   const response = await api.post<JobResponse>(
     `/process/part/async?${params.toString()}`,
-    formData
+    formData,
+    {
+      timeout: 60000, // 1 minute timeout (shorter to fail faster and retry)
+    }
   );
 
   return response.data;

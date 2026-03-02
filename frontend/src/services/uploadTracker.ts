@@ -26,7 +26,7 @@ export interface UploadOptions {
 class UploadTracker {
   private storageKey = 'tescon_upload_queue';
   private maxRetries = 3;
-  private retryDelays = [1000, 5000, 15000]; // 1s, 5s, 15s
+  private retryDelays = [500, 2000, 8000]; // 0.5s, 2s, 8s (faster retries for network issues)
 
   // Get all uploads from localStorage
   private getUploads(): UploadAttempt[] {
@@ -35,13 +35,23 @@ class UploadTracker {
       if (!stored) return [];
 
       const uploads = JSON.parse(stored) as UploadAttempt[];
+
+      // Validate the parsed data structure
+      if (!Array.isArray(uploads)) {
+        console.warn('Upload queue data is not an array, clearing corrupted data');
+        localStorage.removeItem(this.storageKey);
+        return [];
+      }
+
       // Convert File objects back (they don't serialize well)
       return uploads.map(upload => ({
         ...upload,
         files: [] // Files will be re-added when retrying
       }));
     } catch (error) {
-      console.warn('Failed to load upload queue:', error);
+      console.warn('Failed to parse upload queue, clearing corrupted data:', error);
+      // Clear corrupted data to prevent future errors
+      localStorage.removeItem(this.storageKey);
       return [];
     }
   }
@@ -162,8 +172,20 @@ class UploadTracker {
   // Check if error is retryable (network issues) vs permanent (404, 409)
   private isRetryableError(error: any): boolean {
     const status = error.response?.status;
+    const message = error.response?.data?.detail || error.message || '';
 
-    // Don't retry client errors (part not found, duplicate, validation)
+    // Multipart boundary/parsing errors are always retryable (transmission corruption)
+    if (status === 400 && (
+      message.includes('boundary') ||
+      message.includes('multipart') ||
+      message.includes('CR at end') ||
+      message.includes('parsing')
+    )) {
+      console.log('🔄 Retrying multipart boundary error:', message);
+      return true;
+    }
+
+    // Don't retry other 4xx client errors (part not found, duplicate, validation)
     if (status >= 400 && status < 500) {
       return false;
     }
