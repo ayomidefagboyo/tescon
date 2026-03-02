@@ -1,14 +1,14 @@
 /** Main application component */
 import React, { useState, useEffect } from "react";
 import { healthCheck } from "./services/api";
-import { CheckCircle2, XCircle, Wifi, WifiOff } from "lucide-react";
-import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography, touchTargets } from "./styles/design-system";
+import { Wifi, WifiOff } from "lucide-react";
+import { colors, spacing, typography, borderRadius, transitions, mobileSpacing, mobileTypography } from "./styles/design-system";
 import { StepByStepWorkflow } from "./components/StepByStepWorkflow";
 import { PartsTrackingDashboard } from "./components/PartsTrackingDashboard";
 import { UploadStatusDashboard } from "./components/UploadStatusDashboard";
 
 function App() {
-  const [health, setHealth] = useState<{ gpu_available: boolean; model_loaded: boolean } | null>(null);
+  const [_health, setHealth] = useState<{ gpu_available: boolean; model_loaded: boolean } | null>(null);
   const [currentView, setCurrentView] = useState<'workflow' | 'dashboard'>('workflow');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -132,33 +132,6 @@ function App() {
       },
     },
 
-    healthBadge: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: mobileSpacing.xs,
-      padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
-      backgroundColor: colors.background.main,
-      border: `1px solid ${colors.neutral[200]}`,
-      borderRadius: borderRadius.md,
-      fontSize: mobileTypography.fontSize.xs,
-      color: colors.text.secondary,
-      boxShadow: shadows.sm,
-      minHeight: touchTargets.small,
-      '@media (min-width: 768px)': {
-        gap: spacing.xs,
-        padding: `${spacing.xs} ${spacing.sm}`,
-        fontSize: typography.fontSize.xs,
-      },
-    },
-
-    healthIcon: {
-      width: '16px',
-      height: '16px',
-      '@media (min-width: 768px)': {
-        width: '14px',
-        height: '14px',
-      },
-    },
 
     networkBadge: (isOnline: boolean) => ({
       display: 'flex',
@@ -283,17 +256,6 @@ function App() {
           </>
         )}
       </div>
-
-      {health && (
-        <div style={{...styles.healthBadge, marginTop: mobileSpacing.lg, alignSelf: 'center'}} data-health-badge>
-          {health.model_loaded ? (
-            <CheckCircle2 style={{ ...styles.healthIcon, color: colors.success }} />
-          ) : (
-            <XCircle style={{ ...styles.healthIcon, color: colors.error }} />
-          )}
-          <span>{health.model_loaded ? 'Ready' : 'Offline'}</span>
-        </div>
-      )}
     </div>
   );
 }
