@@ -1,8 +1,8 @@
 /** Parts tracking dashboard component */
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
 import { BarChart, RefreshCw, Search, Download, CloudSync } from "lucide-react";
-import { getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, syncTrackerFromR2 } from "../services/api";
+import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, syncTrackerFromR2 } from "../services/api";
 
 interface ProgressStats {
   total_parts: number;
@@ -49,9 +49,8 @@ interface CachedTrackerSummary {
 
 export const PartsTrackingDashboard: React.FC = () => {
   const summaryCacheKey = 'tescon_tracker_dashboard_summary';
-  const autoSyncCacheKey = 'tescon_tracker_dashboard_last_auto_sync';
+  const legacyAutoSyncCacheKey = 'tescon_tracker_dashboard_last_auto_sync';
   const autoRefreshMs = 10000;
-  const autoSyncCooldownMs = 5 * 60 * 1000;
   const summaryCacheMaxAgeMs = 30000;
   const [trackerData, setTrackerData] = useState<TrackerData | null>(null);
   const [trackerLists, setTrackerLists] = useState<TrackerLists>({
@@ -71,9 +70,86 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [showingCachedSummary, setShowingCachedSummary] = useState(false);
+  const [cachedSummaryAgeMs, setCachedSummaryAgeMs] = useState<number | null>(null);
+  const summaryRequestInFlight = useRef(false);
+  const tabRequestInFlight = useRef<Partial<Record<ListTab, boolean>>>({});
 
-  const fetchTrackerSummary = async () => {
+  const getCachedSummary = (): CachedTrackerSummary | null => {
     try {
+      const cachedSummary = localStorage.getItem(summaryCacheKey);
+      if (!cachedSummary) {
+        return null;
+      }
+
+      const parsed = JSON.parse(cachedSummary) as CachedTrackerSummary | TrackerData;
+      const hasWrappedCache =
+        typeof (parsed as CachedTrackerSummary)?.cachedAt === 'number' &&
+        !!(parsed as CachedTrackerSummary)?.data;
+
+      if (hasWrappedCache) {
+        return parsed as CachedTrackerSummary;
+      }
+
+      if ((parsed as TrackerData)?.progress) {
+        return {
+          data: parsed as TrackerData,
+          cachedAt: 0
+        };
+      }
+
+      localStorage.removeItem(summaryCacheKey);
+      return null;
+    } catch (error) {
+      console.warn('Failed to load cached tracker summary:', error);
+      localStorage.removeItem(summaryCacheKey);
+      return null;
+    }
+  };
+
+  const applyCachedSummary = (cachedSummary: CachedTrackerSummary) => {
+    setTrackerData(cachedSummary.data);
+    setShowingCachedSummary(true);
+    setCachedSummaryAgeMs(cachedSummary.cachedAt > 0 ? Math.max(0, Date.now() - cachedSummary.cachedAt) : null);
+  };
+
+  const persistSummary = (nextTrackerData: TrackerData) => {
+    const cachedSummary: CachedTrackerSummary = {
+      data: nextTrackerData,
+      cachedAt: Date.now()
+    };
+
+    localStorage.setItem(summaryCacheKey, JSON.stringify(cachedSummary));
+  };
+
+  const clearDashboardCache = () => {
+    localStorage.removeItem(summaryCacheKey);
+    localStorage.removeItem(legacyAutoSyncCacheKey);
+  };
+
+  const getCacheAgeLabel = () => {
+    if (cachedSummaryAgeMs === null) {
+      return null;
+    }
+
+    const seconds = Math.max(1, Math.round(cachedSummaryAgeMs / 1000));
+    if (seconds < 60) {
+      return `${seconds}s old`;
+    }
+
+    const minutes = Math.round(seconds / 60);
+    return `${minutes}m old`;
+  };
+
+  const fetchTrackerSummary = async (allowCacheFallback: boolean = false) => {
+    if (summaryRequestInFlight.current) {
+      return trackerData !== null;
+    }
+
+    summaryRequestInFlight.current = true;
+    try {
+      setSummaryError(null);
       const progress = await getTrackerProgress();
 
       const nextTrackerData = {
@@ -88,14 +164,25 @@ export const PartsTrackingDashboard: React.FC = () => {
       });
 
       setTrackerData(nextTrackerData);
-      const cachedSummary: CachedTrackerSummary = {
-        data: nextTrackerData,
-        cachedAt: Date.now()
-      };
-      localStorage.setItem(summaryCacheKey, JSON.stringify(cachedSummary));
+      setShowingCachedSummary(false);
+      setCachedSummaryAgeMs(0);
+      persistSummary(nextTrackerData);
+      return true;
     } catch (error) {
-      console.error('Failed to fetch tracker data:', error);
+      const errorMessage = describeApiError(error);
+      console.error('Failed to fetch tracker data:', errorMessage, error);
+      setSummaryError(errorMessage);
+
+      if (allowCacheFallback) {
+        const cachedSummary = getCachedSummary();
+        if (cachedSummary?.data?.progress) {
+          applyCachedSummary(cachedSummary);
+        }
+      }
+
+      return false;
     } finally {
+      summaryRequestInFlight.current = false;
       setLoading(false);
     }
   };
@@ -105,6 +192,11 @@ export const PartsTrackingDashboard: React.FC = () => {
       return;
     }
 
+    if (tabRequestInFlight.current[tab]) {
+      return;
+    }
+
+    tabRequestInFlight.current[tab] = true;
     setTabLoading(true);
 
     try {
@@ -148,14 +240,15 @@ export const PartsTrackingDashboard: React.FC = () => {
         [tab]: true
       }));
     } catch (error) {
-      console.error(`Failed to fetch ${tab} parts:`, error);
+      console.error(`Failed to fetch ${tab} parts:`, describeApiError(error), error);
     } finally {
+      tabRequestInFlight.current[tab] = false;
       setTabLoading(false);
     }
   };
 
   const refreshCurrentView = async (forceTabRefresh: boolean = false) => {
-    await fetchTrackerSummary();
+    await fetchTrackerSummary(true);
 
     if (selectedTab === 'overview') {
       await fetchDailyStats();
@@ -166,56 +259,18 @@ export const PartsTrackingDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    try {
-      const cachedSummary = localStorage.getItem(summaryCacheKey);
-      if (cachedSummary) {
-        const parsed = JSON.parse(cachedSummary) as CachedTrackerSummary | TrackerData;
-        const hasWrappedCache = typeof (parsed as CachedTrackerSummary)?.cachedAt === 'number' && !!(parsed as CachedTrackerSummary)?.data;
-        const cachedAt = hasWrappedCache ? (parsed as CachedTrackerSummary).cachedAt : 0;
-        const cachedData = hasWrappedCache ? (parsed as CachedTrackerSummary).data : (parsed as TrackerData);
-        const isFresh = hasWrappedCache && (Date.now() - cachedAt <= summaryCacheMaxAgeMs);
+    const cachedSummary = getCachedSummary();
+    const hasFreshCachedSummary =
+      !!cachedSummary &&
+      cachedSummary.cachedAt > 0 &&
+      (Date.now() - cachedSummary.cachedAt <= summaryCacheMaxAgeMs);
 
-        if (isFresh && cachedData?.progress) {
-          setTrackerData(cachedData);
-          setLoading(false);
-        } else {
-          localStorage.removeItem(summaryCacheKey);
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load cached tracker summary:', error);
+    if (cachedSummary && hasFreshCachedSummary) {
+      applyCachedSummary(cachedSummary);
+      setLoading(false);
     }
 
-    void fetchTrackerSummary();
-  }, []);
-
-  useEffect(() => {
-    const runAutoSync = async () => {
-      try {
-        const lastAutoSyncRaw = localStorage.getItem(autoSyncCacheKey);
-        const lastAutoSync = lastAutoSyncRaw ? Number(lastAutoSyncRaw) : 0;
-
-        if (Number.isFinite(lastAutoSync) && Date.now() - lastAutoSync < autoSyncCooldownMs) {
-          return;
-        }
-
-        await syncTrackerFromR2();
-        localStorage.setItem(autoSyncCacheKey, Date.now().toString());
-        await fetchTrackerSummary();
-
-        if (selectedTab !== 'overview') {
-          await fetchTabData(selectedTab, true);
-        }
-      } catch (error) {
-        console.warn('Background tracker sync failed:', error);
-      }
-    };
-
-    const timer = window.setTimeout(() => {
-      void runAutoSync();
-    }, 250);
-
-    return () => window.clearTimeout(timer);
+    void fetchTrackerSummary(true);
   }, []);
 
   useEffect(() => {
@@ -231,7 +286,7 @@ export const PartsTrackingDashboard: React.FC = () => {
       const data = await getDailyStats(dailyStatsDate, dailyStatsStatus === 'all' ? undefined : dailyStatsStatus);
       setDailyStatsData(data);
     } catch (error) {
-      console.error('Failed to fetch daily stats:', error);
+      console.error('Failed to fetch daily stats:', describeApiError(error), error);
     }
   };
 
@@ -271,14 +326,63 @@ export const PartsTrackingDashboard: React.FC = () => {
     setSyncing(true);
     try {
       console.log('Manual sync from R2 starting...');
-      await syncTrackerFromR2();
-      console.log('Manual sync completed, refreshing data...');
-      await refreshCurrentView(true);
+      const syncResult = await syncTrackerFromR2();
+      const nextTrackerData = {
+        progress: syncResult.stats,
+        part_stats: trackerData?.part_stats || {}
+      };
+
+      setTrackerData(nextTrackerData);
+      setSummaryError(null);
+      setShowingCachedSummary(false);
+      setCachedSummaryAgeMs(0);
+      setLoadedTabs({});
+      clearDashboardCache();
+      persistSummary(nextTrackerData);
+      console.log('Manual sync completed, refreshing visible data...');
+
+      if (selectedTab !== 'overview') {
+        await fetchTabData(selectedTab, true);
+      } else {
+        await fetchDailyStats();
+      }
     } catch (error) {
-      console.error('Failed to sync tracker:', error);
-      alert('Failed to sync tracker with R2 storage. Please try again.');
+      console.error('Failed to sync tracker:', describeApiError(error), error);
+      alert(`Failed to sync tracker with R2 storage. ${describeApiError(error)}`);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    clearDashboardCache();
+    setLoadedTabs({});
+    setTrackerLists({
+      processed: [],
+      failed: {},
+      queued: [],
+      remaining: []
+    });
+    setTrackerData(null);
+    setDailyStatsData(null);
+    setShowingCachedSummary(false);
+    setCachedSummaryAgeMs(null);
+    setSummaryError(null);
+    setLoading(true);
+
+    try {
+      await refreshCurrentView(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefreshClick = async () => {
+    setRefreshing(true);
+    try {
+      await refreshCurrentView(true);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -330,6 +434,33 @@ export const PartsTrackingDashboard: React.FC = () => {
       fontSize: mobileTypography.fontSize.sm,
       fontWeight: typography.fontWeight.medium,
       transition: `all ${transitions.base}`,
+    } as React.CSSProperties,
+    secondaryButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: mobileSpacing.xs,
+      padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+      backgroundColor: colors.background.main,
+      color: colors.text.primary,
+      border: `1px solid ${colors.neutral[300]}`,
+      borderRadius: borderRadius.md,
+      cursor: 'pointer',
+      fontSize: mobileTypography.fontSize.sm,
+      fontWeight: typography.fontWeight.medium,
+      transition: `all ${transitions.base}`,
+    } as React.CSSProperties,
+    statusBanner: {
+      marginBottom: mobileSpacing.md,
+      padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+      borderRadius: borderRadius.md,
+      border: `1px solid ${colors.neutral[200]}`,
+      fontSize: mobileTypography.fontSize.sm,
+      lineHeight: 1.5,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: mobileSpacing.sm,
+      flexWrap: 'wrap' as const,
     } as React.CSSProperties,
     statsGrid: {
       display: 'grid',
@@ -485,7 +616,27 @@ export const PartsTrackingDashboard: React.FC = () => {
     return (
       <div style={styles.container}>
         <div style={{ textAlign: 'center', padding: spacing.xl }}>
-          <p style={{ color: colors.text.secondary }}>Failed to load tracker data</p>
+          <p style={{ color: colors.text.secondary, marginBottom: spacing.md }}>
+            {summaryError ? `Failed to load tracker data: ${summaryError}` : 'Failed to load tracker data'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: mobileSpacing.sm, flexWrap: 'wrap' }}>
+            <button
+              style={styles.refreshButton}
+              onClick={handleRefreshClick}
+              disabled={refreshing}
+            >
+              <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+              Retry
+            </button>
+            <button
+              style={styles.secondaryButton}
+              onClick={() => {
+                void handleClearCache();
+              }}
+            >
+              Clear Cache
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -882,6 +1033,31 @@ export const PartsTrackingDashboard: React.FC = () => {
 
   return (
     <div style={styles.container}>
+      {(summaryError || showingCachedSummary) && (
+        <div
+          style={{
+            ...styles.statusBanner,
+            backgroundColor: summaryError ? '#fff7ed' : '#eff6ff',
+            borderColor: summaryError ? '#fdba74' : '#bfdbfe',
+            color: summaryError ? '#9a3412' : '#1d4ed8',
+          }}
+        >
+          <span>
+            {summaryError
+              ? `Live tracker update failed: ${summaryError}. ${showingCachedSummary ? `Showing cached data${getCacheAgeLabel() ? ` (${getCacheAgeLabel()})` : ''}.` : 'Use refresh or clear cache to retry.'}`
+              : `Showing cached tracker data${getCacheAgeLabel() ? ` (${getCacheAgeLabel()})` : ''} while live data refreshes.`}
+          </span>
+          <button
+            style={styles.secondaryButton}
+            onClick={() => {
+              void handleClearCache();
+            }}
+          >
+            Clear Cache
+          </button>
+        </div>
+      )}
+
       <div style={styles.header}>
         <div style={styles.title}>
           <BarChart size={32} />
@@ -1008,14 +1184,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                 minWidth: '85px',
                 justifyContent: 'center'
               }}
-              onClick={async () => {
-                setRefreshing(true);
-                try {
-                  await refreshCurrentView(true);
-                } finally {
-                  setRefreshing(false);
-                }
-              }}
+              onClick={handleRefreshClick}
               disabled={refreshing}
               onMouseEnter={(e) => {
                 if (!refreshing) {
@@ -1028,6 +1197,24 @@ export const PartsTrackingDashboard: React.FC = () => {
             >
               <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
               {refreshing ? 'Refresh' : 'Refresh'}
+            </button>
+            <button
+              style={{
+                ...styles.secondaryButton,
+                minWidth: '110px',
+                justifyContent: 'center'
+              }}
+              onClick={() => {
+                void handleClearCache();
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = colors.neutral[400];
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = colors.neutral[300];
+              }}
+            >
+              Clear Cache
             </button>
           </div>
         </div>

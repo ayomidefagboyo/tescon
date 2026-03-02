@@ -12,6 +12,9 @@ const api = axios.create({
   timeout: 300000, // 5 minutes for large uploads
 });
 
+const TRACKER_TIMEOUT_MS = 30000;
+const TRACKER_RETRY_DELAY_MS = 1500;
+
 
 /**
  * Health check
@@ -137,18 +140,76 @@ export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
 /**
  * Tracker API functions
  */
-export async function getTrackerProgress(): Promise<any> {
-  const response = await api.get('/tracker/progress', {
-    timeout: 10000, // 10s timeout
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    },
-    params: {
-      '_t': Date.now() // Cache busting
+export function describeApiError(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const responseData = error.response?.data;
+    const detail =
+      typeof responseData === 'string'
+        ? responseData
+        : responseData?.detail || responseData?.message;
+
+    if (status && detail) {
+      return `HTTP ${status}: ${detail}`;
     }
-  });
-  return response.data;
+
+    if (status) {
+      return `HTTP ${status}`;
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return 'Request timed out while waiting for the backend';
+    }
+
+    if (error.message) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return 'Unknown network error';
+}
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+export async function getTrackerProgress(): Promise<any> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const response = await api.get('/tracker/progress', {
+        timeout: TRACKER_TIMEOUT_MS,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        params: {
+          '_t': Date.now()
+        }
+      });
+      return response.data;
+    } catch (error) {
+      const isRetryable = axios.isAxiosError(error) && (!error.response || error.code === 'ECONNABORTED');
+      const willRetry = attempt === 1 && isRetryable;
+
+      console.error('Tracker progress request failed:', {
+        attempt,
+        message: describeApiError(error),
+        code: axios.isAxiosError(error) ? error.code : undefined,
+        status: axios.isAxiosError(error) ? error.response?.status : undefined,
+        willRetry
+      });
+
+      if (!willRetry) {
+        throw error;
+      }
+
+      await wait(TRACKER_RETRY_DELAY_MS);
+    }
+  }
+
+  throw new Error('Tracker progress request failed after retry');
 }
 
 export async function getProcessedParts(): Promise<any> {
@@ -203,6 +264,6 @@ export async function exportDailyStatsExcel(date?: string, status?: string): Pro
 }
 
 export async function syncTrackerFromR2(): Promise<any> {
-  const response = await api.post('/tracker/sync-from-r2', {}, { timeout: 30000 }); // 30s timeout for sync
+  const response = await api.post('/tracker/sync-from-r2', {}, { timeout: 60000 }); // 60s timeout for sync
   return response.data;
 }
