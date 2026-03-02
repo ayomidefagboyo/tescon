@@ -42,8 +42,17 @@ interface TrackerLists {
   remaining: string[];
 }
 
+interface CachedTrackerSummary {
+  data: TrackerData;
+  cachedAt: number;
+}
+
 export const PartsTrackingDashboard: React.FC = () => {
   const summaryCacheKey = 'tescon_tracker_dashboard_summary';
+  const autoSyncCacheKey = 'tescon_tracker_dashboard_last_auto_sync';
+  const autoRefreshMs = 10000;
+  const autoSyncCooldownMs = 5 * 60 * 1000;
+  const summaryCacheMaxAgeMs = 30000;
   const [trackerData, setTrackerData] = useState<TrackerData | null>(null);
   const [trackerLists, setTrackerLists] = useState<TrackerLists>({
     processed: [],
@@ -79,7 +88,11 @@ export const PartsTrackingDashboard: React.FC = () => {
       });
 
       setTrackerData(nextTrackerData);
-      localStorage.setItem(summaryCacheKey, JSON.stringify(nextTrackerData));
+      const cachedSummary: CachedTrackerSummary = {
+        data: nextTrackerData,
+        cachedAt: Date.now()
+      };
+      localStorage.setItem(summaryCacheKey, JSON.stringify(cachedSummary));
     } catch (error) {
       console.error('Failed to fetch tracker data:', error);
     } finally {
@@ -156,10 +169,17 @@ export const PartsTrackingDashboard: React.FC = () => {
     try {
       const cachedSummary = localStorage.getItem(summaryCacheKey);
       if (cachedSummary) {
-        const parsed = JSON.parse(cachedSummary) as TrackerData;
-        if (parsed?.progress) {
-          setTrackerData(parsed);
+        const parsed = JSON.parse(cachedSummary) as CachedTrackerSummary | TrackerData;
+        const hasWrappedCache = typeof (parsed as CachedTrackerSummary)?.cachedAt === 'number' && !!(parsed as CachedTrackerSummary)?.data;
+        const cachedAt = hasWrappedCache ? (parsed as CachedTrackerSummary).cachedAt : 0;
+        const cachedData = hasWrappedCache ? (parsed as CachedTrackerSummary).data : (parsed as TrackerData);
+        const isFresh = hasWrappedCache && (Date.now() - cachedAt <= summaryCacheMaxAgeMs);
+
+        if (isFresh && cachedData?.progress) {
+          setTrackerData(cachedData);
           setLoading(false);
+        } else {
+          localStorage.removeItem(summaryCacheKey);
         }
       }
     } catch (error) {
@@ -170,12 +190,41 @@ export const PartsTrackingDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const runAutoSync = async () => {
+      try {
+        const lastAutoSyncRaw = localStorage.getItem(autoSyncCacheKey);
+        const lastAutoSync = lastAutoSyncRaw ? Number(lastAutoSyncRaw) : 0;
+
+        if (Number.isFinite(lastAutoSync) && Date.now() - lastAutoSync < autoSyncCooldownMs) {
+          return;
+        }
+
+        await syncTrackerFromR2();
+        localStorage.setItem(autoSyncCacheKey, Date.now().toString());
+        await fetchTrackerSummary();
+
+        if (selectedTab !== 'overview') {
+          await fetchTabData(selectedTab, true);
+        }
+      } catch (error) {
+        console.warn('Background tracker sync failed:', error);
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      void runAutoSync();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const interval = window.setInterval(() => {
       void refreshCurrentView(selectedTab !== 'overview');
-    }, 30000);
+    }, autoRefreshMs);
 
     return () => window.clearInterval(interval);
-  }, [selectedTab, dailyStatsDate, dailyStatsStatus]);
+  }, [selectedTab, dailyStatsDate, dailyStatsStatus, autoRefreshMs]);
 
   const fetchDailyStats = async () => {
     try {
