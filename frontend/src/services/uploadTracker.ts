@@ -27,6 +27,8 @@ class UploadTracker {
   private storageKey = 'tescon_upload_queue';
   private maxRetries = 3;
   private retryDelays = [500, 2000, 8000]; // 0.5s, 2s, 8s (faster retries for network issues)
+  private activeFiles = new Map<string, File[]>();
+  private uploadOptions = new Map<string, UploadOptions>();
 
   // Get all uploads from localStorage
   private getUploads(): UploadAttempt[] {
@@ -43,11 +45,34 @@ class UploadTracker {
         return [];
       }
 
-      // Convert File objects back (they don't serialize well)
-      return uploads.map(upload => ({
-        ...upload,
-        files: [] // Files will be re-added when retrying
-      }));
+      let normalized = false;
+
+      const hydratedUploads = uploads.map(upload => {
+        const files = this.activeFiles.get(upload.id) || [];
+        const shouldFailInterruptedUpload =
+          files.length === 0 && (upload.status === 'pending' || upload.status === 'in_progress');
+
+        if (!shouldFailInterruptedUpload) {
+          return {
+            ...upload,
+            files
+          };
+        }
+
+        normalized = true;
+        return {
+          ...upload,
+          status: 'failed' as const,
+          lastError: 'Upload was interrupted before the files reached the server. Please re-upload this part.',
+          files
+        };
+      });
+
+      if (normalized) {
+        this.saveUploads(hydratedUploads);
+      }
+
+      return hydratedUploads;
     } catch (error) {
       console.warn('Failed to parse upload queue, clearing corrupted data:', error);
       // Clear corrupted data to prevent future errors
@@ -62,7 +87,7 @@ class UploadTracker {
       // Don't store File objects (they're not serializable)
       const serializable = uploads.map(upload => ({
         ...upload,
-        files: upload.files.map(f => ({ name: f.name, size: f.size, type: f.type }))
+        files: []
       }));
       localStorage.setItem(this.storageKey, JSON.stringify(serializable));
     } catch (error) {
@@ -79,6 +104,10 @@ class UploadTracker {
   ): string {
     const uploads = this.getUploads();
     const id = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.activeFiles.set(id, files);
+    if (options) {
+      this.uploadOptions.set(id, options);
+    }
 
     const upload: UploadAttempt = {
       id,
@@ -101,7 +130,7 @@ class UploadTracker {
   }
 
   // Process a single upload with retry logic
-  private async processUpload(uploadId: string, options?: UploadOptions): Promise<void> {
+  private async processUpload(uploadId: string, overrideOptions?: UploadOptions): Promise<void> {
     const uploads = this.getUploads();
     const uploadIndex = uploads.findIndex(u => u.id === uploadId);
 
@@ -111,6 +140,15 @@ class UploadTracker {
     }
 
     const upload = uploads[uploadIndex];
+    const options = overrideOptions || this.uploadOptions.get(uploadId);
+
+    if (upload.files.length === 0) {
+      upload.status = 'failed';
+      upload.lastError = 'Original files are no longer available. Please re-upload this part.';
+      this.saveUploads(uploads);
+      return;
+    }
+
     upload.status = 'in_progress';
     this.saveUploads(uploads);
 
@@ -135,6 +173,8 @@ class UploadTracker {
       upload.jobId = response.job_id;
       upload.completedAt = Date.now();
       upload.lastError = undefined;
+      this.activeFiles.delete(uploadId);
+      this.uploadOptions.delete(uploadId);
 
       console.log(`✅ Upload completed: ${upload.partNumber} (${uploadId})`);
 
@@ -220,23 +260,33 @@ class UploadTracker {
   }
 
   // Manually retry a failed upload
-  retryUpload(uploadId: string, files: File[], options?: UploadOptions): void {
+  retryUpload(uploadId: string, options?: UploadOptions): boolean {
     const uploads = this.getUploads();
     const upload = uploads.find(u => u.id === uploadId);
 
     if (!upload || upload.status === 'completed') {
       console.warn(`Cannot retry upload ${uploadId}: not found or already completed`);
-      return;
+      return false;
+    }
+
+    if (upload.files.length === 0) {
+      upload.status = 'failed';
+      upload.lastError = 'Original files are no longer available. Please re-upload this part.';
+      this.saveUploads(uploads);
+      return false;
     }
 
     // Reset retry state
     upload.retryCount = 0;
     upload.status = 'pending';
     upload.lastError = undefined;
-    upload.files = files; // Update with fresh files
+    if (options) {
+      this.uploadOptions.set(uploadId, options);
+    }
 
     this.saveUploads(uploads);
-    this.processUpload(uploadId, options);
+    void this.processUpload(uploadId, options);
+    return true;
   }
 
   // Clear old completed uploads (older than 24 hours)
@@ -256,12 +306,45 @@ class UploadTracker {
 
     if (filtered.length !== uploads.length) {
       console.log(`🧹 Cleaned up ${uploads.length - filtered.length} old uploads`);
+      const retainedIds = new Set(filtered.map(upload => upload.id));
+      Array.from(this.activeFiles.keys()).forEach(id => {
+        if (!retainedIds.has(id)) {
+          this.activeFiles.delete(id);
+        }
+      });
+      Array.from(this.uploadOptions.keys()).forEach(id => {
+        if (!retainedIds.has(id)) {
+          this.uploadOptions.delete(id);
+        }
+      });
       this.saveUploads(filtered);
     }
   }
 
+  // Clear completed uploads only
+  clearCompleted(): void {
+    const uploads = this.getUploads();
+    const filtered = uploads.filter(upload => upload.status !== 'completed');
+    const retainedIds = new Set(filtered.map(upload => upload.id));
+
+    Array.from(this.activeFiles.keys()).forEach(id => {
+      if (!retainedIds.has(id)) {
+        this.activeFiles.delete(id);
+      }
+    });
+    Array.from(this.uploadOptions.keys()).forEach(id => {
+      if (!retainedIds.has(id)) {
+        this.uploadOptions.delete(id);
+      }
+    });
+
+    this.saveUploads(filtered);
+  }
+
   // Clear all uploads (for testing/reset)
   clearAll(): void {
+    this.activeFiles.clear();
+    this.uploadOptions.clear();
     localStorage.removeItem(this.storageKey);
   }
 }

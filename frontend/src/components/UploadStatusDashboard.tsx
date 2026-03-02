@@ -11,7 +11,6 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
   compact = false
 }) => {
   const [uploads, setUploads] = useState<UploadAttempt[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Load uploads from tracker
   const loadUploads = () => {
@@ -28,29 +27,17 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Manual refresh
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadUploads();
-    setTimeout(() => setRefreshing(false), 500);
-  };
-
   // Retry failed upload
-  const handleRetryUpload = (_upload: UploadAttempt) => {
-    // Since files aren't stored in localStorage, we need user to re-upload
-    alert(`To retry this part, please use the upload form again with the same part number.`);
+  const handleRetryUpload = (upload: UploadAttempt) => {
+    const didRetry = uploadTracker.retryUpload(upload.id);
+    if (didRetry) {
+      loadUploads();
+    }
   };
 
   // Clear completed uploads
   const handleClearCompleted = () => {
-    const activeUploads = uploads.filter(u =>
-      u.status === 'pending' || u.status === 'in_progress' || u.status === 'failed'
-    );
-    uploadTracker.clearAll();
-    // Re-add active uploads
-    activeUploads.forEach(_upload => {
-      // Note: This is a simplified approach - in production you'd want better state management
-    });
+    uploadTracker.clearCompleted();
     loadUploads();
   };
 
@@ -266,15 +253,8 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
           )}
         </div>
 
-        <div style={styles.actions}>
-          <button
-            style={styles.iconButton}
-            onClick={handleRefresh}
-            title="Refresh"
-          >
-            <RefreshCw size={14} style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
-          </button>
-          {!compact && uploads.some(u => u.status === 'completed') && (
+        {!compact && uploads.some(u => u.status === 'completed') && (
+          <div style={styles.actions}>
             <button
               style={styles.iconButton}
               onClick={handleClearCompleted}
@@ -282,8 +262,8 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
             >
               <X size={14} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {recentUploads.length > 0 && (
@@ -319,7 +299,7 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
               </div>
 
               <div>
-                {upload.status === 'failed' && (
+                {upload.status === 'failed' && upload.files.length > 0 && (
                   <button
                     style={styles.retryButton}
                     onClick={() => handleRetryUpload(upload)}

@@ -200,7 +200,7 @@ export function StepByStepWorkflow({ onError: _onError }: StepByStepWorkflowProp
         <button
           className="btn-primary"
           onClick={handleUploadNext}
-          disabled={files.length < 2 || files.length > 4}
+          disabled={files.length !== 3}
         >
           Next: Review
           <ChevronRight size={16} />
