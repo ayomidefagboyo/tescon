@@ -122,7 +122,7 @@ export async function processPartImagesAsync(
     `/process/part/async?${params.toString()}`,
     formData,
     {
-      timeout: 60000, // 1 minute timeout (shorter to fail faster and retry)
+      timeout: 300000, // 5 minute timeout for uploads
     }
   );
 
