@@ -1,0 +1,10 @@
+{
+  "env": {
+    "VITE_API_URL": "https://tescon.onrender.com/api"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://tescon.onrender.com/api"
+    }
+  }
+}

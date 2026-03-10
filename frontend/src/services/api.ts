@@ -264,6 +264,6 @@ export async function exportDailyStatsExcel(date?: string, status?: string): Pro
 }
 
 export async function syncTrackerFromR2(): Promise<any> {
-  const response = await api.post('/tracker/sync-from-r2', {}, { timeout: 60000 }); // 60s timeout for sync
+  const response = await api.post('/tracker/sync-from-r2', {}, { timeout: 120000 }); // 2 minute timeout for R2 sync
   return response.data;
 }
