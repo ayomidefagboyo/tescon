@@ -375,8 +375,32 @@ class UploadTracker {
     }
 
     this.saveUploads(uploads);
+
+    // Clear backend failed status to ensure consistent tracking
+    this.clearBackendFailedStatus(upload.partNumber);
+
     void this.processUpload(uploadId, options);
     return true;
+  }
+
+  // Clear backend failed status (to sync with retries)
+  private async clearBackendFailedStatus(partNumber: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/tracker/parts/${encodeURIComponent(partNumber)}/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        console.log(`✅ Cleared backend failed status for part ${partNumber}`);
+      } else {
+        console.warn(`⚠ Failed to clear backend status for part ${partNumber}:`, response.status);
+      }
+    } catch (error) {
+      console.warn(`⚠ Error clearing backend status for part ${partNumber}:`, error);
+    }
   }
 
   // Clear old completed uploads (older than 24 hours)

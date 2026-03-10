@@ -64,6 +64,11 @@ class PartsTracker:
             symbol_number: The part number
             image_count: Number of images uploaded
         """
+        # Clear any previous status when re-queuing (important for retries)
+        self.processed_parts.discard(symbol_number)
+        if symbol_number in self.failed_parts:
+            del self.failed_parts[symbol_number]
+
         self.queued_parts.add(symbol_number)
 
         # Update stats
