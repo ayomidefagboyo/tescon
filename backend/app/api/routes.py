@@ -889,6 +889,7 @@ async def get_tracking_progress(
 ):
     """Get overall progress statistics for parts processing."""
     tracker = get_parts_tracker()
+    tracker.refresh_from_db()
     stats = tracker.get_progress_stats()
 
     response = {
@@ -968,6 +969,7 @@ async def get_daily_stats(
     Returns parts completed/queued/failed on a specific date.
     """
     tracker = get_parts_tracker()
+    tracker.refresh_from_db()
     
     from datetime import datetime
     if date:
@@ -1049,6 +1051,7 @@ async def export_daily_stats_excel(
     from fastapi.responses import StreamingResponse
     
     tracker = get_parts_tracker()
+    tracker.refresh_from_db()
     
     if date:
         try:
@@ -1453,6 +1456,7 @@ async def sync_tracker_from_r2():
     """
     try:
         tracker = get_parts_tracker()
+        tracker.refresh_from_db()
         r2_storage = get_r2_storage()
         excel_service = get_excel_parts_service()
         
@@ -1524,12 +1528,8 @@ async def sync_tracker_from_r2():
         previous_stats = tracker.part_stats.copy()
         now_iso = datetime.now().isoformat()
 
-        # Rebuild tracker state in-memory and persist once.
-        tracker.total_parts = total_parts
-        tracker.processed_parts = processed_parts
-        tracker.queued_parts = queued_parts
-        tracker.failed_parts = {}
-        tracker.part_stats = {}
+        # Rebuild state and persist atomically (DB + file cache).
+        rebuilt_part_stats = {}
 
         for symbol_number in processed_parts:
             previous = previous_stats.get(symbol_number, {})
@@ -1546,7 +1546,7 @@ async def sync_tracker_from_r2():
             else:
                 completed_at = now_iso
 
-            tracker.part_stats[symbol_number] = {
+            rebuilt_part_stats[symbol_number] = {
                 'status': 'completed',
                 'image_count': processed_image_counts.get(symbol_number, 0),
                 'processing_time': previous.get('processing_time'),
@@ -1561,13 +1561,19 @@ async def sync_tracker_from_r2():
                 else now_iso
             )
 
-            tracker.part_stats[symbol_number] = {
+            rebuilt_part_stats[symbol_number] = {
                 'status': 'queued',
                 'image_count': queued_image_counts.get(symbol_number, 0),
                 'queued_at': queued_at
             }
 
-        tracker.save_tracker()
+        tracker.replace_state(
+            processed_parts=processed_parts,
+            queued_parts=queued_parts,
+            failed_parts={},
+            part_stats=rebuilt_part_stats,
+            total_parts=total_parts
+        )
         
         # Get updated stats
         stats = tracker.get_progress_stats()
