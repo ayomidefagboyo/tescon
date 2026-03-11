@@ -884,16 +884,22 @@ async def get_excel_part_info(symbol_number: str):
 
 
 @router.get("/tracker/progress")
-async def get_tracking_progress():
+async def get_tracking_progress(
+    include_part_stats: bool = Query(False, description="Include full part_stats payload (can be large)")
+):
     """Get overall progress statistics for parts processing."""
     tracker = get_parts_tracker()
     stats = tracker.get_progress_stats()
 
-    return {
+    response = {
         "progress": stats,
-        "part_stats": tracker.part_stats,  # Include detailed part stats for timestamp tracking
         "last_updated": tracker.tracker_file.stat().st_mtime if tracker.tracker_file.exists() else None
     }
+
+    if include_part_stats:
+        response["part_stats"] = tracker.part_stats
+
+    return response
 
 
 @router.get("/tracker/parts/processed")
@@ -1456,101 +1462,111 @@ async def sync_tracker_from_r2():
         if excel_service.unique_parts is None:
             raise HTTPException(status_code=503, detail="No Excel file loaded")
         
-        # Get all parts from Excel
-        all_parts = excel_service.unique_parts['Symbol Number'].astype(str).tolist()
-        
-        # Scan R2 for processed parts (parts/ folder)
+        total_parts = int(excel_service.total_parts or len(excel_service.unique_parts.index))
+
         processed_parts = set()
         queued_parts = set()
-        
+        processed_image_counts = {}
+        queued_image_counts = {}
+        parts_with_timestamps = {}  # symbol_number -> earliest LastModified in R2
+
         print("🔄 Scanning R2 storage...")
-        
-        # Check processed parts
+
         paginator = r2_storage.s3_client.get_paginator('list_objects_v2')
-        parts_with_timestamps = {}  # symbol_number -> earliest LastModified from R2
-        
+
+        # Scan processed images once and compute per-part counts in-memory.
         for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix='parts/'):
             for obj in page.get('Contents', []):
-                key = obj['Key']
-                # Extract symbol number from path: parts/SYMBOL/filename
+                key = obj.get('Key', '')
+                if not key or key.endswith('/'):
+                    continue
+
+                # Expected pattern: parts/{symbol_number}/{filename}
                 parts_path = key.split('/')
-                if len(parts_path) >= 2:
-                    symbol_number = parts_path[1]
-                    processed_parts.add(symbol_number)
-                    # Track earliest file timestamp (when part was first processed)
-                    last_modified = obj.get('LastModified')
-                    if last_modified and (symbol_number not in parts_with_timestamps or last_modified < parts_with_timestamps[symbol_number]):
-                        parts_with_timestamps[symbol_number] = last_modified
-        
-        # Check queued parts (raw/ folder)
+                if len(parts_path) < 3:
+                    continue
+
+                symbol_number = (parts_path[1] or '').strip()
+                if not symbol_number:
+                    continue
+
+                processed_parts.add(symbol_number)
+                processed_image_counts[symbol_number] = processed_image_counts.get(symbol_number, 0) + 1
+
+                last_modified = obj.get('LastModified')
+                if last_modified and (
+                    symbol_number not in parts_with_timestamps or
+                    last_modified < parts_with_timestamps[symbol_number]
+                ):
+                    parts_with_timestamps[symbol_number] = last_modified
+
+        # Scan queued raw uploads once. Parts already processed are excluded.
         for page in paginator.paginate(Bucket=r2_storage.bucket_name, Prefix='raw/'):
             for obj in page.get('Contents', []):
-                key = obj['Key']
-                # Extract symbol number from path: raw/SYMBOL/filename
+                key = obj.get('Key', '')
+                if not key or key.endswith('/'):
+                    continue
+
+                # Expected pattern: raw/{symbol_number}/{filename}
                 parts_path = key.split('/')
-                if len(parts_path) >= 2:
-                    symbol_number = parts_path[1]
-                    # Only mark as queued if not already processed
-                    if symbol_number not in processed_parts:
-                        queued_parts.add(symbol_number)
-        
-        # Update tracker
+                if len(parts_path) < 3:
+                    continue
+
+                symbol_number = (parts_path[1] or '').strip()
+                if not symbol_number or symbol_number in processed_parts:
+                    continue
+
+                queued_parts.add(symbol_number)
+                queued_image_counts[symbol_number] = queued_image_counts.get(symbol_number, 0) + 1
+
         print(f"📊 Found {len(processed_parts)} processed, {len(queued_parts)} queued")
-        
-        # Preserve existing stats timestamps where possible
-        preserved_stats = {}
+
+        previous_stats = tracker.part_stats.copy()
+        now_iso = datetime.now().isoformat()
+
+        # Rebuild tracker state in-memory and persist once.
+        tracker.total_parts = total_parts
+        tracker.processed_parts = processed_parts
+        tracker.queued_parts = queued_parts
+        tracker.failed_parts = {}
+        tracker.part_stats = {}
+
         for symbol_number in processed_parts:
-            if symbol_number in tracker.part_stats:
-                old_stats = tracker.part_stats[symbol_number]
-                # Preserve completed_at if it exists
-                if old_stats.get('status') == 'completed' and old_stats.get('completed_at'):
-                    preserved_stats[symbol_number] = old_stats
-        
-        # Clear current tracker state
-        tracker.processed_parts.clear()
-        tracker.queued_parts.clear()
-        tracker.failed_parts.clear()
-        tracker.part_stats.clear()
-        
-        # Add processed parts (remove from queued automatically via mark_part_processed)
-        for symbol_number in processed_parts:
-            # Count images for this part
-            prefix = f"parts/{symbol_number}/"
-            response = r2_storage.s3_client.list_objects_v2(
-                Bucket=r2_storage.bucket_name,
-                Prefix=prefix
-            )
-            image_count = len(response.get('Contents', []))
-            
-            # Preserve completed_at timestamp if available (from old tracker or R2)
-            if symbol_number in preserved_stats:
-                old_stats = preserved_stats[symbol_number]
-                tracker.mark_part_processed(symbol_number, image_count)
-                # Restore original timestamp
-                if symbol_number in tracker.part_stats:
-                    tracker.part_stats[symbol_number]['completed_at'] = old_stats['completed_at']
-            else:
-                # New part: use R2 LastModified timestamp as completed_at
-                tracker.mark_part_processed(symbol_number, image_count)
-                if symbol_number in parts_with_timestamps:
-                    r2_timestamp = parts_with_timestamps[symbol_number]
-                    # Convert to ISO string
-                    completed_at = r2_timestamp.isoformat() if hasattr(r2_timestamp, 'isoformat') else r2_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')
-                    tracker.part_stats[symbol_number]['completed_at'] = completed_at
-        
-        # Add queued parts (only if not already processed)
-        for symbol_number in queued_parts:
-            if symbol_number not in processed_parts:
-                # Count raw images
-                prefix = f"raw/{symbol_number}/"
-                response = r2_storage.s3_client.list_objects_v2(
-                    Bucket=r2_storage.bucket_name,
-                    Prefix=prefix
+            previous = previous_stats.get(symbol_number, {})
+
+            if previous.get('status') == 'completed' and previous.get('completed_at'):
+                completed_at = previous['completed_at']
+            elif symbol_number in parts_with_timestamps:
+                r2_timestamp = parts_with_timestamps[symbol_number]
+                completed_at = (
+                    r2_timestamp.isoformat()
+                    if hasattr(r2_timestamp, 'isoformat')
+                    else r2_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')
                 )
-                image_count = len(response.get('Contents', []))
-                tracker.mark_part_queued(symbol_number, image_count)
-        
-        # Save tracker
+            else:
+                completed_at = now_iso
+
+            tracker.part_stats[symbol_number] = {
+                'status': 'completed',
+                'image_count': processed_image_counts.get(symbol_number, 0),
+                'processing_time': previous.get('processing_time'),
+                'completed_at': completed_at
+            }
+
+        for symbol_number in queued_parts:
+            previous = previous_stats.get(symbol_number, {})
+            queued_at = (
+                previous.get('queued_at')
+                if previous.get('status') == 'queued' and previous.get('queued_at')
+                else now_iso
+            )
+
+            tracker.part_stats[symbol_number] = {
+                'status': 'queued',
+                'image_count': queued_image_counts.get(symbol_number, 0),
+                'queued_at': queued_at
+            }
+
         tracker.save_tracker()
         
         # Get updated stats

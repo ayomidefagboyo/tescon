@@ -1,6 +1,7 @@
 /** Upload queue dashboard component for tracking active and recent uploads */
 import React, { useState, useEffect } from "react";
 import { uploadTracker, UploadAttempt } from "../services/uploadTracker";
+import { formatHumanText } from "../utils/textFormatter";
 import { RefreshCw, AlertCircle, Clock, CheckCircle, RotateCcw } from "lucide-react";
 
 interface UploadStatusDashboardProps {
@@ -251,7 +252,10 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
 
       {recentUploads.length > 0 && (
         <div style={styles.uploadList}>
-          {recentUploads.map((upload, index) => (
+          {recentUploads.map((upload, index) => {
+            const formattedLastError = upload.lastError ? formatHumanText(upload.lastError) : "";
+
+            return (
             <div
               key={upload.id}
               style={{
@@ -267,13 +271,13 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
                     <span>{getStatusText(upload)}</span>
                     <span>•</span>
                     <span>{formatTimestamp(upload.timestamp)}</span>
-                    {upload.lastError && (
+                    {formattedLastError && (
                       <>
                         <span>•</span>
-                        <span title={upload.lastError} style={{ color: '#c62828' }}>
-                          {upload.lastError.length > 30
-                            ? `${upload.lastError.substring(0, 30)}...`
-                            : upload.lastError}
+                        <span title={formattedLastError} style={{ color: '#c62828' }}>
+                          {formattedLastError.length > 30
+                            ? `${formattedLastError.substring(0, 30)}...`
+                            : formattedLastError}
                         </span>
                       </>
                     )}
@@ -293,7 +297,8 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

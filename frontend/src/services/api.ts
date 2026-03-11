@@ -185,7 +185,8 @@ export async function getTrackerProgress(): Promise<any> {
           'Pragma': 'no-cache'
         },
         params: {
-          '_t': Date.now()
+          '_t': Date.now(),
+          'include_part_stats': false
         }
       });
       return response.data;

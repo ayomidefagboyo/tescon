@@ -1,5 +1,6 @@
 """Excel file processing service for parts catalog."""
 import os
+import gc
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -148,17 +149,40 @@ class ExcelPartsService:
                 'Desc1': 'string',
                 'Desc2': 'string',
                 'Location': 'string',
+                'Long Text Desc': 'string',
                 'Mfg Name': 'string',
-                'Part No': 'string'
+                'Part No': 'string',
+                'Long Text JDE': 'string',
+                'JDE long Text': 'string'
+            }
+            required_columns = {
+                'Symbol Number',
+                'Desc1',
+                'Desc2',
+                'Location',
+                'Long Text Desc',
+                'Mfg Name',
+                'Part No',
+                'Long Text JDE',
+                'JDE long Text'
             }
             
             self.parts_data = pd.read_excel(
                 file_path, 
                 sheet_name=selected_sheet,
+                usecols=lambda c: str(c).strip() in required_columns,
                 dtype=dtype_spec,
                 engine='openpyxl'
             )
             logger.info(f"Loaded Excel file: {len(self.parts_data)} total rows")
+
+            if 'Symbol Number' not in self.parts_data.columns:
+                raise ValueError("Required column 'Symbol Number' not found in Excel sheet")
+
+            # Ensure expected columns exist to avoid downstream KeyErrors.
+            for optional_column in ['Desc1', 'Desc2', 'Location', 'Long Text Desc', 'Mfg Name', 'Part No']:
+                if optional_column not in self.parts_data.columns:
+                    self.parts_data[optional_column] = ""
 
             # Always set Long Text JDE from reference catalog
             self.parts_data = self._ensure_long_text_jde(
@@ -169,6 +193,10 @@ class ExcelPartsService:
 
             # Process and deduplicate parts
             self._process_parts_data()
+
+            # Release raw workbook rows after deduplication to reduce memory footprint.
+            self.parts_data = None
+            gc.collect()
             return True
 
         except Exception as e:

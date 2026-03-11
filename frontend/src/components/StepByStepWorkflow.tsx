@@ -4,6 +4,7 @@ import { UploadZone } from "./UploadZone";
 import { getPartInfo, PartInfo, ProcessPartResponse } from "../services/api";
 import { uploadTracker } from "../services/uploadTracker";
 import { FileWithPreview } from "../types";
+import { formatHumanText } from "../utils/textFormatter";
 import { ChevronLeft, ChevronRight, Upload, Search, Image, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 interface StepByStepWorkflowProps {
@@ -187,7 +188,7 @@ export function StepByStepWorkflow({ onError: _onError }: StepByStepWorkflowProp
         compact={files.length > 0}
       />
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">{formatHumanText(error)}</div>}
 
       <div className="step-actions">
         <button
@@ -227,7 +228,7 @@ export function StepByStepWorkflow({ onError: _onError }: StepByStepWorkflowProp
         />
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">{formatHumanText(error)}</div>}
 
       <div className="step-actions">
         <button
@@ -274,7 +275,7 @@ export function StepByStepWorkflow({ onError: _onError }: StepByStepWorkflowProp
       )}
 
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">{formatHumanText(error)}</div>}
 
       <div className="step-actions">
         <button
@@ -343,7 +344,7 @@ export function StepByStepWorkflow({ onError: _onError }: StepByStepWorkflowProp
           <div className="success-details">
             <p><strong>Part:</strong> {response.symbol_number}</p>
             <p><strong>Files Processed:</strong> {response.files_saved}</p>
-            <p><strong>Status:</strong> {response.message}</p>
+            <p style={{ whiteSpace: "pre-line" }}><strong>Status:</strong> {formatHumanText(response.message)}</p>
 
             {response.saved_paths.length > 0 && (
               <div className="saved-files">

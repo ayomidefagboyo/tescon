@@ -187,18 +187,9 @@ function App() {
     <div style={styles.container} data-responsive-container>
       <div style={styles.header}>
         <div style={styles.logoAndTitle} data-logo-title>
-          <img
-            src="/logo.png"
-            alt="TESCON Logo"
-            style={styles.logo}
-            data-logo
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
           <div style={styles.titleGroup}>
-            <h1 style={styles.title}>Image Background Removal</h1>
-            <p style={styles.subtitle}>Spare-part catalog processing</p>
+            <h1 style={styles.title}>End of Day Report</h1>
+            <p style={styles.subtitle}>POS End-of-Day Summary</p>
           </div>
         </div>
 

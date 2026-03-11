@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
 import { BarChart, RefreshCw, Search, Download, CloudSync } from "lucide-react";
 import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, syncTrackerFromR2 } from "../services/api";
+import { formatHumanText } from "../utils/textFormatter";
 
 interface ProgressStats {
   total_parts: number;
@@ -705,8 +706,8 @@ export const PartsTrackingDashboard: React.FC = () => {
                     <div style={styles.partNumber}>{partNumber}</div>
                     <div style={getStatusBadgeStyle('failed')}>Failed</div>
                   </div>
-                  <div style={styles.partDetails}>
-                    <strong>Error:</strong> {error}
+                  <div style={{ ...styles.partDetails, whiteSpace: 'pre-line' }}>
+                    <strong>Error:</strong> {formatHumanText(error)}
                   </div>
                   <button
                     style={styles.resetButton}
