@@ -187,9 +187,10 @@ function App() {
     <div style={styles.container} data-responsive-container>
       <div style={styles.header}>
         <div style={styles.logoAndTitle} data-logo-title>
+          <img src="/logo.png" alt="Tescon logo" style={styles.logo} data-logo />
           <div style={styles.titleGroup}>
-            <h1 style={styles.title}>End of Day Report</h1>
-            <p style={styles.subtitle}>POS End-of-Day Summary</p>
+            <h1 style={styles.title}>TESCON</h1>
+            <p style={styles.subtitle}>AI Parts Processing and Tracking</p>
           </div>
         </div>
 
