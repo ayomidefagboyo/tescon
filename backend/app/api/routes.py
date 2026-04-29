@@ -1152,27 +1152,20 @@ async def export_daily_stats_excel(
 async def export_full_report_excel(
     date: Optional[str] = Query(None, description="Date filter (YYYY-MM-DD). If omitted, includes all dates."),
     status: Optional[str] = Query(None, description="Filter by status: completed, queued, failed, all (default: all)"),
-    mode: Optional[str] = Query("link", description="'link' = upload to R2 and return shareable URL, 'download' = stream file directly")
+    mode: Optional[str] = Query("link", description="'link' = create Google Sheet with shareable URL, 'download' = stream .xlsx file directly"),
+    share_email: Optional[str] = Query(None, description="Email address to share the Google Sheet with (editor access)")
 ):
     """
-    Export comprehensive report as Excel file with full item details.
+    Export comprehensive report with full item details.
 
-    Joins tracker entry logs (timestamps, image counts, status) with the
-    Excel catalog data (Desc1, Desc2, Location, Long Text JDE, Part No,
-    Mfg Name) by matching on Symbol Number.
+    mode=link (default): Creates a Google Sheets spreadsheet with ALL catalog
+    columns (Symbol#, Unit, Location, Whs, Desc1, Desc2, Item Note, MfgName,
+    PartNo, BOH, etc.) merged with photo capture tracker data. Returns a
+    permanent Google Sheets URL.
 
-    mode=link (default): Uploads the Excel to Cloudflare R2 and returns a
-    shareable presigned URL valid for 7 days.
+    mode=download: Streams an .xlsx file directly.
 
-    mode=download: Streams the Excel file directly as a download.
-
-    Sheets:
-    - Summary: Overall statistics
-    - All Data: Every tracked part with full catalog details
-    - Completed: Parts successfully processed
-    - Queued: Parts awaiting processing
-    - Failed: Parts that failed with error reasons
-    - Catalog Coverage: Parts in catalog not yet tracked
+    Columns match the EGTL data entry format with tracker status appended.
     """
     import pandas as pd
     import io
@@ -1192,8 +1185,75 @@ async def export_full_report_excel(
 
     effective_status = status or "all"
 
+    # -------------------------------------------------------------------
+    # mode=link → Create Google Sheets spreadsheet
+    # -------------------------------------------------------------------
+    if mode == "link":
+        try:
+            from app.services.google_sheets_service import export_to_google_sheets
+
+            # Resolve the Excel catalog file path
+            default_excel_file = Path(__file__).resolve().parents[2] / "data" / "Total EGTL Photo Project.xlsx"
+            excel_file_path = Path(os.getenv("EXCEL_FILE_PATH", str(default_excel_file)))
+
+            if not excel_file_path.exists():
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Excel catalog file not found at {excel_file_path}. Upload via /api/excel/upload."
+                )
+
+            excel_sheet_name = os.getenv("EXCEL_SHEET_NAME", "Photo Data")
+
+            # Filter tracker stats by status if needed
+            part_stats = tracker.part_stats
+            if effective_status != "all":
+                part_stats = {
+                    k: v for k, v in part_stats.items()
+                    if v.get("status") == effective_status
+                }
+
+            date_str = filter_date or datetime.now().date().isoformat()
+            title = f"TESCON Full Report - {date_str}"
+            if effective_status != "all":
+                title += f" ({effective_status})"
+
+            result = export_to_google_sheets(
+                excel_path=str(excel_file_path),
+                sheet_name=excel_sheet_name,
+                tracker_part_stats=part_stats,
+                date_filter=filter_date,
+                spreadsheet_title=title,
+                share_with_email=share_email,
+            )
+
+            return {
+                "success": True,
+                "url": result["url"],
+                "spreadsheet_id": result["spreadsheet_id"],
+                "title": result["title"],
+                "total_rows": result["total_rows"],
+            }
+
+        except ImportError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Google Sheets dependencies not installed: {e}. Run: pip install gspread google-auth"
+            )
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=503, detail=str(e))
+        except Exception as e:
+            error_msg = str(e)
+            logger_name = logging.getLogger(__name__)
+            logger_name.error(f"Google Sheets export failed: {error_msg}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create Google Sheet: {error_msg}"
+            )
+
+    # -------------------------------------------------------------------
+    # mode=download → Generate .xlsx and stream it
+    # -------------------------------------------------------------------
     def _get_catalog_info(symbol_number: str) -> dict:
-        """Fetch catalog columns for a symbol number from the Excel service."""
         if excel_service.unique_parts is None:
             return {}
         info = excel_service.get_part_info(symbol_number)
@@ -1214,72 +1274,16 @@ async def export_full_report_excel(
             return True
         return timestamp_str.startswith(filter_date)
 
-    # -------------------------------------------------------------------
-    # Build rows per status
-    # -------------------------------------------------------------------
-    completed_rows = []
-    queued_rows = []
-    failed_rows = []
-
-    for symbol_number, stats in tracker.part_stats.items():
-        part_status = stats.get('status', '')
-
-        if effective_status != 'all' and part_status != effective_status:
-            continue
-
-        catalog = _get_catalog_info(symbol_number)
-
-        if part_status == 'completed':
-            ts = stats.get('completed_at', '')
-            if not _matches_date(ts):
-                continue
-            completed_rows.append({
-                'Symbol Number': symbol_number,
-                **catalog,
-                'Image Count': stats.get('image_count', 0),
-                'Completed At': ts,
-                'Processing Time (s)': stats.get('processing_time'),
-            })
-
-        elif part_status == 'queued':
-            ts = stats.get('queued_at', '')
-            if not _matches_date(ts):
-                continue
-            queued_rows.append({
-                'Symbol Number': symbol_number,
-                **catalog,
-                'Image Count': stats.get('image_count', 0),
-                'Queued At': ts,
-            })
-
-        elif part_status == 'failed':
-            ts = stats.get('failed_at', '')
-            if not _matches_date(ts):
-                continue
-            failed_rows.append({
-                'Symbol Number': symbol_number,
-                **catalog,
-                'Failed At': ts,
-                'Error Reason': stats.get('error_reason', ''),
-            })
-
-    # -------------------------------------------------------------------
-    # Build "All Data" rows (unified view)
-    # -------------------------------------------------------------------
     all_data_rows = []
     for symbol_number, stats in tracker.part_stats.items():
         part_status = stats.get('status', '')
-
-        # Apply date filter across all statuses
         ts = stats.get('completed_at') or stats.get('queued_at') or stats.get('failed_at') or ''
         if not _matches_date(ts):
             continue
-
         if effective_status != 'all' and part_status != effective_status:
             continue
 
         catalog = _get_catalog_info(symbol_number)
-
         all_data_rows.append({
             'Symbol Number': symbol_number,
             'Status': part_status.capitalize(),
@@ -1292,152 +1296,29 @@ async def export_full_report_excel(
             'Error Reason': stats.get('error_reason', ''),
         })
 
-    # -------------------------------------------------------------------
-    # Catalog coverage — parts in Excel not yet in tracker
-    # -------------------------------------------------------------------
-    coverage_rows = []
-    if excel_service.unique_parts is not None and effective_status == 'all' and not filter_date:
-        all_catalog_symbols = set(
-            excel_service.unique_parts['Symbol Number'].astype(str).tolist()
-        )
-        tracked_symbols = set(tracker.part_stats.keys())
-        untracked = all_catalog_symbols - tracked_symbols
-
-        for sym in sorted(untracked):
-            catalog = _get_catalog_info(sym)
-            coverage_rows.append({
-                'Symbol Number': sym,
-                'Status': 'Not Started',
-                **catalog,
-            })
-
-    # -------------------------------------------------------------------
-    # Write Excel workbook
-    # -------------------------------------------------------------------
-    EMPTY_COLUMNS = ['Symbol Number', 'Status', 'Description 1', 'Description 2',
-                     'Long Text JDE', 'Location', 'Part No', 'Mfg Name',
-                     'Image Count', 'Timestamp']
-
     excel_buffer = io.BytesIO()
-
     with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-        # ---- Summary sheet ----
-        summary_df = pd.DataFrame([{
-            'Report Date': filter_date or 'All Dates',
-            'Status Filter': effective_status.capitalize(),
-            'Total Tracked': len(all_data_rows),
-            'Completed': len(completed_rows),
-            'Queued': len(queued_rows),
-            'Failed': len(failed_rows),
-            'Not Started (Catalog)': len(coverage_rows),
-            'Catalog Loaded': excel_service.unique_parts is not None,
-            'Catalog Total Parts': excel_service.total_parts if excel_service.unique_parts is not None else 'N/A',
-        }])
-        summary_df.to_excel(writer, sheet_name='Summary', index=False)
-
-        # ---- All Data sheet ----
         if all_data_rows:
-            all_df = pd.DataFrame(all_data_rows)
-            all_df.to_excel(writer, sheet_name='All Data', index=False)
+            pd.DataFrame(all_data_rows).to_excel(writer, sheet_name='All Data', index=False)
         else:
-            pd.DataFrame(columns=EMPTY_COLUMNS).to_excel(writer, sheet_name='All Data', index=False)
+            pd.DataFrame(columns=['Symbol Number', 'Status']).to_excel(writer, sheet_name='All Data', index=False)
 
-        # ---- Completed sheet ----
-        if completed_rows:
-            pd.DataFrame(completed_rows).to_excel(writer, sheet_name='Completed', index=False)
-        else:
-            pd.DataFrame(columns=['Symbol Number', 'Description 1', 'Location', 'Image Count', 'Completed At']).to_excel(writer, sheet_name='Completed', index=False)
-
-        # ---- Queued sheet ----
-        if queued_rows:
-            pd.DataFrame(queued_rows).to_excel(writer, sheet_name='Queued', index=False)
-        else:
-            pd.DataFrame(columns=['Symbol Number', 'Description 1', 'Location', 'Image Count', 'Queued At']).to_excel(writer, sheet_name='Queued', index=False)
-
-        # ---- Failed sheet ----
-        if failed_rows:
-            pd.DataFrame(failed_rows).to_excel(writer, sheet_name='Failed', index=False)
-        else:
-            pd.DataFrame(columns=['Symbol Number', 'Description 1', 'Location', 'Failed At', 'Error Reason']).to_excel(writer, sheet_name='Failed', index=False)
-
-        # ---- Catalog Coverage sheet ----
-        if coverage_rows:
-            pd.DataFrame(coverage_rows).to_excel(writer, sheet_name='Catalog Coverage', index=False)
-
-        # ---- Auto-size columns for readability ----
-        for sheet_name in writer.sheets:
-            ws = writer.sheets[sheet_name]
+        for sn in writer.sheets:
+            ws = writer.sheets[sn]
             for col_cells in ws.columns:
-                max_length = 0
-                col_letter = col_cells[0].column_letter
-                for cell in col_cells:
-                    try:
-                        cell_len = len(str(cell.value or ''))
-                        if cell_len > max_length:
-                            max_length = cell_len
-                    except Exception:
-                        pass
-                ws.column_dimensions[col_letter].width = min(max_length + 3, 60)
+                max_length = max((len(str(c.value or '')) for c in col_cells), default=10)
+                ws.column_dimensions[col_cells[0].column_letter].width = min(max_length + 3, 60)
 
     excel_buffer.seek(0)
-    file_bytes = excel_buffer.read()
-
-    # Generate filename
     date_part = filter_date or datetime.now().date().isoformat()
     status_suffix = f"_{effective_status}" if effective_status != 'all' else ""
     filename = f"full_report_{date_part}{status_suffix}.xlsx"
 
-    # -------------------------------------------------------------------
-    # mode=download → stream file directly (legacy behaviour)
-    # -------------------------------------------------------------------
-    if mode == "download":
-        return StreamingResponse(
-            io.BytesIO(file_bytes),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
-        )
-
-    # -------------------------------------------------------------------
-    # mode=link (default) → upload to R2 and return permanent proxy URL
-    # -------------------------------------------------------------------
-    r2_storage = get_r2_storage()
-    if not r2_storage:
-        # Fallback to download if R2 is unavailable
-        return StreamingResponse(
-            io.BytesIO(file_bytes),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
-        )
-
-    s3_key = f"reports/{filename}"
-    try:
-        r2_storage.upload_file(
-            s3_key=s3_key,
-            file_bytes=file_bytes,
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload report to R2: {str(e)}")
-
-    # Build the permanent proxy URL (served via /api/reports/{filename})
-    from starlette.requests import Request as StarletteRequest
-    # We can't easily get the request object in a GET handler without declaring it,
-    # so build a relative path that the frontend will resolve against its API base.
-    report_url = f"/api/reports/{filename}"
-
-    return {
-        "success": True,
-        "filename": filename,
-        "url": report_url,
-        "total_tracked": len(all_data_rows),
-        "completed": len(completed_rows),
-        "queued": len(queued_rows),
-        "failed": len(failed_rows),
-    }
+    return StreamingResponse(
+        excel_buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 @router.get("/reports/{filename}")
