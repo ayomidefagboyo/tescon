@@ -1400,7 +1400,7 @@ async def export_full_report_excel(
         )
 
     # -------------------------------------------------------------------
-    # mode=link (default) → upload to R2 and return shareable URL
+    # mode=link (default) → upload to R2 and return permanent proxy URL
     # -------------------------------------------------------------------
     r2_storage = get_r2_storage()
     if not r2_storage:
@@ -1420,21 +1420,66 @@ async def export_full_report_excel(
             file_bytes=file_bytes,
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        # 7-day presigned URL
-        presigned_url = r2_storage.generate_presigned_url(s3_key, expires_in=604800)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload report to R2: {str(e)}")
+
+    # Build the permanent proxy URL (served via /api/reports/{filename})
+    from starlette.requests import Request as StarletteRequest
+    # We can't easily get the request object in a GET handler without declaring it,
+    # so build a relative path that the frontend will resolve against its API base.
+    report_url = f"/api/reports/{filename}"
 
     return {
         "success": True,
         "filename": filename,
-        "url": presigned_url,
-        "expires_in_days": 7,
+        "url": report_url,
         "total_tracked": len(all_data_rows),
         "completed": len(completed_rows),
         "queued": len(queued_rows),
         "failed": len(failed_rows),
     }
+
+
+@router.get("/reports/{filename}")
+async def serve_report(filename: str):
+    """
+    Serve a report file from R2 storage.
+
+    This acts as a permanent proxy — the URL never expires as long as
+    the file exists in R2 and the backend is running.
+    """
+    import io
+
+    if not filename.endswith('.xlsx'):
+        raise HTTPException(status_code=400, detail="Only .xlsx reports are supported")
+
+    r2_storage = get_r2_storage()
+    if not r2_storage:
+        raise HTTPException(status_code=503, detail="R2 storage not available")
+
+    s3_key = f"reports/{filename}"
+    try:
+        response = r2_storage.s3_client.get_object(
+            Bucket=r2_storage.bucket_name,
+            Key=s3_key
+        )
+        file_bytes = response['Body'].read()
+    except r2_storage.s3_client.exceptions.NoSuchKey:
+        raise HTTPException(status_code=404, detail=f"Report '{filename}' not found")
+    except Exception as e:
+        # ClientError for missing keys in some boto3 versions
+        if 'NoSuchKey' in str(e) or '404' in str(e):
+            raise HTTPException(status_code=404, detail=f"Report '{filename}' not found")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve report: {str(e)}")
+
+    return StreamingResponse(
+        io.BytesIO(file_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Cache-Control": "public, max-age=86400",  # Cache for 24h
+        }
+    )
 
 
 @router.get("/tracker/parts/{symbol_number}/status")

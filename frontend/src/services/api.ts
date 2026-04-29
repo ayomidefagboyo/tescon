@@ -268,7 +268,6 @@ export interface FullReportResponse {
   success: boolean;
   filename: string;
   url: string;
-  expires_in_days: number;
   total_tracked: number;
   completed: number;
   queued: number;
@@ -279,11 +278,29 @@ export async function exportFullReport(date?: string, status?: string): Promise<
   const params = new URLSearchParams();
   if (date) params.append('date', date);
   if (status) params.append('status', status);
-  // mode=link is the default — returns JSON with presigned URL
+  // mode=link is the default — returns JSON with a permanent report URL
   const response = await api.get<FullReportResponse>(`/tracker/export-full-report?${params.toString()}`, {
     timeout: 120000, // 2 min timeout — report may be large
   });
-  return response.data;
+
+  // The backend returns a relative path like /api/reports/filename.xlsx.
+  // Resolve it to a full URL so window.open and link sharing work correctly.
+  const data = response.data;
+  if (data.url && data.url.startsWith('/')) {
+    // Use the same origin as the API base
+    const apiBase = import.meta.env.VITE_API_URL;
+    if (apiBase && !apiBase.startsWith('/')) {
+      // Absolute API URL (e.g. https://my-backend.render.com/api)
+      // Strip /api suffix to get the origin, then append the path
+      const origin = apiBase.replace(/\/api\/?$/, '');
+      data.url = `${origin}${data.url}`;
+    } else {
+      // Same-origin deployment — relative path works as-is, but make it absolute
+      data.url = `${window.location.origin}${data.url}`;
+    }
+  }
+
+  return data;
 }
 
 export async function syncTrackerFromR2(): Promise<any> {
