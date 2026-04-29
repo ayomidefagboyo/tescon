@@ -1148,6 +1148,247 @@ async def export_daily_stats_excel(
     )
 
 
+@router.get("/tracker/export-full-report")
+async def export_full_report_excel(
+    date: Optional[str] = Query(None, description="Date filter (YYYY-MM-DD). If omitted, includes all dates."),
+    status: Optional[str] = Query(None, description="Filter by status: completed, queued, failed, all (default: all)")
+):
+    """
+    Export comprehensive report as Excel file with full item details.
+
+    Joins tracker entry logs (timestamps, image counts, status) with the
+    Excel catalog data (Desc1, Desc2, Location, Long Text JDE, Part No,
+    Mfg Name) by matching on Symbol Number.
+
+    Sheets:
+    - Summary: Overall statistics
+    - All Data: Every tracked part with full catalog details
+    - Completed: Parts successfully processed
+    - Queued: Parts awaiting processing
+    - Failed: Parts that failed with error reasons
+    - Catalog Coverage: Parts in catalog not yet tracked
+    """
+    import pandas as pd
+    import io
+    from fastapi.responses import StreamingResponse
+
+    tracker = get_parts_tracker()
+    tracker.refresh_from_db()
+
+    excel_service = get_excel_parts_service()
+
+    filter_date = None
+    if date:
+        try:
+            filter_date = datetime.fromisoformat(date).date().isoformat()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    effective_status = status or "all"
+
+    def _get_catalog_info(symbol_number: str) -> dict:
+        """Fetch catalog columns for a symbol number from the Excel service."""
+        if excel_service.unique_parts is None:
+            return {}
+        info = excel_service.get_part_info(symbol_number)
+        if info is None:
+            return {}
+        return {
+            'Description 1': info.get('description_1', ''),
+            'Description 2': info.get('description_2', ''),
+            'Long Text JDE': info.get('long_text_jde', '') or info.get('item_note', ''),
+            'Combined Description': info.get('combined_description', ''),
+            'Location': info.get('location', ''),
+            'Part No': info.get('part_number', '') or '',
+            'Mfg Name': info.get('manufacturer', '') or '',
+        }
+
+    def _matches_date(timestamp_str: str) -> bool:
+        if not filter_date:
+            return True
+        return timestamp_str.startswith(filter_date)
+
+    # -------------------------------------------------------------------
+    # Build rows per status
+    # -------------------------------------------------------------------
+    completed_rows = []
+    queued_rows = []
+    failed_rows = []
+
+    for symbol_number, stats in tracker.part_stats.items():
+        part_status = stats.get('status', '')
+
+        if effective_status != 'all' and part_status != effective_status:
+            continue
+
+        catalog = _get_catalog_info(symbol_number)
+
+        if part_status == 'completed':
+            ts = stats.get('completed_at', '')
+            if not _matches_date(ts):
+                continue
+            completed_rows.append({
+                'Symbol Number': symbol_number,
+                **catalog,
+                'Image Count': stats.get('image_count', 0),
+                'Completed At': ts,
+                'Processing Time (s)': stats.get('processing_time'),
+            })
+
+        elif part_status == 'queued':
+            ts = stats.get('queued_at', '')
+            if not _matches_date(ts):
+                continue
+            queued_rows.append({
+                'Symbol Number': symbol_number,
+                **catalog,
+                'Image Count': stats.get('image_count', 0),
+                'Queued At': ts,
+            })
+
+        elif part_status == 'failed':
+            ts = stats.get('failed_at', '')
+            if not _matches_date(ts):
+                continue
+            failed_rows.append({
+                'Symbol Number': symbol_number,
+                **catalog,
+                'Failed At': ts,
+                'Error Reason': stats.get('error_reason', ''),
+            })
+
+    # -------------------------------------------------------------------
+    # Build "All Data" rows (unified view)
+    # -------------------------------------------------------------------
+    all_data_rows = []
+    for symbol_number, stats in tracker.part_stats.items():
+        part_status = stats.get('status', '')
+
+        # Apply date filter across all statuses
+        ts = stats.get('completed_at') or stats.get('queued_at') or stats.get('failed_at') or ''
+        if not _matches_date(ts):
+            continue
+
+        if effective_status != 'all' and part_status != effective_status:
+            continue
+
+        catalog = _get_catalog_info(symbol_number)
+
+        all_data_rows.append({
+            'Symbol Number': symbol_number,
+            'Status': part_status.capitalize(),
+            **catalog,
+            'Image Count': stats.get('image_count', 0),
+            'Queued At': stats.get('queued_at', ''),
+            'Completed At': stats.get('completed_at', ''),
+            'Failed At': stats.get('failed_at', ''),
+            'Processing Time (s)': stats.get('processing_time'),
+            'Error Reason': stats.get('error_reason', ''),
+        })
+
+    # -------------------------------------------------------------------
+    # Catalog coverage — parts in Excel not yet in tracker
+    # -------------------------------------------------------------------
+    coverage_rows = []
+    if excel_service.unique_parts is not None and effective_status == 'all' and not filter_date:
+        all_catalog_symbols = set(
+            excel_service.unique_parts['Symbol Number'].astype(str).tolist()
+        )
+        tracked_symbols = set(tracker.part_stats.keys())
+        untracked = all_catalog_symbols - tracked_symbols
+
+        for sym in sorted(untracked):
+            catalog = _get_catalog_info(sym)
+            coverage_rows.append({
+                'Symbol Number': sym,
+                'Status': 'Not Started',
+                **catalog,
+            })
+
+    # -------------------------------------------------------------------
+    # Write Excel workbook
+    # -------------------------------------------------------------------
+    EMPTY_COLUMNS = ['Symbol Number', 'Status', 'Description 1', 'Description 2',
+                     'Long Text JDE', 'Location', 'Part No', 'Mfg Name',
+                     'Image Count', 'Timestamp']
+
+    excel_buffer = io.BytesIO()
+
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        # ---- Summary sheet ----
+        summary_df = pd.DataFrame([{
+            'Report Date': filter_date or 'All Dates',
+            'Status Filter': effective_status.capitalize(),
+            'Total Tracked': len(all_data_rows),
+            'Completed': len(completed_rows),
+            'Queued': len(queued_rows),
+            'Failed': len(failed_rows),
+            'Not Started (Catalog)': len(coverage_rows),
+            'Catalog Loaded': excel_service.unique_parts is not None,
+            'Catalog Total Parts': excel_service.total_parts if excel_service.unique_parts is not None else 'N/A',
+        }])
+        summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+        # ---- All Data sheet ----
+        if all_data_rows:
+            all_df = pd.DataFrame(all_data_rows)
+            all_df.to_excel(writer, sheet_name='All Data', index=False)
+        else:
+            pd.DataFrame(columns=EMPTY_COLUMNS).to_excel(writer, sheet_name='All Data', index=False)
+
+        # ---- Completed sheet ----
+        if completed_rows:
+            pd.DataFrame(completed_rows).to_excel(writer, sheet_name='Completed', index=False)
+        else:
+            pd.DataFrame(columns=['Symbol Number', 'Description 1', 'Location', 'Image Count', 'Completed At']).to_excel(writer, sheet_name='Completed', index=False)
+
+        # ---- Queued sheet ----
+        if queued_rows:
+            pd.DataFrame(queued_rows).to_excel(writer, sheet_name='Queued', index=False)
+        else:
+            pd.DataFrame(columns=['Symbol Number', 'Description 1', 'Location', 'Image Count', 'Queued At']).to_excel(writer, sheet_name='Queued', index=False)
+
+        # ---- Failed sheet ----
+        if failed_rows:
+            pd.DataFrame(failed_rows).to_excel(writer, sheet_name='Failed', index=False)
+        else:
+            pd.DataFrame(columns=['Symbol Number', 'Description 1', 'Location', 'Failed At', 'Error Reason']).to_excel(writer, sheet_name='Failed', index=False)
+
+        # ---- Catalog Coverage sheet ----
+        if coverage_rows:
+            pd.DataFrame(coverage_rows).to_excel(writer, sheet_name='Catalog Coverage', index=False)
+
+        # ---- Auto-size columns for readability ----
+        for sheet_name in writer.sheets:
+            ws = writer.sheets[sheet_name]
+            for col_cells in ws.columns:
+                max_length = 0
+                col_letter = col_cells[0].column_letter
+                for cell in col_cells:
+                    try:
+                        cell_len = len(str(cell.value or ''))
+                        if cell_len > max_length:
+                            max_length = cell_len
+                    except Exception:
+                        pass
+                ws.column_dimensions[col_letter].width = min(max_length + 3, 60)
+
+    excel_buffer.seek(0)
+
+    # Generate filename
+    date_part = filter_date or datetime.now().date().isoformat()
+    status_suffix = f"_{effective_status}" if effective_status != 'all' else ""
+    filename = f"full_report_{date_part}{status_suffix}.xlsx"
+
+    return StreamingResponse(
+        excel_buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
 @router.get("/tracker/parts/{symbol_number}/status")
 async def get_part_status(symbol_number: str):
     """Get detailed status of a specific part."""

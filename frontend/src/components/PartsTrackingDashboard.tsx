@@ -1,8 +1,8 @@
 /** Parts tracking dashboard component */
 import React, { useEffect, useRef, useState } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, RefreshCw, Search, Download, CloudSync } from "lucide-react";
-import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, syncTrackerFromR2 } from "../services/api";
+import { BarChart, RefreshCw, Search, Download, CloudSync, FileSpreadsheet } from "lucide-react";
+import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, exportFullReport, syncTrackerFromR2 } from "../services/api";
 import { formatHumanText } from "../utils/textFormatter";
 
 interface ProgressStats {
@@ -70,6 +70,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsStatus, setDailyStatsStatus] = useState<string>('all');
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingFull, setExportingFull] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [showingCachedSummary, setShowingCachedSummary] = useState(false);
@@ -320,6 +321,30 @@ export const PartsTrackingDashboard: React.FC = () => {
       alert('Failed to export daily stats. Please try again.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportFullReport = async () => {
+    setExportingFull(true);
+    try {
+      // Full report: pass date and status filters to get comprehensive export
+      const blob = await exportFullReport(
+        dailyStatsDate,
+        dailyStatsStatus === 'all' ? undefined : dailyStatsStatus
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `full_report_${dailyStatsDate}${dailyStatsStatus !== 'all' ? `_${dailyStatsStatus}` : ''}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to export full report:', error);
+      alert('Failed to export full report. Please try again.');
+    } finally {
+      setExportingFull(false);
     }
   };
 
@@ -1145,7 +1170,35 @@ export const PartsTrackingDashboard: React.FC = () => {
                 }}
               >
                 <Download size={14} />
-                {exporting ? 'Export' : 'Export'}
+                {exporting ? 'Exporting...' : 'Daily Export'}
+              </button>
+            )}
+            {selectedTab === 'overview' && (
+              <button
+                style={{
+                  ...styles.refreshButton,
+                  backgroundColor: '#0d9488',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: mobileSpacing.xs,
+                  padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+                  fontSize: mobileTypography.fontSize.sm,
+                  minWidth: '105px',
+                  justifyContent: 'center'
+                }}
+                onClick={handleExportFullReport}
+                disabled={exportingFull}
+                onMouseEnter={(e) => {
+                  if (!exportingFull) {
+                    e.currentTarget.style.backgroundColor = '#0f766e';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0d9488';
+                }}
+              >
+                <FileSpreadsheet size={14} />
+                {exportingFull ? 'Exporting...' : 'Full Export'}
               </button>
             )}
             <button

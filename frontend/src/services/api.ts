@@ -264,6 +264,17 @@ export async function exportDailyStatsExcel(date?: string, status?: string): Pro
   return response.data;
 }
 
+export async function exportFullReport(date?: string, status?: string): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (date) params.append('date', date);
+  if (status) params.append('status', status);
+  const response = await api.get(`/tracker/export-full-report?${params.toString()}`, {
+    responseType: 'blob',
+    timeout: 120000, // 2 min timeout — report may be large
+  });
+  return response.data;
+}
+
 export async function syncTrackerFromR2(): Promise<any> {
   const response = await api.post('/tracker/sync-from-r2', {}, { timeout: 120000 }); // 2 minute timeout for R2 sync
   return response.data;
