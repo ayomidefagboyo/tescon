@@ -1151,7 +1151,8 @@ async def export_daily_stats_excel(
 @router.get("/tracker/export-full-report")
 async def export_full_report_excel(
     date: Optional[str] = Query(None, description="Date filter (YYYY-MM-DD). If omitted, includes all dates."),
-    status: Optional[str] = Query(None, description="Filter by status: completed, queued, failed, all (default: all)")
+    status: Optional[str] = Query(None, description="Filter by status: completed, queued, failed, all (default: all)"),
+    mode: Optional[str] = Query("link", description="'link' = upload to R2 and return shareable URL, 'download' = stream file directly")
 ):
     """
     Export comprehensive report as Excel file with full item details.
@@ -1159,6 +1160,11 @@ async def export_full_report_excel(
     Joins tracker entry logs (timestamps, image counts, status) with the
     Excel catalog data (Desc1, Desc2, Location, Long Text JDE, Part No,
     Mfg Name) by matching on Symbol Number.
+
+    mode=link (default): Uploads the Excel to Cloudflare R2 and returns a
+    shareable presigned URL valid for 7 days.
+
+    mode=download: Streams the Excel file directly as a download.
 
     Sheets:
     - Summary: Overall statistics
@@ -1374,19 +1380,61 @@ async def export_full_report_excel(
                 ws.column_dimensions[col_letter].width = min(max_length + 3, 60)
 
     excel_buffer.seek(0)
+    file_bytes = excel_buffer.read()
 
     # Generate filename
     date_part = filter_date or datetime.now().date().isoformat()
     status_suffix = f"_{effective_status}" if effective_status != 'all' else ""
     filename = f"full_report_{date_part}{status_suffix}.xlsx"
 
-    return StreamingResponse(
-        excel_buffer,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"'
-        }
-    )
+    # -------------------------------------------------------------------
+    # mode=download → stream file directly (legacy behaviour)
+    # -------------------------------------------------------------------
+    if mode == "download":
+        return StreamingResponse(
+            io.BytesIO(file_bytes),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+
+    # -------------------------------------------------------------------
+    # mode=link (default) → upload to R2 and return shareable URL
+    # -------------------------------------------------------------------
+    r2_storage = get_r2_storage()
+    if not r2_storage:
+        # Fallback to download if R2 is unavailable
+        return StreamingResponse(
+            io.BytesIO(file_bytes),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+
+    s3_key = f"reports/{filename}"
+    try:
+        r2_storage.upload_file(
+            s3_key=s3_key,
+            file_bytes=file_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        # 7-day presigned URL
+        presigned_url = r2_storage.generate_presigned_url(s3_key, expires_in=604800)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload report to R2: {str(e)}")
+
+    return {
+        "success": True,
+        "filename": filename,
+        "url": presigned_url,
+        "expires_in_days": 7,
+        "total_tracked": len(all_data_rows),
+        "completed": len(completed_rows),
+        "queued": len(queued_rows),
+        "failed": len(failed_rows),
+    }
 
 
 @router.get("/tracker/parts/{symbol_number}/status")

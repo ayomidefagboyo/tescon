@@ -105,6 +105,50 @@ class CloudflareR2Storage:
 
         return saved_files
 
+    def upload_file(
+        self,
+        s3_key: str,
+        file_bytes: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> str:
+        """
+        Upload a generic file to R2.
+
+        Args:
+            s3_key: Full S3 key / path (e.g. 'reports/my_report.xlsx')
+            file_bytes: Raw bytes of the file
+            content_type: MIME type
+
+        Returns:
+            The s3_key that was written.
+        """
+        self.s3_client.put_object(
+            Bucket=self.bucket_name,
+            Key=s3_key,
+            Body=file_bytes,
+            ContentType=content_type,
+        )
+        print(f"✅ Uploaded {s3_key} to R2 ({len(file_bytes)} bytes)")
+        return s3_key
+
+    def generate_presigned_url(self, s3_key: str, expires_in: int = 604800) -> str:
+        """
+        Generate a presigned URL for an object in R2.
+
+        Args:
+            s3_key: The object key in the bucket
+            expires_in: Link validity in seconds (default 7 days = 604800)
+
+        Returns:
+            A presigned URL string.
+        """
+        url = self.s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': self.bucket_name, 'Key': s3_key},
+            ExpiresIn=expires_in,
+        )
+        return url
+
     def check_duplicates(self, symbol_number: str, view_numbers: List[int]) -> Dict[int, bool]:
         """
         Check if images already exist for given part and view numbers.

@@ -264,12 +264,23 @@ export async function exportDailyStatsExcel(date?: string, status?: string): Pro
   return response.data;
 }
 
-export async function exportFullReport(date?: string, status?: string): Promise<Blob> {
+export interface FullReportResponse {
+  success: boolean;
+  filename: string;
+  url: string;
+  expires_in_days: number;
+  total_tracked: number;
+  completed: number;
+  queued: number;
+  failed: number;
+}
+
+export async function exportFullReport(date?: string, status?: string): Promise<FullReportResponse> {
   const params = new URLSearchParams();
   if (date) params.append('date', date);
   if (status) params.append('status', status);
-  const response = await api.get(`/tracker/export-full-report?${params.toString()}`, {
-    responseType: 'blob',
+  // mode=link is the default — returns JSON with presigned URL
+  const response = await api.get<FullReportResponse>(`/tracker/export-full-report?${params.toString()}`, {
     timeout: 120000, // 2 min timeout — report may be large
   });
   return response.data;

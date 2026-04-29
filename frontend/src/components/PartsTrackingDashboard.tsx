@@ -1,7 +1,7 @@
 /** Parts tracking dashboard component */
 import React, { useEffect, useRef, useState } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, RefreshCw, Search, Download, CloudSync, FileSpreadsheet } from "lucide-react";
+import { BarChart, RefreshCw, Search, Download, CloudSync, FileSpreadsheet, ExternalLink } from "lucide-react";
 import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, exportFullReport, syncTrackerFromR2 } from "../services/api";
 import { formatHumanText } from "../utils/textFormatter";
 
@@ -71,6 +71,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [exportingFull, setExportingFull] = useState(false);
+  const [reportUrl, setReportUrl] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [showingCachedSummary, setShowingCachedSummary] = useState(false);
@@ -327,22 +328,19 @@ export const PartsTrackingDashboard: React.FC = () => {
   const handleExportFullReport = async () => {
     setExportingFull(true);
     try {
-      // Full report: pass date and status filters to get comprehensive export
-      const blob = await exportFullReport(
+      // Full report: returns JSON with a shareable presigned URL
+      const result = await exportFullReport(
         dailyStatsDate,
         dailyStatsStatus === 'all' ? undefined : dailyStatsStatus
       );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `full_report_${dailyStatsDate}${dailyStatsStatus !== 'all' ? `_${dailyStatsStatus}` : ''}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (result.url) {
+        setReportUrl(result.url);
+        // Open the link in a new tab
+        window.open(result.url, '_blank', 'noopener,noreferrer');
+      }
     } catch (error) {
-      console.error('Failed to export full report:', error);
-      alert('Failed to export full report. Please try again.');
+      console.error('Failed to generate full report:', error);
+      alert('Failed to generate full report. Please try again.');
     } finally {
       setExportingFull(false);
     }
@@ -1174,32 +1172,55 @@ export const PartsTrackingDashboard: React.FC = () => {
               </button>
             )}
             {selectedTab === 'overview' && (
-              <button
-                style={{
-                  ...styles.refreshButton,
-                  backgroundColor: '#0d9488',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: mobileSpacing.xs,
-                  padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
-                  fontSize: mobileTypography.fontSize.sm,
-                  minWidth: '105px',
-                  justifyContent: 'center'
-                }}
-                onClick={handleExportFullReport}
-                disabled={exportingFull}
-                onMouseEnter={(e) => {
-                  if (!exportingFull) {
-                    e.currentTarget.style.backgroundColor = '#0f766e';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0d9488';
-                }}
-              >
-                <FileSpreadsheet size={14} />
-                {exportingFull ? 'Exporting...' : 'Full Export'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: mobileSpacing.xs }}>
+                <button
+                  style={{
+                    ...styles.refreshButton,
+                    backgroundColor: '#0d9488',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: mobileSpacing.xs,
+                    padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
+                    fontSize: mobileTypography.fontSize.sm,
+                    minWidth: '105px',
+                    justifyContent: 'center'
+                  }}
+                  onClick={handleExportFullReport}
+                  disabled={exportingFull}
+                  onMouseEnter={(e) => {
+                    if (!exportingFull) {
+                      e.currentTarget.style.backgroundColor = '#0f766e';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0d9488';
+                  }}
+                >
+                  <ExternalLink size={14} />
+                  {exportingFull ? 'Generating...' : 'Get Link'}
+                </button>
+                {reportUrl && !exportingFull && (
+                  <a
+                    href={reportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: mobileTypography.fontSize.xs,
+                      color: '#0d9488',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title="Open the last generated full report"
+                  >
+                    <FileSpreadsheet size={12} />
+                    Open Report
+                  </a>
+                )}
+              </div>
             )}
             <button
               style={{
