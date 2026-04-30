@@ -113,7 +113,41 @@ def create_gta_excel():
 
         # Save the filtered file
         print(f"\n💾 Saving GTA-filtered file as {output_file}...")
-        df_filtered.to_excel(output_file, sheet_name='DATA', index=False, engine='openpyxl')
+        
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            # Sheet 1: The original GTA filtered data
+            df_filtered.to_excel(writer, sheet_name='DATA', index=False)
+            
+            # Sheet 2: The captured/processed parts with details
+            try:
+                import json
+                import os
+                # Try to load the tracker
+                tracker_path = "backend/parts_tracker.json"
+                if os.path.exists(tracker_path):
+                    with open(tracker_path, 'r') as f:
+                        tracker_data = json.load(f)
+                    
+                    processed_parts = tracker_data.get('processed_parts', [])
+                    # In case it's stored differently
+                    if isinstance(processed_parts, dict):
+                        processed_parts = list(processed_parts.keys())
+                    elif not processed_parts and 'part_stats' in tracker_data:
+                        processed_parts = [k for k, v in tracker_data['part_stats'].items() if v.get('status') == 'completed']
+                    
+                    # Convert to string for matching
+                    processed_parts = set(str(p) for p in processed_parts)
+                    
+                    # Filter from the original unfitered df (to get all details)
+                    df['Symbol Number'] = df['Symbol Number'].astype(str)
+                    df_captured = df[df['Symbol Number'].isin(processed_parts)].copy()
+                    
+                    print(f"📸 Added 'Captured Parts' sheet with {len(df_captured)} parts to the workbook")
+                    df_captured.to_excel(writer, sheet_name='Captured Parts', index=False)
+                else:
+                    print("⚠️ parts_tracker.json not found, skipping Captured Parts sheet")
+            except Exception as e:
+                print(f"⚠️ Could not add Captured Parts sheet: {e}")
 
         # Check file sizes
         import os
