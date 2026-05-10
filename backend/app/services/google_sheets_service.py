@@ -153,7 +153,13 @@ def _build_rows(
             continue
 
         # Get tracker info for this symbol
-        tracker = tracker_part_stats.get(symbol, {})
+        tracker = tracker_part_stats.get(symbol)
+        
+        # If the symbol has no tracker data (i.e., not processed/queued/failed), skip it
+        # This prevents exporting the entire 60k+ catalog when no date filter is applied.
+        if not tracker:
+            continue
+            
         tracker_status = tracker.get("status", "")
 
         # Apply date filter if set
