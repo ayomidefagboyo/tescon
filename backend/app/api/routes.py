@@ -1262,6 +1262,7 @@ async def export_full_report_excel(
         except FileNotFoundError as e:
             raise HTTPException(status_code=503, detail=str(e))
         except Exception as e:
+            import logging
             error_msg = str(e)
             logger_name = logging.getLogger(__name__)
             logger_name.error(f"Google Sheets export failed: {error_msg}")
