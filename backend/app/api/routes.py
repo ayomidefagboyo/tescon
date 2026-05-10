@@ -1066,6 +1066,24 @@ async def export_daily_stats_excel(
     queued_data = []
     failed_data = []
     
+    excel_service = get_excel_parts_service()
+
+    def _get_catalog_info(symbol_number: str) -> dict:
+        if excel_service.unique_parts is None:
+            return {}
+        info = excel_service.get_part_info(symbol_number)
+        if info is None:
+            return {}
+        return {
+            'Description 1': info.get('description_1', ''),
+            'Description 2': info.get('description_2', ''),
+            'Long Text JDE': info.get('long_text_jde', '') or info.get('item_note', ''),
+            'Combined Description': info.get('combined_description', ''),
+            'Location': info.get('location', ''),
+            'Part No': info.get('part_number', '') or '',
+            'Mfg Name': info.get('manufacturer', '') or '',
+        }
+    
     for symbol_number, stats in tracker.part_stats.items():
         part_status = stats.get('status')
         
@@ -1075,8 +1093,10 @@ async def export_daily_stats_excel(
         
         # Completed
         if part_status == 'completed' and stats.get('completed_at', '').startswith(filter_date):
+            catalog = _get_catalog_info(symbol_number)
             completed_data.append({
                 'Symbol Number': symbol_number,
+                **catalog,
                 'Completed At': stats.get('completed_at', ''),
                 'Image Count': stats.get('image_count', 0),
                 'Processing Time (s)': stats.get('processing_time')

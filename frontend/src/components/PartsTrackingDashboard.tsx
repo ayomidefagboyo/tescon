@@ -329,8 +329,9 @@ export const PartsTrackingDashboard: React.FC = () => {
     setExportingFull(true);
     try {
       // Full report: returns JSON with a shareable presigned URL
+      // We pass undefined for date to get all data, not just the currently selected day
       const result = await exportFullReport(
-        dailyStatsDate,
+        undefined,
         dailyStatsStatus === 'all' ? undefined : dailyStatsStatus
       );
       if (result.url) {
