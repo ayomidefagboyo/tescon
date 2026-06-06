@@ -11,7 +11,17 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
-from app.models import PartInfo, ProcessPartResponse, JobResponse, JobStatus, JobStatusResponse
+from app.models import (
+    DirectUploadFinalizeRequest,
+    DirectUploadInitRequest,
+    DirectUploadInitResponse,
+    DirectUploadTarget,
+    PartInfo,
+    ProcessPartResponse,
+    JobResponse,
+    JobStatus,
+    JobStatusResponse,
+)
 from app.processing.lightweight_processor import process_image
 from app.processing.image_utils import validate_image
 from app.processing.batch_manager import BatchProcessor
@@ -31,6 +41,16 @@ storage = LocalStorage(
     processed_dir=os.getenv("PROCESSED_DIR", "processed"),
     cleanup_ttl_hours=int(os.getenv("CLEANUP_TTL_HOURS", "24"))
 )
+
+
+def _safe_upload_filename(filename: Optional[str], index: int) -> str:
+    """Return a basename safe for use inside an R2 key."""
+    fallback = f"image_{index}.jpg"
+    if not filename:
+        return fallback
+
+    safe_name = Path(filename.replace("\\", "/")).name.strip()
+    return safe_name or fallback
 
 
 @router.post("/process/single")
@@ -383,6 +403,270 @@ async def search_parts(
 
     results = excel_service.search_parts(q, limit=limit)
     return [PartInfo(**part) for part in results]
+
+
+@router.post("/process/part/direct/initiate", response_model=DirectUploadInitResponse)
+async def initiate_direct_part_upload(
+    payload: DirectUploadInitRequest,
+    symbol_number: str = Query(..., min_length=1),
+    format: str = Query("PNG", regex="^(PNG|JPEG|JPG)$"),
+    white_background: bool = Query(True),
+    compression_quality: int = Query(85, ge=70, le=100),
+    max_dimension: int = Query(2048, ge=800, le=4096),
+    add_label: bool = Query(True),
+    label_position: str = Query("bottom-left", regex="^(bottom-left|bottom-right|top-left|top-right|bottom-center)$")
+):
+    """
+    Prepare browser-to-R2 uploads for a part.
+
+    Render validates the symbol and duplicate state, then returns signed R2
+    upload URLs. The browser sends image bytes directly to R2 and calls the
+    finalize endpoint afterward so Render only handles metadata.
+    """
+    if not payload.files:
+        raise HTTPException(status_code=400, detail="No images provided")
+
+    if len(payload.files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
+
+    drive_storage = get_r2_storage()
+    if not drive_storage:
+        raise HTTPException(
+            status_code=503,
+            detail="Cloudflare R2 not configured. Check R2 environment variables."
+        )
+
+    try:
+        parts_prefix = f"parts/{symbol_number}/"
+        parts_response = drive_storage.s3_client.list_objects_v2(
+            Bucket=drive_storage.bucket_name,
+            Prefix=parts_prefix,
+            MaxKeys=1
+        )
+        if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Part {symbol_number} already has processed images in storage. Please use a different symbol number or delete existing images first."
+            )
+
+        raw_prefix = f"raw/{symbol_number}/"
+        raw_response = drive_storage.s3_client.list_objects_v2(
+            Bucket=drive_storage.bucket_name,
+            Prefix=raw_prefix,
+            MaxKeys=1
+        )
+        if 'Contents' in raw_response and len(raw_response['Contents']) > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Part {symbol_number} has already been uploaded and is queued for processing. Please check the tracking dashboard or wait for processing to complete."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Could not check R2 duplicates: {str(e)}")
+
+    excel_service = get_excel_parts_service()
+    part_info = excel_service.get_part_info(symbol_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
+        )
+
+    job_id = f"job_daily_{datetime.now().strftime('%Y%m%d')}"
+    timestamp = datetime.now().strftime('%H%M%S%f')
+    upload_targets = []
+
+    for i, file_info in enumerate(payload.files, start=1):
+        content_type = file_info.content_type or "application/octet-stream"
+        filename = _safe_upload_filename(file_info.filename, i)
+        r2_key = f"raw/{symbol_number}/{job_id}_{timestamp}_{i:02d}_{filename}"
+        upload_url = drive_storage.generate_presigned_put_url(
+            r2_key,
+            content_type=content_type,
+            expires_in=3600,
+        )
+        upload_targets.append(DirectUploadTarget(
+            filename=filename,
+            content_type=content_type,
+            r2_key=r2_key,
+            upload_url=upload_url,
+            headers={"Content-Type": content_type},
+        ))
+
+    return DirectUploadInitResponse(
+        job_id=job_id,
+        status=JobStatus.QUEUED,
+        symbol_number=symbol_number,
+        upload_targets=upload_targets,
+        message=f"Prepared direct upload for {len(upload_targets)} images"
+    )
+
+
+@router.post("/process/part/direct/finalize", response_model=JobResponse)
+async def finalize_direct_part_upload(payload: DirectUploadFinalizeRequest):
+    """
+    Add directly uploaded R2 files to the daily queued job.
+
+    This preserves the existing queued job JSON format consumed by GitHub
+    Actions, so processing and sorting remain unchanged.
+    """
+    if not payload.files:
+        raise HTTPException(status_code=400, detail="No uploaded files provided")
+
+    if len(payload.files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
+
+    drive_storage = get_r2_storage()
+    if not drive_storage:
+        raise HTTPException(
+            status_code=503,
+            detail="Cloudflare R2 not configured. Check R2 environment variables."
+        )
+
+    excel_service = get_excel_parts_service()
+    part_info = excel_service.get_part_info(payload.symbol_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Symbol number '{payload.symbol_number}' not found in Excel catalog"
+        )
+
+    parts_prefix = f"parts/{payload.symbol_number}/"
+    try:
+        parts_response = drive_storage.s3_client.list_objects_v2(
+            Bucket=drive_storage.bucket_name,
+            Prefix=parts_prefix,
+            MaxKeys=1
+        )
+        if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Part {payload.symbol_number} already has processed images in storage."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Could not check processed images: {str(e)}")
+
+    raw_file_paths = []
+    expected_prefix = f"raw/{payload.symbol_number}/"
+    for file_info in payload.files:
+        if not file_info.r2_key.startswith(expected_prefix):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid R2 key for symbol {payload.symbol_number}: {file_info.r2_key}"
+            )
+
+        try:
+            drive_storage.s3_client.head_object(
+                Bucket=drive_storage.bucket_name,
+                Key=file_info.r2_key
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Uploaded file not found in R2: {file_info.filename} ({str(e)})"
+            )
+
+        raw_file_paths.append({
+            "filename": file_info.filename,
+            "r2_key": file_info.r2_key,
+            "content_type": file_info.content_type
+        })
+
+    new_part = {
+        "symbol_number": payload.symbol_number,
+        "raw_file_paths": raw_file_paths,
+        "uploaded_at": datetime.now().isoformat()
+    }
+
+    job_key = f"jobs/queued/{payload.job_id}.json"
+    try:
+        try:
+            response = drive_storage.s3_client.get_object(
+                Bucket=drive_storage.bucket_name,
+                Key=job_key
+            )
+            job_metadata = json.loads(response['Body'].read().decode('utf-8'))
+
+            if 'parts' not in job_metadata:
+                job_metadata['parts'] = []
+
+            existing_part = next(
+                (
+                    part for part in job_metadata['parts']
+                    if part.get('symbol_number') == payload.symbol_number
+                ),
+                None
+            )
+            if existing_part:
+                existing_part.update(new_part)
+            else:
+                job_metadata['parts'].append(new_part)
+
+            job_metadata['updated_at'] = datetime.now().isoformat()
+        except Exception as e:
+            if 'NoSuchKey' not in str(e) and '404' not in str(e):
+                raise
+
+            job_metadata = {
+                "job_id": payload.job_id,
+                "status": "queued",
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+                "parts": [new_part]
+            }
+
+        drive_storage.s3_client.put_object(
+            Bucket=drive_storage.bucket_name,
+            Key=job_key,
+            Body=json.dumps(job_metadata, indent=2),
+            ContentType="application/json"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update queued job: {str(e)}")
+
+    tracker = get_parts_tracker()
+    tracker.mark_part_queued(payload.symbol_number, len(raw_file_paths))
+
+    return JobResponse(
+        job_id=payload.job_id,
+        status=JobStatus.QUEUED,
+        message=f"Part {payload.symbol_number} queued for processing via direct upload."
+    )
+
+
+@router.post("/process/part/direct/abort")
+async def abort_direct_part_upload(payload: DirectUploadFinalizeRequest):
+    """
+    Best-effort cleanup for a failed direct upload attempt.
+
+    Used by the frontend before falling back to the legacy Render upload route.
+    """
+    drive_storage = get_r2_storage()
+    if not drive_storage:
+        return {"success": False, "deleted": 0, "message": "R2 storage not available"}
+
+    expected_prefix = f"raw/{payload.symbol_number}/"
+    delete_keys = [
+        {"Key": file_info.r2_key}
+        for file_info in payload.files
+        if file_info.r2_key.startswith(expected_prefix)
+    ]
+
+    if not delete_keys:
+        return {"success": True, "deleted": 0}
+
+    try:
+        drive_storage.s3_client.delete_objects(
+            Bucket=drive_storage.bucket_name,
+            Delete={"Objects": delete_keys}
+        )
+        return {"success": True, "deleted": len(delete_keys)}
+    except Exception as e:
+        print(f"⚠ Warning: failed to abort direct upload for {payload.symbol_number}: {e}")
+        return {"success": False, "deleted": 0, "message": str(e)}
 
 
 @router.post("/process/part/async", response_model=JobResponse)

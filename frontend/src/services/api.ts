@@ -129,6 +129,120 @@ export async function processPartImagesAsync(
   return response.data;
 }
 
+interface DirectUploadTarget {
+  filename: string;
+  content_type: string;
+  r2_key: string;
+  upload_url: string;
+  headers: Record<string, string>;
+}
+
+interface DirectUploadInitResponse {
+  job_id: string;
+  status: string;
+  symbol_number: string;
+  upload_targets: DirectUploadTarget[];
+  message: string;
+}
+
+/**
+ * Queue images using browser-to-R2 direct upload.
+ *
+ * Render validates/sorts metadata, but the image bytes go straight to R2.
+ */
+export async function processPartImagesDirect(
+  files: File[],
+  partNumber: string,
+  viewNumbers?: number[],
+  format: "PNG" | "JPEG" | "JPG" = "PNG",
+  whiteBackground: boolean = true,
+  compressionQuality: number = 85,
+  maxDimension: number = 2048,
+  addLabel: boolean = true,
+  labelPosition: "bottom-left" | "bottom-right" | "top-left" | "top-right" | "bottom-center" = "bottom-left"
+): Promise<JobResponse> {
+  const params = new URLSearchParams({
+    symbol_number: partNumber,
+    format,
+    white_background: whiteBackground.toString(),
+    compression_quality: compressionQuality.toString(),
+    max_dimension: maxDimension.toString(),
+    add_label: addLabel.toString(),
+    label_position: labelPosition,
+  });
+
+  if (viewNumbers && viewNumbers.length > 0) {
+    params.append("view_numbers", viewNumbers.join(","));
+  }
+
+  const initResponse = await api.post<DirectUploadInitResponse>(
+    `/process/part/direct/initiate?${params.toString()}`,
+    {
+      files: files.map((file) => ({
+        filename: file.name,
+        content_type: file.type || "application/octet-stream",
+        size: file.size,
+      })),
+    },
+    { timeout: 30000 }
+  );
+
+  const { job_id, upload_targets } = initResponse.data;
+  if (upload_targets.length !== files.length) {
+    throw new Error("Direct upload target count did not match selected files");
+  }
+
+  try {
+    await Promise.all(upload_targets.map((target, index) => {
+      const file = files[index];
+      return axios.put(target.upload_url, file, {
+        headers: target.headers,
+        timeout: 300000,
+      });
+    }));
+  } catch (error) {
+    await api.post(
+      "/process/part/direct/abort",
+      {
+        job_id,
+        symbol_number: partNumber,
+        files: upload_targets.map((target) => ({
+          filename: target.filename,
+          r2_key: target.r2_key,
+          content_type: target.content_type,
+        })),
+      },
+      { timeout: 30000 }
+    ).catch((cleanupError) => {
+      console.warn("Failed to clean up partial direct upload:", cleanupError);
+    });
+
+    const fallbackError = new Error("Direct R2 upload failed") as Error & {
+      allowLegacyFallback?: boolean;
+      originalError?: unknown;
+    };
+    fallbackError.allowLegacyFallback = true;
+    fallbackError.originalError = error;
+    throw fallbackError;
+  }
+
+  const finalizeResponse = await api.post<JobResponse>(
+    "/process/part/direct/finalize",
+    {
+      job_id,
+      symbol_number: partNumber,
+      files: upload_targets.map((target) => ({
+        filename: target.filename,
+        r2_key: target.r2_key,
+        content_type: target.content_type,
+      })),
+    },
+    { timeout: 30000 }
+  );
+
+  return finalizeResponse.data;
+}
+
 /**
  * Check job status
  */

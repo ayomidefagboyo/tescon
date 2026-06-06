@@ -112,3 +112,47 @@ class ProcessPartResponse(BaseModel):
     files_saved: int
     saved_paths: List[Dict[str, str]]
     message: str
+
+
+class DirectUploadFileRequest(BaseModel):
+    """Client-provided metadata for a file that will be uploaded directly."""
+    filename: str
+    content_type: Optional[str] = None
+    size: Optional[int] = None
+
+
+class DirectUploadInitRequest(BaseModel):
+    """Request to prepare direct-to-R2 upload URLs."""
+    files: List[DirectUploadFileRequest]
+
+
+class DirectUploadTarget(BaseModel):
+    """Signed upload URL and R2 destination for one file."""
+    filename: str
+    content_type: str
+    r2_key: str
+    upload_url: str
+    headers: Dict[str, str]
+
+
+class DirectUploadInitResponse(BaseModel):
+    """Response containing direct upload targets."""
+    job_id: str
+    status: JobStatus
+    symbol_number: str
+    upload_targets: List[DirectUploadTarget]
+    message: str
+
+
+class DirectUploadFinalizeFile(BaseModel):
+    """R2 object metadata sent after a successful direct upload."""
+    filename: str
+    r2_key: str
+    content_type: Optional[str] = None
+
+
+class DirectUploadFinalizeRequest(BaseModel):
+    """Request to add directly uploaded files to the queued daily job."""
+    job_id: str
+    symbol_number: str
+    files: List[DirectUploadFinalizeFile]

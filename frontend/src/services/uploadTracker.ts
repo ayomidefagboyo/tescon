@@ -95,6 +95,31 @@ class UploadTracker {
     this.saveSuccessLog(entries);
   }
 
+  private shouldFallbackToLegacyUpload(error: any): boolean {
+    if (error?.allowLegacyFallback === true) {
+      return true;
+    }
+
+    if (error?.allowLegacyFallback === false) {
+      return false;
+    }
+
+    const status = error.response?.status;
+    const requestUrl = String(error.config?.url || error.response?.config?.url || '');
+
+    // Validation/duplicate errors from Render should surface as-is.
+    if (requestUrl.includes('/process/part/direct/') && status >= 400 && status < 500) {
+      return false;
+    }
+
+    if (status === 404 || status === 409) {
+      return false;
+    }
+
+    // Network, CORS, signed URL, timeout, or 5xx issues can use the old route.
+    return true;
+  }
+
   // Get all uploads from localStorage
   private getUploads(): UploadAttempt[] {
     try {
@@ -240,19 +265,43 @@ class UploadTracker {
 
     try {
       // Import API function dynamically to avoid circular dependencies
-      const { processPartImagesAsync } = await import('./api');
+      const { processPartImagesDirect, processPartImagesAsync } = await import('./api');
 
-      const response = await processPartImagesAsync(
-        upload.files,
-        upload.partNumber,
-        upload.viewNumbers,
-        options?.format || "PNG",
-        options?.whiteBackground ?? true,
-        options?.compressionQuality || 85,
-        options?.maxDimension || 2048,
-        options?.addLabel ?? true,
-        options?.labelPosition || "bottom-left"
-      );
+      let response;
+      try {
+        response = await processPartImagesDirect(
+          upload.files,
+          upload.partNumber,
+          upload.viewNumbers,
+          options?.format || "PNG",
+          options?.whiteBackground ?? true,
+          options?.compressionQuality || 85,
+          options?.maxDimension || 2048,
+          options?.addLabel ?? true,
+          options?.labelPosition || "bottom-left"
+        );
+      } catch (directError: any) {
+        if (!this.shouldFallbackToLegacyUpload(directError)) {
+          throw directError;
+        }
+
+        console.warn(
+          `Direct upload failed for ${upload.partNumber}; falling back to legacy Render upload`,
+          directError
+        );
+
+        response = await processPartImagesAsync(
+          upload.files,
+          upload.partNumber,
+          upload.viewNumbers,
+          options?.format || "PNG",
+          options?.whiteBackground ?? true,
+          options?.compressionQuality || 85,
+          options?.maxDimension || 2048,
+          options?.addLabel ?? true,
+          options?.labelPosition || "bottom-left"
+        );
+      }
 
       const nextUploads = this.removeUploadsByPartNumber(uploads, upload.partNumber);
       this.recordSuccess();

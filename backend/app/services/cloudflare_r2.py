@@ -149,6 +149,27 @@ class CloudflareR2Storage:
         )
         return url
 
+    def generate_presigned_put_url(
+        self,
+        s3_key: str,
+        content_type: str = "application/octet-stream",
+        expires_in: int = 3600,
+    ) -> str:
+        """
+        Generate a presigned URL for uploading an object directly to R2.
+
+        The client must send the same Content-Type header that was signed.
+        """
+        return self.s3_client.generate_presigned_url(
+            'put_object',
+            Params={
+                'Bucket': self.bucket_name,
+                'Key': s3_key,
+                'ContentType': content_type,
+            },
+            ExpiresIn=expires_in,
+        )
+
     def check_duplicates(self, symbol_number: str, view_numbers: List[int]) -> Dict[int, bool]:
         """
         Check if images already exist for given part and view numbers.
