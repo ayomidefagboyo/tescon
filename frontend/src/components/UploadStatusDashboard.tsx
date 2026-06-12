@@ -244,7 +244,7 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
           {successCount > 0 && (
             <div style={styles.summaryItem('completed')}>
               <CheckCircle size={12} />
-              {successCount} uploaded
+              {successCount} uploaded today
             </div>
           )}
         </div>

@@ -31,7 +31,15 @@ class UploadTracker {
   private activeFiles = new Map<string, File[]>();
   private uploadOptions = new Map<string, UploadOptions>();
   private retryTimers = new Map<string, number>();
-  private successTtlMs = 24 * 60 * 60 * 1000;
+
+  private getTodayStartMs(): number {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  }
+
+  private isToday(timestamp?: number): boolean {
+    return Number.isFinite(timestamp) && (timestamp as number) >= this.getTodayStartMs();
+  }
 
   private clearRetryTimer(uploadId: string): void {
     const timerId = this.retryTimers.get(uploadId);
@@ -83,8 +91,8 @@ class UploadTracker {
   }
 
   private pruneSuccessLog(): number[] {
-    const cutoff = Date.now() - this.successTtlMs;
-    const prunedEntries = this.getSuccessLog().filter((timestamp) => timestamp >= cutoff);
+    const todayStart = this.getTodayStartMs();
+    const prunedEntries = this.getSuccessLog().filter((timestamp) => timestamp >= todayStart);
     this.saveSuccessLog(prunedEntries);
     return prunedEntries;
   }
@@ -120,7 +128,27 @@ class UploadTracker {
     return true;
   }
 
-  // Get all uploads from localStorage
+  private retainTodayUploads(uploads: UploadAttempt[]): UploadAttempt[] {
+    const filtered = uploads.filter(upload => this.isToday(upload.timestamp));
+
+    if (filtered.length !== uploads.length) {
+      const retainedIds = new Set(filtered.map(upload => upload.id));
+
+      uploads.forEach(upload => {
+        if (!retainedIds.has(upload.id)) {
+          this.clearRetryTimer(upload.id);
+          this.activeFiles.delete(upload.id);
+          this.uploadOptions.delete(upload.id);
+        }
+      });
+
+      this.saveUploads(filtered);
+    }
+
+    return filtered;
+  }
+
+  // Get today's uploads from localStorage
   private getUploads(): UploadAttempt[] {
     try {
       const stored = localStorage.getItem(this.storageKey);
@@ -162,7 +190,7 @@ class UploadTracker {
         this.saveUploads(hydratedUploads);
       }
 
-      return hydratedUploads;
+      return this.retainTodayUploads(hydratedUploads);
     } catch (error) {
       console.warn('Failed to parse upload queue, clearing corrupted data:', error);
       // Clear corrupted data to prevent future errors
@@ -452,20 +480,11 @@ class UploadTracker {
     }
   }
 
-  // Clear old completed uploads (older than 24 hours)
+  // Clear uploads and success stats from previous local calendar days.
   cleanup(): void {
     const uploads = this.getUploads();
-    const dayAgo = Date.now() - (24 * 60 * 60 * 1000);
-
-    const filtered = uploads.filter(upload => {
-      // Keep failed/pending uploads
-      if (upload.status === 'failed' || upload.status === 'pending' || upload.status === 'in_progress') {
-        return true;
-      }
-
-      // Keep recent completed uploads
-      return (upload.completedAt || upload.timestamp) > dayAgo;
-    });
+    const filtered = this.retainTodayUploads(uploads);
+    this.pruneSuccessLog();
 
     if (filtered.length !== uploads.length) {
       console.log(`🧹 Cleaned up ${uploads.length - filtered.length} old uploads`);

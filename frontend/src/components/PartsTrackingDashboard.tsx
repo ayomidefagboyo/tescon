@@ -48,6 +48,13 @@ interface CachedTrackerSummary {
   cachedAt: number;
 }
 
+const getLocalDateInputValue = (date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const PartsTrackingDashboard: React.FC = () => {
   const summaryCacheKey = 'tescon_tracker_dashboard_summary';
   const legacyAutoSyncCacheKey = 'tescon_tracker_dashboard_last_auto_sync';
@@ -66,7 +73,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<DashboardTab>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [dailyStatsDate, setDailyStatsDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dailyStatsDate, setDailyStatsDate] = useState<string>(() => getLocalDateInputValue());
   const [dailyStatsStatus, setDailyStatsStatus] = useState<string>('all');
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
@@ -78,6 +85,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [cachedSummaryAgeMs, setCachedSummaryAgeMs] = useState<number | null>(null);
   const summaryRequestInFlight = useRef(false);
   const tabRequestInFlight = useRef<Partial<Record<ListTab, boolean>>>({});
+  const dailyStatsDateManuallyChanged = useRef(false);
 
   const getCachedSummary = (): CachedTrackerSummary | null => {
     try {
@@ -283,6 +291,21 @@ export const PartsTrackingDashboard: React.FC = () => {
 
     return () => window.clearInterval(interval);
   }, [selectedTab, dailyStatsDate, dailyStatsStatus, autoRefreshMs]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      const today = getLocalDateInputValue();
+      setDailyStatsDate(currentDate => {
+        if (!dailyStatsDateManuallyChanged.current && currentDate !== today) {
+          return today;
+        }
+
+        return currentDate;
+      });
+    }, 60 * 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const fetchDailyStats = async () => {
     try {
@@ -1104,7 +1127,10 @@ export const PartsTrackingDashboard: React.FC = () => {
               <input
                 type="date"
                 value={dailyStatsDate}
-                onChange={(e) => setDailyStatsDate(e.target.value)}
+                onChange={(e) => {
+                  dailyStatsDateManuallyChanged.current = true;
+                  setDailyStatsDate(e.target.value);
+                }}
                 style={{
                   padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
                   border: `1px solid ${colors.neutral[300]}`,
