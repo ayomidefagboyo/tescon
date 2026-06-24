@@ -1,8 +1,8 @@
 /** Parts tracking dashboard component */
 import React, { useEffect, useRef, useState } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, RefreshCw, Search, Download, CloudSync, FileSpreadsheet, ExternalLink } from "lucide-react";
-import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, exportFullReport, syncTrackerFromR2 } from "../services/api";
+import { BarChart, RefreshCw, Search, Download, FileSpreadsheet, ExternalLink } from "lucide-react";
+import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, exportFullReport } from "../services/api";
 import { formatHumanText } from "../utils/textFormatter";
 
 interface ProgressStats {
@@ -79,7 +79,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [exportingFull, setExportingFull] = useState(false);
   const [reportUrl, setReportUrl] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [showingCachedSummary, setShowingCachedSummary] = useState(false);
   const [cachedSummaryAgeMs, setCachedSummaryAgeMs] = useState<number | null>(null);
@@ -370,38 +370,6 @@ export const PartsTrackingDashboard: React.FC = () => {
     }
   };
 
-  const handleSyncTracker = async () => {
-    setSyncing(true);
-    try {
-      console.log('Manual sync from R2 starting...');
-      const syncResult = await syncTrackerFromR2();
-      const nextTrackerData = {
-        progress: syncResult.stats,
-        part_stats: trackerData?.part_stats || {}
-      };
-
-      setTrackerData(nextTrackerData);
-      setSummaryError(null);
-      setShowingCachedSummary(false);
-      setCachedSummaryAgeMs(0);
-      setLoadedTabs({});
-      clearDashboardCache();
-      persistSummary(nextTrackerData);
-      console.log('Manual sync completed, refreshing visible data...');
-
-      if (selectedTab !== 'overview') {
-        await fetchTabData(selectedTab, true);
-      } else {
-        await fetchDailyStats();
-      }
-    } catch (error) {
-      console.error('Failed to sync tracker:', describeApiError(error), error);
-      alert(`Failed to sync tracker with R2 storage. ${describeApiError(error)}`);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const handleClearCache = async () => {
     clearDashboardCache();
     setLoadedTabs({});
@@ -558,10 +526,13 @@ export const PartsTrackingDashboard: React.FC = () => {
     },
     tabsContainer: {
       display: 'flex',
-      flexWrap: 'wrap' as const,
+      flexWrap: 'nowrap' as const,
       gap: mobileSpacing.xs,
       borderBottom: `2px solid ${colors.neutral[200]}`,
       marginBottom: mobileSpacing.lg,
+      overflowX: 'auto' as const,
+      WebkitOverflowScrolling: 'touch' as const,
+      scrollbarWidth: 'none' as const,
     },
     tab: {
       padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
