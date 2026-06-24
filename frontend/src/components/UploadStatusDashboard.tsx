@@ -98,7 +98,10 @@ export const UploadStatusDashboard: React.FC<UploadStatusDashboardProps> = ({
       border: '1px solid #e9ecef',
       borderRadius: '8px',
       padding: '16px',
-      margin: '16px 0'
+      margin: '16px 0',
+      width: '100%',
+      boxSizing: 'border-box' as const,
+      overflowX: 'hidden' as const,
     } as React.CSSProperties,
 
     header: {

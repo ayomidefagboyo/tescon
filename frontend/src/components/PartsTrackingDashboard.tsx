@@ -452,6 +452,9 @@ export const PartsTrackingDashboard: React.FC = () => {
       padding: mobileSpacing.lg,
       maxWidth: '1200px',
       margin: '0 auto',
+      width: '100%',
+      boxSizing: 'border-box' as const,
+      overflowX: 'hidden' as const,
     },
     header: {
       display: 'flex',
@@ -1129,7 +1132,9 @@ export const PartsTrackingDashboard: React.FC = () => {
             <div style={{
               display: 'flex',
               gap: mobileSpacing.sm,
-              alignItems: 'center'
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end'
             }}>
               <input
                 type="date"
