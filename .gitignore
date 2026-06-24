@@ -53,3 +53,4 @@ backend/~$*.xlsx
 
 backend/*_GTA*_filtered.xlsx
 backend/*_filtered_clean.xlsx
+.vercel

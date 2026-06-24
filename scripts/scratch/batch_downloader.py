@@ -59,17 +59,17 @@ class BatchDownloader:
         parts = set()
 
         try:
-            response = self.r2.s3_client.list_objects_v2(
+            paginator = self.r2.s3_client.get_paginator('list_objects_v2')
+            for page in paginator.paginate(
                 Bucket=self.r2.bucket_name,
                 Prefix="parts/",
                 Delimiter="/"
-            )
-
-            if 'CommonPrefixes' in response:
-                for prefix in response['CommonPrefixes']:
-                    part_number = prefix['Prefix'].replace('parts/', '').rstrip('/')
-                    if part_number:
-                        parts.add(part_number)
+            ):
+                if 'CommonPrefixes' in page:
+                    for prefix in page['CommonPrefixes']:
+                        part_number = prefix['Prefix'].replace('parts/', '').rstrip('/')
+                        if part_number:
+                            parts.add(part_number)
 
         except Exception as e:
             print(f"❌ Error getting R2 parts: {e}")

@@ -1,0 +1,168 @@
+name: Proxy Capture + Process (Daily)
+
+on:
+  # Runs automatically every day at 6:00 AM WAT (5:00 AM UTC)
+  schedule:
+    - cron: '0 5 * * *'
+
+  # Also triggerable manually from GitHub UI
+  workflow_dispatch:
+    inputs:
+      daily_limit:
+        description: 'Max symbols to proxy/process per run'
+        required: false
+        default: '100'
+        type: string
+      job_id:
+        description: 'Specific job ID to process (leave blank to auto-pick)'
+        required: false
+        type: string
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Step 1: Find similar pending items, copy raw images, queue them
+  # ─────────────────────────────────────────────────────────────────────────
+  proxy-capture:
+    name: Proxy Capture (queue similar pending items)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      job_id: ${{ steps.capture.outputs.job_id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install boto3 pandas openpyxl python-dotenv
+
+      - name: Run proxy_capture.py
+        id: capture
+        env:
+          CLOUDFLARE_ACCOUNT_ID:        ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCESS_KEY_ID:     ${{ secrets.CLOUDFLARE_ACCESS_KEY_ID }}
+          CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_BUCKET_NAME:       ${{ secrets.CLOUDFLARE_BUCKET_NAME }}
+        run: |
+          LIMIT="${{ inputs.daily_limit || '100' }}"
+          python3 backend/proxy_capture.py --daily-limit "$LIMIT" 2>&1
+          # Surface the job ID for the next step
+          TODAY=$(date +%Y%m%d)
+          echo "job_id=job_proxy_${TODAY}" >> $GITHUB_OUTPUT
+
+      - name: Upload proxy capture report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxy-capture-report-${{ github.run_id }}
+          path: reports/proxy_capture_report.xlsx
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Step 2: Process the queued job with rembg
+  # ─────────────────────────────────────────────────────────────────────────
+  process-images:
+    name: Process Images (rembg background removal)
+    needs: proxy-capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 180   # 3-hour cap (GitHub free tier max)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Cache AI Models (avoids re-downloading rembg model each run)
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-models-v1
+          restore-keys: rembg-models-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install rembg==2.0.61 onnxruntime boto3 pandas openpyxl Pillow python-dotenv
+
+      - name: Process images
+        env:
+          CLOUDFLARE_ACCOUNT_ID:        ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCESS_KEY_ID:     ${{ secrets.CLOUDFLARE_ACCESS_KEY_ID }}
+          CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_BUCKET_NAME:       ${{ secrets.CLOUDFLARE_BUCKET_NAME }}
+          RENDER_WEBHOOK:               ${{ secrets.RENDER_WEBHOOK }}
+          JOB_ID: ${{ inputs.job_id || needs.proxy-capture.outputs.job_id }}
+          DAILY_LIMIT: ${{ inputs.daily_limit || '100' }}
+        run: |
+          # Write env file for the script
+          cat > backend/.env << EOF
+          CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+          CLOUDFLARE_ACCESS_KEY_ID=${CLOUDFLARE_ACCESS_KEY_ID}
+          CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLARE_SECRET_ACCESS_KEY}
+          CLOUDFLARE_BUCKET_NAME=${CLOUDFLARE_BUCKET_NAME}
+          EOF
+
+          python3 backend/local_processor.py \
+            --job-id "$JOB_ID" \
+            --daily-limit "$DAILY_LIMIT"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Step 3: Update the weekly report with new numbers
+  # ─────────────────────────────────────────────────────────────────────────
+  update-report:
+    name: Update Weekly Report
+    needs: process-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: always()  # Run even if processing had some failures
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install boto3 pandas openpyxl python-dotenv
+
+      - name: Update weekly report
+        env:
+          CLOUDFLARE_ACCOUNT_ID:        ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCESS_KEY_ID:     ${{ secrets.CLOUDFLARE_ACCESS_KEY_ID }}
+          CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_BUCKET_NAME:       ${{ secrets.CLOUDFLARE_BUCKET_NAME }}
+        run: |
+          cat > backend/.env << EOF
+          CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+          CLOUDFLARE_ACCESS_KEY_ID=${CLOUDFLARE_ACCESS_KEY_ID}
+          CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLARE_SECRET_ACCESS_KEY}
+          CLOUDFLARE_BUCKET_NAME=${CLOUDFLARE_BUCKET_NAME}
+          EOF
+
+          python3 backend/update_weekly_report.py
+
+      - name: Upload weekly report
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-report-${{ github.run_id }}
+          path: "EGTL_Photo_Project_Weekly Report*.xlsx"
+          retention-days: 90
