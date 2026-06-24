@@ -143,6 +143,9 @@ def _build_rows(
     # Read ALL columns from the Excel catalog
     df = pd.read_excel(excel_path, sheet_name=sheet_name, engine="openpyxl")
 
+    # Strip leading zeros from tracker keys to match Excel formatting
+    clean_tracker_stats = {str(k).lstrip('0'): v for k, v in tracker_part_stats.items()}
+
     # Build output rows
     rows: List[List[Any]] = []
     rows.append(SHEET_COLUMNS)  # Header row
@@ -153,7 +156,7 @@ def _build_rows(
             continue
 
         # Get tracker info for this symbol
-        tracker = tracker_part_stats.get(symbol)
+        tracker = clean_tracker_stats.get(symbol)
         
         # If the symbol has no tracker data (i.e., not processed/queued/failed), skip it
         # This prevents exporting the entire 60k+ catalog when no date filter is applied.

@@ -398,9 +398,10 @@ class PartsTracker:
     def get_progress_stats(self) -> Dict:
         """Get overall progress statistics."""
         self._load_state_from_db()
-        processed_count = len(self.processed_parts)
-        failed_count = len(self.failed_parts)
-        queued_count = len(self.queued_parts)
+        # Strip leading zeros for accurate cross-referencing and deduplication
+        processed_count = len(set(str(p).lstrip('0') for p in self.processed_parts))
+        failed_count = len(set(str(p).lstrip('0') for p in self.failed_parts.keys()))
+        queued_count = len(set(str(p).lstrip('0') for p in self.queued_parts))
         remaining_count = max(0, self.total_parts - processed_count - failed_count - queued_count)
 
         progress_percentage = 0
@@ -464,9 +465,13 @@ class PartsTracker:
             List of unprocessed part numbers
         """
         self._load_state_from_db()
-        all_parts_set = set(all_parts)
+        all_parts_set = set(str(p).lstrip('0') for p in all_parts)
         processed_queued_and_failed = self.processed_parts.union(self.queued_parts).union(set(self.failed_parts.keys()))
-        return list(all_parts_set - processed_queued_and_failed)
+        
+        # Strip leading zeros from DB items so they match the Excel catalog formatting
+        db_items_stripped = set(str(p).lstrip('0') for p in processed_queued_and_failed)
+        
+        return list(all_parts_set - db_items_stripped)
 
     def get_part_status(self, symbol_number: str) -> Optional[Dict]:
         """

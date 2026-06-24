@@ -326,9 +326,12 @@ class ExcelPartsService:
         if self.unique_parts is None:
             return None
 
+        # Strip leading zeros to match Excel's stripped formatting
+        clean_symbol = str(symbol_number).lstrip('0')
+        
         # Search for the part
         part_row = self.unique_parts[
-            self.unique_parts['Symbol Number'].astype(str) == str(symbol_number)
+            self.unique_parts['Symbol Number'].astype(str) == clean_symbol
         ]
 
         if part_row.empty:
@@ -376,10 +379,11 @@ class ExcelPartsService:
             return []
 
         query_lower = query.lower()
+        query_clean_num = query_lower.lstrip('0') if query_lower.isdigit() else query_lower
 
-        # Search in symbol number and description
+        # Search in symbol number (ignoring leading zeros) and description
         mask = (
-            self.unique_parts['Symbol Number'].astype(str).str.lower().str.contains(query_lower, na=False) |
+            self.unique_parts['Symbol Number'].astype(str).str.lower().str.contains(query_clean_num, na=False) |
             self.unique_parts['Combined_Description'].astype(str).str.lower().str.contains(query_lower, na=False)
         )
 
