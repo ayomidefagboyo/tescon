@@ -1252,32 +1252,6 @@ export const PartsTrackingDashboard: React.FC = () => {
             <button
               style={{
                 ...styles.refreshButton,
-                backgroundColor: colors.warning,
-                display: 'flex',
-                alignItems: 'center',
-                gap: mobileSpacing.xs,
-                padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
-                fontSize: mobileTypography.fontSize.sm,
-                minWidth: '70px',
-                justifyContent: 'center'
-              }}
-              onClick={handleSyncTracker}
-              disabled={syncing}
-              onMouseEnter={(e) => {
-                if (!syncing) {
-                  e.currentTarget.style.backgroundColor = '#d97706';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = colors.warning;
-              }}
-            >
-              <CloudSync size={14} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
-              {syncing ? 'Sync' : 'Sync'}
-            </button>
-            <button
-              style={{
-                ...styles.refreshButton,
                 display: 'flex',
                 alignItems: 'center',
                 gap: mobileSpacing.xs,
