@@ -589,11 +589,14 @@ export const PartsTrackingDashboard: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
       marginBottom: mobileSpacing.sm,
+      gap: mobileSpacing.xs,
+      flexWrap: 'wrap' as const,
     },
     partNumber: {
       fontSize: mobileTypography.fontSize.base,
       fontWeight: typography.fontWeight.semibold,
       color: colors.text.primary,
+      wordBreak: 'break-word' as const,
     },
     statusBadge: {
       padding: `${mobileSpacing.xs} ${mobileSpacing.sm}`,
@@ -1139,7 +1142,8 @@ export const PartsTrackingDashboard: React.FC = () => {
             display: 'flex',
             gap: mobileSpacing.sm,
             alignItems: 'center',
-            flexWrap: 'nowrap'
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end'
           }}>
             {selectedTab === 'overview' && (
               <button
