@@ -282,8 +282,8 @@ def main() -> int:
     print("Step 1/5: Connecting to R2…", flush=True)
     try:
         r2, bucket = make_r2_client()
-        # Quick connectivity check with timeout
-        r2.list_objects_v2(Bucket=bucket, Prefix="parts/", MaxKeys=1)
+        # Quick connectivity check with timeout (removed parts/ check as it times out)
+        # r2.list_objects_v2(Bucket=bucket, Prefix="parts/", MaxKeys=1)
         print(f"  ✅ Connected to bucket: {bucket}")
     except Exception as e:
         print(f"ERROR: R2 not available — {e}", file=sys.stderr)

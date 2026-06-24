@@ -1,8 +1,8 @@
 /** Parts tracking dashboard component */
 import React, { useEffect, useRef, useState } from "react";
 import { colors, spacing, typography, borderRadius, shadows, transitions, mobileSpacing, mobileTypography } from "../styles/design-system";
-import { BarChart, RefreshCw, Search, Download, CloudSync, FileSpreadsheet, ExternalLink } from "lucide-react";
-import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, exportDailyStatsExcel, exportFullReport, syncTrackerFromR2 } from "../services/api";
+import { BarChart, RefreshCw, Search, CloudSync } from "lucide-react";
+import { describeApiError, getTrackerProgress, getProcessedParts, getFailedParts, getRemainingParts, getQueuedParts, resetPartStatus as apiResetPartStatus, getDailyStats, syncTrackerFromR2 } from "../services/api";
 import { formatHumanText } from "../utils/textFormatter";
 
 interface ProgressStats {
@@ -76,9 +76,7 @@ export const PartsTrackingDashboard: React.FC = () => {
   const [dailyStatsDate, setDailyStatsDate] = useState<string>(() => getLocalDateInputValue());
   const [dailyStatsStatus, setDailyStatsStatus] = useState<string>('all');
   const [dailyStatsData, setDailyStatsData] = useState<any>(null);
-  const [exporting, setExporting] = useState(false);
-  const [exportingFull, setExportingFull] = useState(false);
-  const [reportUrl, setReportUrl] = useState<string | null>(null);
+
   const [syncing, setSyncing] = useState(false);
 
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -328,48 +326,6 @@ export const PartsTrackingDashboard: React.FC = () => {
       void fetchTabData(selectedTab);
     }
   }, [selectedTab]);
-
-  const handleExportDailyStats = async () => {
-    setExporting(true);
-    try {
-      const blob = await exportDailyStatsExcel(dailyStatsDate, dailyStatsStatus === 'all' ? undefined : dailyStatsStatus);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `daily_stats_${dailyStatsDate}${dailyStatsStatus !== 'all' ? `_${dailyStatsStatus}` : ''}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Failed to export daily stats:', error);
-      alert('Failed to export daily stats. Please try again.');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportFullReport = async () => {
-    setExportingFull(true);
-    try {
-      // Full report: returns JSON with a shareable presigned URL
-      // We pass undefined for date to get all data, not just the currently selected day
-      const result = await exportFullReport(
-        undefined,
-        dailyStatsStatus === 'all' ? undefined : dailyStatsStatus
-      );
-      if (result.url) {
-        setReportUrl(result.url);
-        // Open the link in a new tab
-        window.open(result.url, '_blank', 'noopener,noreferrer');
-      }
-    } catch (error) {
-      console.error('Failed to generate full report:', error);
-      alert('Failed to generate full report. Please try again.');
-    } finally {
-      setExportingFull(false);
-    }
-  };
 
   const handleSyncTracker = async () => {
     setSyncing(true);
@@ -1183,34 +1139,7 @@ export const PartsTrackingDashboard: React.FC = () => {
             flexWrap: 'wrap',
             justifyContent: 'flex-end'
           }}>
-            {selectedTab === 'overview' && (
-              <button
-                style={{
-                  ...styles.refreshButton,
-                  backgroundColor: colors.success,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: mobileSpacing.xs,
-                  padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
-                  fontSize: mobileTypography.fontSize.sm,
-                  minWidth: '80px',
-                  justifyContent: 'center'
-                }}
-                onClick={handleExportDailyStats}
-                disabled={exporting}
-                onMouseEnter={(e) => {
-                  if (!exporting) {
-                    e.currentTarget.style.backgroundColor = '#059669';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.success;
-                }}
-              >
-                <Download size={14} />
-                {exporting ? 'Exporting...' : 'Daily Export'}
-              </button>
-            )}
+
             {selectedTab === 'overview' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: mobileSpacing.xs }}>
                 <button
@@ -1239,53 +1168,7 @@ export const PartsTrackingDashboard: React.FC = () => {
                   <CloudSync size={14} style={{ animation: syncing ? 'pulse 2s infinite' : 'none' }} />
                   {syncing ? 'Syncing R2...' : 'Sync Tracker'}
                 </button>
-                <button
-                  style={{
-                    ...styles.refreshButton,
-                    backgroundColor: '#0d9488',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: mobileSpacing.xs,
-                    padding: `${mobileSpacing.sm} ${mobileSpacing.md}`,
-                    fontSize: mobileTypography.fontSize.sm,
-                    minWidth: '105px',
-                    justifyContent: 'center'
-                  }}
-                  onClick={handleExportFullReport}
-                  disabled={exportingFull}
-                  onMouseEnter={(e) => {
-                    if (!exportingFull) {
-                      e.currentTarget.style.backgroundColor = '#0f766e';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#0d9488';
-                  }}
-                >
-                  <ExternalLink size={14} />
-                  {exportingFull ? 'Generating...' : 'Get Link'}
-                </button>
-                {reportUrl && !exportingFull && (
-                  <a
-                    href={reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      fontSize: mobileTypography.fontSize.xs,
-                      color: '#0d9488',
-                      textDecoration: 'underline',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title="Open the last generated full report"
-                  >
-                    <FileSpreadsheet size={12} />
-                    Open Report
-                  </a>
-                )}
+
               </div>
             )}
             <button
