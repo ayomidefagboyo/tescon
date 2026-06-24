@@ -132,7 +132,7 @@ def process_single_image(raw_bytes: bytes, symbol_number: str,
 # Load part info from master catalog
 # ---------------------------------------------------------------------------
 def load_catalog_lookup() -> dict:
-    catalog_path = BACKEND_ROOT / "Total EGTL Photo Project.xlsx"
+    catalog_path = BACKEND_ROOT / "data" / "Total EGTL Photo Project.xlsx"
     if not catalog_path.exists():
         print("  ⚠️  Master catalog not found — descriptions won't be embedded")
         return {}
