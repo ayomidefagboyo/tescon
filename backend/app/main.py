@@ -76,6 +76,18 @@ async def startup_event():
     else:
         print("⚠ Warning: Processor not available.")
 
+    # --- Restore Persistent Database from Cloudflare R2 ---
+    try:
+        from app.services.cloudflare_r2 import get_r2_storage
+        r2_storage = get_r2_storage()
+        if r2_storage:
+            db_path = str(Path(__file__).parent.parent / "parts_tracker.db")
+            print("Downloading persistent database from R2...")
+            r2_storage.download_database(local_path=db_path)
+    except Exception as e:
+        print(f"⚠ Warning: Failed to download persistent database from R2: {e}")
+    # ------------------------------------------------------
+
     # Load Excel catalog on startup
     #
     # Default catalog is the Total EGTL Photo Project workbook (Photo Data sheet).

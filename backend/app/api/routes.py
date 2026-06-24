@@ -629,6 +629,7 @@ async def finalize_direct_part_upload(payload: DirectUploadFinalizeRequest):
 
     tracker = get_parts_tracker()
     tracker.mark_part_queued(payload.symbol_number, len(raw_file_paths))
+    drive_storage.upload_database(str(tracker.db_path))
 
     return JobResponse(
         job_id=payload.job_id,
@@ -1950,6 +1951,9 @@ async def job_completion_webhook(
             except Exception as e:
                 tracker.mark_part_failed(symbol_number, f"Error checking R2: {str(e)}")
         
+        # Sync persistent state to cloud
+        r2_storage.upload_database(str(tracker.db_path))
+
         return {
             "success": True,
             "job_id": job_id,
@@ -2097,6 +2101,9 @@ async def sync_tracker_from_r2():
         
         # Get updated stats
         stats = tracker.get_progress_stats()
+        
+        # Sync persistent state to cloud
+        r2_storage.upload_database(str(tracker.db_path))
         
         return {
             "success": True,

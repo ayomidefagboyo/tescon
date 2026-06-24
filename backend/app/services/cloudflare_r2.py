@@ -266,6 +266,26 @@ class CloudflareR2Storage:
 
         return True  # No images to delete
 
+    def download_database(self, local_path: str, r2_key: str = "database/parts_tracker.db") -> bool:
+        """Download the SQLite database from R2 to the local disk."""
+        try:
+            self.s3_client.download_file(self.bucket_name, r2_key, local_path)
+            print(f"✅ Downloaded persistent database from {r2_key} to {local_path}")
+            return True
+        except Exception as e:
+            print(f"⚠ Could not download persistent database from R2 (might not exist yet): {e}")
+            return False
+
+    def upload_database(self, local_path: str, r2_key: str = "database/parts_tracker.db") -> bool:
+        """Upload the local SQLite database to R2."""
+        try:
+            self.s3_client.upload_file(local_path, self.bucket_name, r2_key)
+            print(f"✅ Uploaded persistent database from {local_path} to {r2_key}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to upload persistent database to R2: {e}")
+            return False
+
     def get_storage_stats(self) -> Dict[str, Any]:
         """Get storage usage statistics."""
         try:
