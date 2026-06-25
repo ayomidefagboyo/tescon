@@ -331,7 +331,7 @@ class ExcelPartsService:
         
         # Search for the part
         part_row = self.unique_parts[
-            self.unique_parts['Symbol Number'].astype(str) == clean_symbol
+            self.unique_parts['Symbol Number'].astype(str).str.lstrip('0') == clean_symbol
         ]
 
         if part_row.empty:

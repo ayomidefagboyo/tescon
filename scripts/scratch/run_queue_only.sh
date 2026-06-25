@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 BATCH=100
 MAX_BATCHES=60
