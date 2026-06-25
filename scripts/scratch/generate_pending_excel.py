@@ -6,11 +6,15 @@ import pandas as pd
 from pathlib import Path
 
 # Setup paths
-BACKEND_ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = BACKEND_ROOT.parent
-MASTER_CATALOG = BACKEND_ROOT / "Total EGTL Photo Project.xlsx"
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
+BACKEND_ROOT = PROJECT_ROOT / "backend"
+MASTER_CATALOG = BACKEND_ROOT / "data" / "Total EGTL Photo Project.xlsx"
 PROXY_REPORT = PROJECT_ROOT / "reports" / "proxy_capture_report.xlsx"
 OUTPUT_EXCEL = PROJECT_ROOT / "reports" / "Remaining_To_Shoot_By_Location.xlsx"
+
+import sys
+sys.path.insert(0, str(BACKEND_ROOT))
 
 from dotenv import load_dotenv
 load_dotenv(BACKEND_ROOT / ".env")
@@ -69,7 +73,7 @@ def main():
     
     print("Loading Master Catalog...")
     df = pd.read_excel(MASTER_CATALOG, sheet_name="Photo Data")
-    df["sym_norm"] = df["Symbol Number"].astype(str).str.strip()
+    df["sym_norm"] = df["Symbol Number"].astype(str).str.strip().str.lstrip('0')
     
     # Filter pending
     pending_df = df[~df["sym_norm"].isin(handled_syms)].copy()

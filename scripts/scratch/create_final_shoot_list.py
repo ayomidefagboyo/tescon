@@ -2,8 +2,8 @@
 import pandas as pd
 from pathlib import Path
 
-BACKEND_ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = BACKEND_ROOT.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 
 GROUPED_EXCEL = PROJECT_ROOT / "reports" / "Physical_Shoot_List_Grouped.xlsx"
 FINAL_EXCEL = PROJECT_ROOT / "reports" / "Final_Physical_Shoot_List.xlsx"

@@ -3,8 +3,8 @@ import pandas as pd
 import re
 from pathlib import Path
 
-BACKEND_ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = BACKEND_ROOT.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 
 INPUT_EXCEL = PROJECT_ROOT / "reports" / "Remaining_To_Shoot_By_Location.xlsx"
 OUTPUT_EXCEL = PROJECT_ROOT / "reports" / "Physical_Shoot_List_Grouped.xlsx"
