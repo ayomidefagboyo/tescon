@@ -55,8 +55,8 @@ from app.services.cloudflare_r2 import get_r2_storage  # noqa: E402
 # -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
-TEMPLATE_FILE = PROJECT_ROOT / "EGTL_Photo_Project_Weekly Report (June 9th, 2026).xlsx"
-MASTER_CATALOG = BACKEND_ROOT / "Total EGTL Photo Project.xlsx"
+TEMPLATE_FILE = PROJECT_ROOT / "archive" / "reports" / "EGTL_Photo_Project_Weekly Report (June 9th, 2026).xlsx"
+MASTER_CATALOG = BACKEND_ROOT / "data" / "Total EGTL Photo Project.xlsx"
 OUTPUT_DIR = PROJECT_ROOT  # save next to the template
 
 DATA_SHEET = "Data"
