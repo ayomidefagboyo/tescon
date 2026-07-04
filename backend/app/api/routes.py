@@ -42,7 +42,6 @@ storage = LocalStorage(
     cleanup_ttl_hours=int(os.getenv("CLEANUP_TTL_HOURS", "24"))
 )
 
-
 def _safe_upload_filename(filename: Optional[str], index: int) -> str:
     """Return a basename safe for use inside an R2 key."""
     fallback = f"image_{index}.jpg"
@@ -52,6 +51,59 @@ def _safe_upload_filename(filename: Optional[str], index: int) -> str:
     safe_name = Path(filename.replace("\\", "/")).name.strip()
     return safe_name or fallback
 
+
+def _resolve_symbol(symbol_number: str) -> dict:
+    """
+    Look up the canonical symbol number from the Excel catalog.
+
+    Accepts any form the user may type (with or without leading zeros)
+    and returns the full part_info dict whose 'symbol_number' key contains
+    the exact string stored in R2.  Raises HTTP 404 if not found.
+    """
+    excel_service = get_excel_parts_service()
+    if excel_service.unique_parts is None:
+        raise HTTPException(
+            status_code=503,
+            detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
+        )
+    part_info = excel_service.get_part_info(symbol_number)
+    if not part_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
+        )
+    return part_info
+
+
+def _check_r2_duplicate(symbol_number: str):
+    """
+    Raise HTTP 409 if processed or raw images already exist in R2
+    for *symbol_number* (which must already be the canonical form).
+    Silently ignores R2 connectivity errors so a temporary outage
+    never blocks the field team.
+    """
+    drive_storage = get_r2_storage()
+    if not drive_storage:
+        return
+    try:
+        for prefix in (f"parts/{symbol_number}/", f"raw/{symbol_number}/"):
+            resp = drive_storage.s3_client.list_objects_v2(
+                Bucket=drive_storage.bucket_name,
+                Prefix=prefix,
+                MaxKeys=1
+            )
+            if resp.get('Contents'):
+                location = "parts" if prefix.startswith("parts") else "raw"
+                msg = (
+                    f"Symbol '{symbol_number}' has already been processed and images exist in storage."
+                    if location == "parts"
+                    else f"Symbol '{symbol_number}' has already been uploaded and is queued for processing."
+                )
+                raise HTTPException(status_code=409, detail=msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️  R2 duplicate check failed (non-blocking): {e}")
 
 @router.post("/process/single")
 async def process_single_image(
@@ -328,58 +380,8 @@ async def get_part_info(symbol_number: str):
 
     Used for autocomplete/search in frontend.
     """
-    excel_service = get_excel_parts_service()
-
-    if excel_service.unique_parts is None:
-        raise HTTPException(
-            status_code=503,
-            detail="No Excel file loaded. Upload Excel file via /api/excel/upload"
-        )
-
-    # Check R2 storage for existing images (both raw and processed)
-    drive_storage = get_r2_storage()
-    if drive_storage:
-        try:
-            # Check for processed images in parts/ folder
-            parts_prefix = f"parts/{symbol_number}/"
-            parts_response = drive_storage.s3_client.list_objects_v2(
-                Bucket=drive_storage.bucket_name,
-                Prefix=parts_prefix,
-                MaxKeys=1
-            )
-            if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Symbol number '{symbol_number}' has already been processed. Processed images exist in storage."
-                )
-            
-            # Check for raw images in raw/ folder (uploaded but not yet processed)
-            raw_prefix = f"raw/{symbol_number}/"
-            raw_response = drive_storage.s3_client.list_objects_v2(
-                Bucket=drive_storage.bucket_name,
-                Prefix=raw_prefix,
-                MaxKeys=1
-            )
-            if 'Contents' in raw_response and len(raw_response['Contents']) > 0:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Symbol number '{symbol_number}' has already been uploaded and is queued for processing. Please check the tracking dashboard."
-                )
-        except drive_storage.s3_client.exceptions.NoSuchKey:
-            pass  # No existing images, OK to proceed
-        except HTTPException:
-            raise  # Re-raise our 409 error
-        except Exception as e:
-            # Log but don't block if check fails
-            print(f"⚠️  Could not check R2 for duplicates: {e}")
-
-    part_info = excel_service.get_part_info(symbol_number)
-    if not part_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
-        )
-
+    part_info = _resolve_symbol(symbol_number)
+    _check_r2_duplicate(part_info['symbol_number'])
     return PartInfo(**part_info)
 
 
@@ -436,42 +438,9 @@ async def initiate_direct_part_upload(
             detail="Cloudflare R2 not configured. Check R2 environment variables."
         )
 
-    try:
-        parts_prefix = f"parts/{symbol_number}/"
-        parts_response = drive_storage.s3_client.list_objects_v2(
-            Bucket=drive_storage.bucket_name,
-            Prefix=parts_prefix,
-            MaxKeys=1
-        )
-        if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Part {symbol_number} already has processed images in storage. Please use a different symbol number or delete existing images first."
-            )
-
-        raw_prefix = f"raw/{symbol_number}/"
-        raw_response = drive_storage.s3_client.list_objects_v2(
-            Bucket=drive_storage.bucket_name,
-            Prefix=raw_prefix,
-            MaxKeys=1
-        )
-        if 'Contents' in raw_response and len(raw_response['Contents']) > 0:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Part {symbol_number} has already been uploaded and is queued for processing. Please check the tracking dashboard or wait for processing to complete."
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Could not check R2 duplicates: {str(e)}")
-
-    excel_service = get_excel_parts_service()
-    part_info = excel_service.get_part_info(symbol_number)
-    if not part_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
-        )
+    part_info = _resolve_symbol(symbol_number)
+    real_symbol = part_info['symbol_number']
+    _check_r2_duplicate(real_symbol)
 
     job_id = f"job_daily_{datetime.now().strftime('%Y%m%d')}"
     timestamp = datetime.now().strftime('%H%M%S%f')
@@ -480,7 +449,7 @@ async def initiate_direct_part_upload(
     for i, file_info in enumerate(payload.files, start=1):
         content_type = file_info.content_type or "application/octet-stream"
         filename = _safe_upload_filename(file_info.filename, i)
-        r2_key = f"raw/{symbol_number}/{job_id}_{timestamp}_{i:02d}_{filename}"
+        r2_key = f"raw/{real_symbol}/{job_id}_{timestamp}_{i:02d}_{filename}"
         upload_url = drive_storage.generate_presigned_put_url(
             r2_key,
             content_type=content_type,
@@ -497,7 +466,7 @@ async def initiate_direct_part_upload(
     return DirectUploadInitResponse(
         job_id=job_id,
         status=JobStatus.QUEUED,
-        symbol_number=symbol_number,
+        symbol_number=real_symbol,
         upload_targets=upload_targets,
         message=f"Prepared direct upload for {len(upload_targets)} images"
     )
@@ -691,58 +660,15 @@ async def process_part_images_async(
     2. Add to daily batch job
     3. Process at 7 PM daily
     """
-    # Quick validation
     if not files or len(files) == 0:
         raise HTTPException(status_code=400, detail="No images provided")
 
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed")
 
-    # Check R2 storage for existing images (both raw and processed)
-    drive_storage = get_r2_storage()
-    if drive_storage:
-        try:
-            # Check for processed images in parts/ folder
-            parts_prefix = f"parts/{symbol_number}/"
-            parts_response = drive_storage.s3_client.list_objects_v2(
-                Bucket=drive_storage.bucket_name,
-                Prefix=parts_prefix,
-                MaxKeys=1
-            )
-            if 'Contents' in parts_response and len(parts_response['Contents']) > 0:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Part {symbol_number} already has processed images in storage. Please use a different symbol number or delete existing images first."
-                )
-            
-            # Check for raw images in raw/ folder (uploaded but not yet processed)
-            raw_prefix = f"raw/{symbol_number}/"
-            raw_response = drive_storage.s3_client.list_objects_v2(
-                Bucket=drive_storage.bucket_name,
-                Prefix=raw_prefix,
-                MaxKeys=1
-            )
-            if 'Contents' in raw_response and len(raw_response['Contents']) > 0:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Part {symbol_number} has already been uploaded and is queued for processing. Please check the tracking dashboard or wait for processing to complete."
-                )
-        except drive_storage.s3_client.exceptions.NoSuchKey:
-            pass  # No existing images, OK to proceed
-        except HTTPException:
-            raise  # Re-raise our 409 error
-        except Exception as e:
-            # Log but don't block upload if check fails
-            print(f"⚠️  Could not check for duplicates: {e}")
-
-    # Get part info from Excel catalog
-    excel_service = get_excel_parts_service()
-    part_info = excel_service.get_part_info(symbol_number)
-    if not part_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Symbol number '{symbol_number}' not found in Excel catalog"
-        )
+    part_info = _resolve_symbol(symbol_number)
+    real_symbol = part_info['symbol_number']
+    _check_r2_duplicate(real_symbol)
 
     # Extract part info for job metadata
     description = part_info.get("description", "")
@@ -775,7 +701,7 @@ async def process_part_images_async(
     asyncio.create_task(
         upload_to_daily_job_background(
             job_id=job_id,
-            symbol_number=symbol_number,
+            symbol_number=real_symbol,
             file_data=file_data,
             description=description,
             desc1=desc1,
@@ -797,7 +723,7 @@ async def process_part_images_async(
     return JobResponse(
         job_id=job_id,
         status="queued",
-        message=f"Part {symbol_number} queued for processing. Upload continuing in background. You can add more parts now!"
+        message=f"Part {real_symbol} queued for processing. Upload continuing in background. You can add more parts now!"
     )
 
 
